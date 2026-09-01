@@ -1,6 +1,7 @@
 import type {
   AvaliacaoCompetencia,
   AvaliacaoPergunta,
+  AvaliacaoSecao,
   ChecklistStatus,
   CriticidadeConsequencia,
   Parecer,
@@ -155,28 +156,37 @@ export function calcularNotasPorCompetencia(
 }
 
 /**
- * Média ponderada de todas as perguntas da avaliação. Perguntas de checklist têm o peso
- * dividido pela quantidade de itens de checklist na mesma seção, para que um grupo de
- * verificação com muitos itens não pese mais que uma única pergunta comum.
+ * Nota de uma seção: média simples (sem peso por pergunta) das perguntas dessa seção —
+ * cada pergunta vale o mesmo dentro da seção, então "seção vale 3 pontos com 15 itens"
+ * significa cada item vale 3/15 = 0,20 automaticamente.
  */
-export function calcularNotaGeral(
+export function calcularNotaSecao(
+  secaoId: string,
   perguntas: AvaliacaoPergunta[],
   respostas: Resposta[]
 ): number | null {
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
+  const pontuacoes = perguntas
+    .filter((p) => p.secao_id === secaoId)
+    .map((p) => respostaPorPergunta.get(p.id)?.pontuacao ?? null)
+    .filter((p): p is number => p !== null);
+  if (pontuacoes.length === 0) return null;
+  return pontuacoes.reduce((acc, p) => acc + p, 0) / pontuacoes.length;
+}
 
-  const qtdChecklistPorSecao = new Map<string, number>();
-  for (const p of perguntas) {
-    if (p.tipo !== "checklist") continue;
-    qtdChecklistPorSecao.set(p.secao_id, (qtdChecklistPorSecao.get(p.secao_id) ?? 0) + 1);
-  }
-
-  const itens = perguntas.map((p) => {
-    const qtdChecklist = qtdChecklistPorSecao.get(p.secao_id) ?? 0;
-    const peso = p.tipo === "checklist" && qtdChecklist > 0 ? p.peso / qtdChecklist : p.peso;
-    return { peso, pontuacao: respostaPorPergunta.get(p.id)?.pontuacao ?? null };
-  });
-
+/**
+ * Nota geral: média ponderada das seções, onde o peso de cada seção é quantos pontos ela
+ * vale (a soma dos pontos das seções sempre é 10).
+ */
+export function calcularNotaGeral(
+  secoes: AvaliacaoSecao[],
+  perguntas: AvaliacaoPergunta[],
+  respostas: Resposta[]
+): number | null {
+  const itens = secoes.map((s) => ({
+    peso: s.peso,
+    pontuacao: calcularNotaSecao(s.id, perguntas, respostas),
+  }));
   return mediaPonderada(itens);
 }
 

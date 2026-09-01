@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PerguntaEditor } from "@/components/pergunta-editor";
+import { ChecklistBulkAdd } from "@/components/checklist-bulk-add";
 import type { EquipamentoTipo } from "@/lib/types";
 import {
   saveAvaliacaoBuilder,
@@ -70,6 +71,8 @@ export function AvaliacaoBuilder({
   const router = useRouter();
   const [state, setState] = useState<BuilderState>(initial);
   const [pending, startTransition] = useTransition();
+
+  const somaPontosSecoes = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
 
   function save(publicar: boolean) {
     startTransition(async () => {
@@ -164,7 +167,9 @@ export function AvaliacaoBuilder({
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Seções</CardTitle>
+          <CardTitle className="text-base">
+            Seções {state.secoes.length > 0 ? `— soma de pontos: ${somaPontosSecoes}/10` : ""}
+          </CardTitle>
           {editavel ? (
             <Button
               variant="outline"
@@ -190,6 +195,22 @@ export function AvaliacaoBuilder({
                 setState((s) => ({
                   ...s,
                   secoes: s.secoes.map((x) => (x.id === secao.id ? { ...x, nome: e.target.value } : x)),
+                }))
+              }
+            />
+            <Input
+              disabled={!editavel}
+              type="number"
+              min={0}
+              max={10}
+              step={0.1}
+              className="h-9 w-28"
+              placeholder="Pontos"
+              value={secao.peso}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  secoes: s.secoes.map((x) => (x.id === secao.id ? { ...x, peso: Number(e.target.value) } : x)),
                 }))
               }
             />
@@ -249,6 +270,29 @@ export function AvaliacaoBuilder({
               >
                 <Plus className="size-3.5" /> Pergunta
               </Button>
+            ) : null}
+            {editavel ? (
+              <ChecklistBulkAdd
+                onAdd={(itens) =>
+                  setState((s) => ({
+                    ...s,
+                    secoes: s.secoes.map((sec) =>
+                      sec.id === secao.id
+                        ? {
+                            ...sec,
+                            perguntas: [
+                              ...sec.perguntas,
+                              ...itens.map((enunciado, i) => ({
+                                ...novaPergunta(sec.perguntas.length + i),
+                                enunciado,
+                              })),
+                            ],
+                          }
+                        : sec
+                    ),
+                  }))
+                }
+              />
             ) : null}
           </CardContent>
         </Card>

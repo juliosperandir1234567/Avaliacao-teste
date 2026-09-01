@@ -44,6 +44,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       matricula: data.aplicacao.colaborador_snapshot?.matricula ?? "-",
       cargo: data.aplicacao.colaborador_snapshot?.cargo ?? "-",
       estrutura: data.aplicacao.colaborador_snapshot?.estrutura ?? "-",
+      possuiCnhInterno: data.aplicacao.colaborador_snapshot?.possui_cnh ?? null,
+      categoriaCnhInterno: data.aplicacao.colaborador_snapshot?.categoria_cnh ?? null,
       candidatoExterno: data.aplicacao.candidatos_externos ?? null,
       avaliadorNome: avaliadorProfile?.nome ?? "-",
       secoes: data.secoes,

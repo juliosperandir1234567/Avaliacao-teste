@@ -85,6 +85,8 @@ export function RelatorioDocument({
   matricula,
   cargo,
   estrutura,
+  possuiCnhInterno,
+  categoriaCnhInterno,
   candidatoExterno,
   avaliadorNome,
   secoes,
@@ -104,6 +106,8 @@ export function RelatorioDocument({
   matricula: string;
   cargo: string;
   estrutura: string;
+  possuiCnhInterno: boolean | null;
+  categoriaCnhInterno: string | null;
   candidatoExterno: {
     telefone: string | null;
     possui_cnh: boolean | null;
@@ -165,6 +169,12 @@ export function RelatorioDocument({
               <View style={styles.field}>
                 <Text style={styles.label}>Estrutura</Text>
                 <Text style={styles.value}>{estrutura}</Text>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>CNH</Text>
+                <Text style={styles.value}>
+                  {possuiCnhInterno ? categoriaCnhInterno || "Sim" : possuiCnhInterno === false ? "Não" : "-"}
+                </Text>
               </View>
             </>
           ) : (

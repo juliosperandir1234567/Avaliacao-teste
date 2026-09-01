@@ -118,19 +118,6 @@ export function PerguntaEditor({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">Peso</Label>
-          <Input
-            type="number"
-            min={0}
-            step={0.5}
-            className="h-9"
-            value={pergunta.peso}
-            onChange={(e) => update({ peso: Number(e.target.value) })}
-          />
-        </div>
-
       </div>
 
       <PerguntaConfigFields pergunta={pergunta} onChange={update} onAddAlternativa={addAlternativa} />

@@ -16,6 +16,8 @@ export interface Colaborador {
   nome: string;
   cargo: string;
   estrutura: string;
+  possui_cnh: boolean | null;
+  categoria_cnh: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
@@ -212,6 +214,8 @@ export interface ColaboradorSnapshot {
   nome: string;
   cargo: string;
   estrutura: string;
+  possui_cnh?: boolean | null;
+  categoria_cnh?: string | null;
 }
 
 export interface AvaliacaoAplicada {
@@ -287,21 +291,23 @@ export const PARECER_LABELS: Record<Parecer, string> = {
 };
 
 export const PERGUNTA_TIPO_LABELS: Record<PerguntaTipo, string> = {
-  multipla_escolha: "Múltipla escolha",
-  multiplas_respostas: "Múltiplas respostas",
+  multipla_escolha: "Resposta única",
+  multiplas_respostas: "Múltipla escolha",
   verdadeiro_falso: "Verdadeiro ou falso",
   sim_nao: "Sim ou não",
-  aberta_curta: "Resposta única",
+  aberta_curta: "Resposta curta",
   aberta_longa: "Resposta escrita",
   numerica: "Numérica",
   checklist: "Checklist",
 };
 
 /** Tipos oferecidos no construtor. Os demais tipos continuam funcionando (dados antigos,
- * banco de questões, relatórios) mas ficam fora da lista para simplificar a criação. */
+ * banco de questões, relatórios) mas ficam fora da lista para simplificar a criação.
+ * "Múltipla escolha" (multiplas_respostas) permite marcar mais de uma alternativa certa;
+ * "Resposta única" (multipla_escolha) permite marcar só uma. */
 export const TIPOS_PERGUNTA_DISPONIVEIS: PerguntaTipo[] = [
+  "multiplas_respostas",
   "multipla_escolha",
-  "aberta_curta",
   "aberta_longa",
   "sim_nao",
   "checklist",

@@ -181,13 +181,13 @@ export async function finalizarAplicacao(
   const runnerData = await getAplicacaoRunnerData(aplicacaoId);
   if (!runnerData) return { error: "Avaliação não encontrada" };
 
-  const { perguntas, respostas, competencias, aplicacao } = runnerData;
+  const { secoes, perguntas, respostas, competencias, aplicacao } = runnerData;
 
   if (!skipAssinaturaCheck && (!assinaturas?.avaliadoPath || !assinaturas?.avaliadorPath)) {
     return { error: "É necessário coletar a assinatura do avaliado e do avaliador antes de finalizar." };
   }
 
-  const notaGeral = calcularNotaGeral(perguntas, respostas);
+  const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
   const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
   const parecerSugerido = gerarParecerSugerido({
@@ -357,8 +357,8 @@ export async function corrigirResposta(
   // Recalcula nota geral / competencias / falhas / parecer com o novo conjunto de respostas.
   const runnerData = await getAplicacaoRunnerData(aplicacaoId);
   if (runnerData) {
-    const { perguntas, respostas, competencias, aplicacao } = runnerData;
-    const notaGeral = calcularNotaGeral(perguntas, respostas);
+    const { secoes, perguntas, respostas, competencias, aplicacao } = runnerData;
+    const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
     const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
     const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
     const parecerSugerido = gerarParecerSugerido({

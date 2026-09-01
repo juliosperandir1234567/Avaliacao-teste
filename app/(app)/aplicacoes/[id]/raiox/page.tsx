@@ -87,6 +87,16 @@ export default async function RaioXPage({
               <Info label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
               <Info label="Função" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
               <Info label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
+              <Info
+                label="CNH"
+                value={
+                  aplicacao.colaborador_snapshot?.possui_cnh
+                    ? aplicacao.colaborador_snapshot.categoria_cnh || "Sim"
+                    : aplicacao.colaborador_snapshot?.possui_cnh === false
+                      ? "Não"
+                      : "-"
+                }
+              />
             </>
           ) : (
             <>
