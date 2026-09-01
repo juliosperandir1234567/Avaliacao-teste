@@ -1,0 +1,228 @@
+import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { PARECER_LABELS, PERGUNTA_TIPO_LABELS } from "@/lib/types";
+import type {
+  AvaliacaoAplicada,
+  AvaliacaoCompetencia,
+  AvaliacaoPergunta,
+  AvaliacaoSecao,
+  ChecklistStatus,
+  Parecer,
+  Resposta,
+} from "@/lib/types";
+
+const styles = StyleSheet.create({
+  page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827" },
+  h1: { fontSize: 16, fontWeight: 700, marginBottom: 2 },
+  h2: { fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 6, borderBottom: "1 solid #d1d5db", paddingBottom: 3 },
+  sub: { fontSize: 9, color: "#6b7280", marginBottom: 10 },
+  row: { flexDirection: "row", flexWrap: "wrap", marginBottom: 8 },
+  field: { width: "50%", marginBottom: 4 },
+  label: { color: "#6b7280", fontSize: 8 },
+  value: { fontSize: 9.5, fontWeight: 500 },
+  notaBox: { alignItems: "center", marginVertical: 10 },
+  notaValor: { fontSize: 28, fontWeight: 700 },
+  compGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  compItem: { width: "31%", border: "1 solid #e5e7eb", borderRadius: 4, padding: 6, marginBottom: 6 },
+  pergunta: { marginBottom: 8, paddingBottom: 6, borderBottom: "0.5 solid #e5e7eb" },
+  perguntaTitulo: { fontWeight: 600, marginBottom: 2 },
+  perguntaMeta: { color: "#6b7280", fontSize: 8, marginBottom: 2 },
+  critico: { color: "#b91c1c", fontWeight: 700 },
+  assinaturas: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  assinaturaBox: { width: "45%", alignItems: "center" },
+  assinaturaImg: { width: 160, height: 70, objectFit: "contain", border: "1 solid #e5e7eb" },
+});
+
+function respostaTexto(pergunta: AvaliacaoPergunta, resposta: Resposta | undefined, alternativasTexto: Map<string, string>) {
+  if (!resposta?.resposta) return "Não respondida";
+  const v = resposta.resposta as Record<string, unknown>;
+  if ("alternativa_id" in v) return alternativasTexto.get(String(v.alternativa_id)) ?? "-";
+  if ("alternativa_ids" in v)
+    return (v.alternativa_ids as string[]).map((id) => alternativasTexto.get(id) ?? id).join(", ") || "-";
+  if ("valor_bool" in v) return v.valor_bool === null ? "-" : v.valor_bool ? "Sim/Verdadeiro" : "Não/Falso";
+  if ("status" in v) {
+    const labels: Record<ChecklistStatus, string> = {
+      sim: "Sim",
+      nao: "Não",
+      parcial: "Parcial",
+      nao_avaliado: "Não avaliado",
+    };
+    return labels[v.status as ChecklistStatus];
+  }
+  if ("valor_numerico" in v) return v.valor_numerico === null ? "-" : `${v.valor_numerico} ${pergunta.config.unidade ?? ""}`;
+  if ("texto" in v) return String(v.texto || "-");
+  return "-";
+}
+
+export function RelatorioDocument({
+  aplicacao,
+  avaliacaoNome,
+  pessoaNome,
+  matricula,
+  cargo,
+  estrutura,
+  avaliadorNome,
+  secoes,
+  perguntas,
+  respostas,
+  alternativasTexto,
+  competencias,
+  assinaturaAvaliadoUrl,
+  assinaturaAvaliadorUrl,
+  logoUrl,
+  nomeEmpresa,
+}: {
+  aplicacao: AvaliacaoAplicada;
+  avaliacaoNome: string;
+  pessoaNome: string;
+  matricula: string;
+  cargo: string;
+  estrutura: string;
+  avaliadorNome: string;
+  secoes: AvaliacaoSecao[];
+  perguntas: AvaliacaoPergunta[];
+  respostas: Resposta[];
+  alternativasTexto: Map<string, string>;
+  competencias: AvaliacaoCompetencia[];
+  assinaturaAvaliadoUrl: string | null;
+  assinaturaAvaliadorUrl: string | null;
+  logoUrl: string | null;
+  nomeEmpresa: string | null;
+}) {
+  const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
+  const secoesOrdenadas = [...secoes].sort((a, b) => a.ordem - b.ordem);
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {logoUrl ? (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image src={logoUrl} style={{ height: 32, maxWidth: 140, marginBottom: 8, objectFit: "contain" }} />
+        ) : nomeEmpresa ? (
+          <Text style={{ fontSize: 11, fontWeight: 700, marginBottom: 4 }}>{nomeEmpresa}</Text>
+        ) : null}
+        <Text style={styles.h1}>Relatório de Avaliação</Text>
+        <Text style={styles.sub}>
+          {avaliacaoNome} — versão {aplicacao.avaliacao_versao} · {new Date(aplicacao.data).toLocaleDateString("pt-BR")}
+        </Text>
+
+        <View style={styles.row}>
+          <View style={styles.field}>
+            <Text style={styles.label}>Nome</Text>
+            <Text style={styles.value}>{pessoaNome}</Text>
+          </View>
+          {aplicacao.tipo_pessoa === "interno" ? (
+            <>
+              <View style={styles.field}>
+                <Text style={styles.label}>Matrícula</Text>
+                <Text style={styles.value}>{matricula}</Text>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Cargo atual</Text>
+                <Text style={styles.value}>{cargo}</Text>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Estrutura</Text>
+                <Text style={styles.value}>{estrutura}</Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.field}>
+              <Text style={styles.label}>Tipo</Text>
+              <Text style={styles.value}>Candidato externo</Text>
+            </View>
+          )}
+          <View style={styles.field}>
+            <Text style={styles.label}>Função avaliada</Text>
+            <Text style={styles.value}>{aplicacao.funcao_avaliada}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Avaliador</Text>
+            <Text style={styles.value}>{avaliadorNome}</Text>
+          </View>
+        </View>
+
+        <View style={styles.notaBox}>
+          <Text style={styles.label}>NOTA GERAL</Text>
+          <Text style={styles.notaValor}>
+            {aplicacao.nota_geral !== null ? aplicacao.nota_geral.toFixed(1) : "-"} / 10
+          </Text>
+        </View>
+
+        {competencias.length > 0 ? (
+          <>
+            <Text style={styles.h2}>Competências</Text>
+            <View style={styles.compGrid}>
+              {competencias.map((c) => (
+                <View key={c.id} style={styles.compItem}>
+                  <Text style={styles.label}>{c.nome}</Text>
+                  <Text style={styles.value}>
+                    {aplicacao.notas_por_competencia?.[c.nome]?.toFixed(1) ?? "-"}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <Text style={styles.h2}>
+          Falhas críticas: {aplicacao.falhas_criticas_count}
+          {aplicacao.interrompida_seguranca ? " — INTERROMPIDA POR SEGURANÇA" : ""}
+        </Text>
+        {aplicacao.motivo_interrupcao ? <Text>{aplicacao.motivo_interrupcao}</Text> : null}
+
+        <Text style={styles.h2}>Parecer</Text>
+        <Text>Sugerido: {aplicacao.parecer_sugerido ? PARECER_LABELS[aplicacao.parecer_sugerido as Parecer] : "-"}</Text>
+        <Text>Final: {aplicacao.parecer_final ? PARECER_LABELS[aplicacao.parecer_final as Parecer] : "-"}</Text>
+        {aplicacao.parecer_justificativa ? <Text>Justificativa: {aplicacao.parecer_justificativa}</Text> : null}
+      </Page>
+
+      {secoesOrdenadas.map((secao) => (
+        <Page key={secao.id} size="A4" style={styles.page}>
+          <Text style={styles.h2}>{secao.nome}</Text>
+          {perguntas
+            .filter((p) => p.secao_id === secao.id)
+            .sort((a, b) => a.ordem - b.ordem)
+            .map((p) => {
+              const r = respostaPorPergunta.get(p.id);
+              return (
+                <View key={p.id} style={styles.pergunta}>
+                  <Text style={styles.perguntaTitulo}>{p.enunciado}</Text>
+                  <Text style={styles.perguntaMeta}>
+                    {PERGUNTA_TIPO_LABELS[p.tipo]}
+                    {p.item_critico ? " · ITEM CRÍTICO" : ""} · Nota: {r?.pontuacao?.toFixed(1) ?? "-"}
+                  </Text>
+                  <Text>Resposta: {respostaTexto(p, r, alternativasTexto)}</Text>
+                  {r?.observacao ? <Text style={styles.perguntaMeta}>Obs: {r.observacao}</Text> : null}
+                  {r?.item_critico_falhou ? <Text style={styles.critico}>FALHA CRÍTICA</Text> : null}
+                </View>
+              );
+            })}
+        </Page>
+      ))}
+
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.h2}>Assinaturas</Text>
+        <View style={styles.assinaturas}>
+          <View style={styles.assinaturaBox}>
+            {assinaturaAvaliadoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={assinaturaAvaliadoUrl} style={styles.assinaturaImg} />
+            ) : (
+              <Text>Não coletada</Text>
+            )}
+            <Text style={styles.label}>Avaliado — {pessoaNome}</Text>
+          </View>
+          <View style={styles.assinaturaBox}>
+            {assinaturaAvaliadorUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={assinaturaAvaliadorUrl} style={styles.assinaturaImg} />
+            ) : (
+              <Text>Não coletada</Text>
+            )}
+            <Text style={styles.label}>Avaliador — {avaliadorNome}</Text>
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
+}
