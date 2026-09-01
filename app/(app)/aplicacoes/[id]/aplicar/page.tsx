@@ -28,7 +28,6 @@ export default async function AplicarPage({
       perguntas={data.perguntas}
       alternativas={data.alternativas}
       respostasIniciais={data.respostas}
-      exigeAssinatura={data.aplicacao.avaliacoes.exige_assinatura}
     />
   );
 }

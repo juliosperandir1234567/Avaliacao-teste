@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { PARECER_LABELS, PERGUNTA_TIPO_LABELS } from "@/lib/types";
 import type {
+  AvaliacaoAlternativa,
   AvaliacaoAplicada,
   AvaliacaoCompetencia,
   AvaliacaoPergunta,
@@ -53,6 +54,30 @@ function respostaTexto(pergunta: AvaliacaoPergunta, resposta: Resposta | undefin
   return "-";
 }
 
+/** Resposta correta (gabarito), quando o tipo de pergunta tem um gabarito objetivo. */
+function respostaCorretaTexto(pergunta: AvaliacaoPergunta, alternativasDaPergunta: AvaliacaoAlternativa[]) {
+  switch (pergunta.tipo) {
+    case "multipla_escolha":
+    case "multiplas_respostas":
+      return alternativasDaPergunta.filter((a) => a.correta).map((a) => a.texto).join(", ") || "-";
+    case "verdadeiro_falso":
+    case "sim_nao":
+      if (pergunta.config.resposta_correta === undefined) return "Correção manual";
+      return pergunta.config.resposta_correta
+        ? pergunta.tipo === "sim_nao"
+          ? "Sim"
+          : "Verdadeiro"
+        : pergunta.tipo === "sim_nao"
+          ? "Não"
+          : "Falso";
+    case "numerica":
+      if (pergunta.config.valor_min === undefined && pergunta.config.valor_max === undefined) return "Correção manual";
+      return `${pergunta.config.valor_min ?? "-"} a ${pergunta.config.valor_max ?? "-"} ${pergunta.config.unidade ?? ""}`.trim();
+    default:
+      return null;
+  }
+}
+
 export function RelatorioDocument({
   aplicacao,
   avaliacaoNome,
@@ -60,10 +85,12 @@ export function RelatorioDocument({
   matricula,
   cargo,
   estrutura,
+  candidatoExterno,
   avaliadorNome,
   secoes,
   perguntas,
   respostas,
+  alternativas,
   alternativasTexto,
   competencias,
   assinaturaAvaliadoUrl,
@@ -77,10 +104,19 @@ export function RelatorioDocument({
   matricula: string;
   cargo: string;
   estrutura: string;
+  candidatoExterno: {
+    telefone: string | null;
+    possui_cnh: boolean | null;
+    categoria_cnh: string | null;
+    funcao_pretendida: string | null;
+    empresas_anteriores: string | null;
+    observacoes: string | null;
+  } | null;
   avaliadorNome: string;
   secoes: AvaliacaoSecao[];
   perguntas: AvaliacaoPergunta[];
   respostas: Resposta[];
+  alternativas: AvaliacaoAlternativa[];
   alternativasTexto: Map<string, string>;
   competencias: AvaliacaoCompetencia[];
   assinaturaAvaliadoUrl: string | null;
@@ -90,6 +126,12 @@ export function RelatorioDocument({
 }) {
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const secoesOrdenadas = [...secoes].sort((a, b) => a.ordem - b.ordem);
+  const alternativasPorPergunta = new Map<string, AvaliacaoAlternativa[]>();
+  for (const a of alternativas) {
+    const lista = alternativasPorPergunta.get(a.pergunta_id) ?? [];
+    lista.push(a);
+    alternativasPorPergunta.set(a.pergunta_id, lista);
+  }
 
   return (
     <Document>
@@ -126,10 +168,32 @@ export function RelatorioDocument({
               </View>
             </>
           ) : (
-            <View style={styles.field}>
-              <Text style={styles.label}>Tipo</Text>
-              <Text style={styles.value}>Candidato externo</Text>
-            </View>
+            <>
+              <View style={styles.field}>
+                <Text style={styles.label}>Telefone</Text>
+                <Text style={styles.value}>{candidatoExterno?.telefone ?? "-"}</Text>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>CNH</Text>
+                <Text style={styles.value}>
+                  {candidatoExterno?.possui_cnh
+                    ? candidatoExterno.categoria_cnh || "Sim"
+                    : candidatoExterno?.possui_cnh === false
+                      ? "Não"
+                      : "-"}
+                </Text>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Último emprego</Text>
+                <Text style={styles.value}>{candidatoExterno?.empresas_anteriores ?? "-"}</Text>
+              </View>
+              {candidatoExterno?.observacoes ? (
+                <View style={styles.field}>
+                  <Text style={styles.label}>Observações</Text>
+                  <Text style={styles.value}>{candidatoExterno.observacoes}</Text>
+                </View>
+              ) : null}
+            </>
           )}
           <View style={styles.field}>
             <Text style={styles.label}>Função avaliada</Text>
@@ -184,6 +248,8 @@ export function RelatorioDocument({
             .sort((a, b) => a.ordem - b.ordem)
             .map((p) => {
               const r = respostaPorPergunta.get(p.id);
+              const errada = r?.pontuacao === 0;
+              const correta = respostaCorretaTexto(p, alternativasPorPergunta.get(p.id) ?? []);
               return (
                 <View key={p.id} style={styles.pergunta}>
                   <Text style={styles.perguntaTitulo}>{p.enunciado}</Text>
@@ -191,7 +257,10 @@ export function RelatorioDocument({
                     {PERGUNTA_TIPO_LABELS[p.tipo]}
                     {p.item_critico ? " · ITEM CRÍTICO" : ""} · Nota: {r?.pontuacao?.toFixed(1) ?? "-"}
                   </Text>
-                  <Text>Resposta: {respostaTexto(p, r, alternativasTexto)}</Text>
+                  <Text style={errada ? styles.critico : undefined}>
+                    Resposta marcada: {respostaTexto(p, r, alternativasTexto)}
+                  </Text>
+                  {correta && correta !== "Correção manual" ? <Text>Resposta correta: {correta}</Text> : null}
                   {r?.observacao ? <Text style={styles.perguntaMeta}>Obs: {r.observacao}</Text> : null}
                   {r?.item_critico_falhou ? <Text style={styles.critico}>FALHA CRÍTICA</Text> : null}
                 </View>

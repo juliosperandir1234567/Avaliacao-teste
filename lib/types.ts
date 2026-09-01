@@ -92,6 +92,7 @@ export interface Avaliacao {
   nota_minima: number;
   tempo_maximo_min: number | null;
   max_tentativas: number | null;
+  equipamento_tipo_id: string | null;
   exige_assinatura: boolean;
   possui_itens_criticos: boolean;
   permite_nova_tentativa: boolean;
@@ -201,6 +202,7 @@ export const APLICACAO_STATUS_LABELS: Record<AplicacaoStatus, string> = {
 export type Parecer =
   | "apto"
   | "apto_acompanhamento"
+  | "reprovado"
   | "necessita_treinamento"
   | "nova_avaliacao"
   | "nao_recomendado";
@@ -278,6 +280,7 @@ export interface Resposta {
 export const PARECER_LABELS: Record<Parecer, string> = {
   apto: "Apto",
   apto_acompanhamento: "Apto com acompanhamento",
+  reprovado: "Reprovado",
   necessita_treinamento: "Necessita treinamento",
   nova_avaliacao: "Nova avaliação",
   nao_recomendado: "Não recomendado no momento",

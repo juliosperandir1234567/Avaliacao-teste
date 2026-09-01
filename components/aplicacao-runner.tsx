@@ -74,7 +74,6 @@ export function AplicacaoRunner({
   perguntas,
   alternativas,
   respostasIniciais,
-  exigeAssinatura,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -82,7 +81,6 @@ export function AplicacaoRunner({
   perguntas: AvaliacaoPergunta[];
   alternativas: AvaliacaoAlternativa[];
   respostasIniciais: Resposta[];
-  exigeAssinatura: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -134,6 +132,7 @@ export function AplicacaoRunner({
   const [motivoInterrupcao, setMotivoInterrupcao] = useState("");
   const [assinaturaAvaliadoPath, setAssinaturaAvaliadoPath] = useState<string | null>(null);
   const [assinaturaAvaliadorPath, setAssinaturaAvaliadorPath] = useState<string | null>(null);
+  const [observacaoFinal, setObservacaoFinal] = useState("");
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -285,20 +284,28 @@ export function AplicacaoRunner({
             <Row label="Falhas críticas" value={String(falhasCriticas.length)} highlight={falhasCriticas.length > 0} />
             <Row label="Nota preliminar" value={notaPreliminar !== null ? notaPreliminar.toFixed(1) : "-"} />
 
-            {exigeAssinatura ? (
-              <div className="flex flex-col gap-4 border-t pt-3 sm:flex-row">
-                <SignaturePad
-                  label="Assinatura do avaliado"
-                  captured={Boolean(assinaturaAvaliadoPath)}
-                  onCapture={(blob) => capturarAssinatura("avaliado", blob)}
-                />
-                <SignaturePad
-                  label="Assinatura do avaliador"
-                  captured={Boolean(assinaturaAvaliadorPath)}
-                  onCapture={(blob) => capturarAssinatura("avaliador", blob)}
-                />
-              </div>
-            ) : null}
+            <div className="flex flex-col gap-1.5 border-t pt-3">
+              <Label htmlFor="observacaoFinal">Observação final (parecer)</Label>
+              <Textarea
+                id="observacaoFinal"
+                value={observacaoFinal}
+                onChange={(e) => setObservacaoFinal(e.target.value)}
+                placeholder="Justificativa/observações para o parecer final"
+              />
+            </div>
+
+            <div className="flex flex-col gap-4 border-t pt-3 sm:flex-row">
+              <SignaturePad
+                label="Assinatura do avaliado"
+                captured={Boolean(assinaturaAvaliadoPath)}
+                onCapture={(blob) => capturarAssinatura("avaliado", blob)}
+              />
+              <SignaturePad
+                label="Assinatura do avaliador"
+                captured={Boolean(assinaturaAvaliadorPath)}
+                onCapture={(blob) => capturarAssinatura("avaliador", blob)}
+              />
+            </div>
 
             <div className="flex justify-between gap-2 pt-2">
               <Button variant="outline" onClick={() => setMostrarResumo(false)}>
@@ -308,14 +315,20 @@ export function AplicacaoRunner({
                 disabled={
                   pending ||
                   enviandoAssinatura ||
-                  (exigeAssinatura && (!assinaturaAvaliadoPath || !assinaturaAvaliadorPath))
+                  !assinaturaAvaliadoPath ||
+                  !assinaturaAvaliadorPath
                 }
                 onClick={() =>
                   startTransition(async () => {
-                    const result = await finalizarAplicacao(aplicacaoId, {
-                      avaliadoPath: assinaturaAvaliadoPath ?? undefined,
-                      avaliadorPath: assinaturaAvaliadorPath ?? undefined,
-                    });
+                    const result = await finalizarAplicacao(
+                      aplicacaoId,
+                      {
+                        avaliadoPath: assinaturaAvaliadoPath ?? undefined,
+                        avaliadorPath: assinaturaAvaliadorPath ?? undefined,
+                      },
+                      false,
+                      observacaoFinal.trim() || undefined
+                    );
                     if (result?.error) {
                       toast.error(result.error);
                       return;

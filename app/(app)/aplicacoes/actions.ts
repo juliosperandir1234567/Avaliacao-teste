@@ -45,7 +45,7 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
   const { data: aplicacao } = await supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "*, avaliacoes(nome, instrucoes_candidato, instrucoes_avaliador, nota_minima, exige_assinatura)"
+      "*, avaliacoes(nome, nota_minima, equipamento_tipo_id), candidatos_externos(nome, telefone, possui_cnh, categoria_cnh, funcao_pretendida, empresas_anteriores, observacoes)"
     )
     .eq("id", aplicacaoId)
     .single();
@@ -65,7 +65,7 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
     .order("ordem");
 
   const perguntas = (perguntasRaw ?? []).filter(
-    (p) => !p.equipamento_tipo_id || p.equipamento_tipo_id === aplicacao.equipamento_tipo_id
+    (p) => !p.equipamento_tipo_id || p.equipamento_tipo_id === aplicacao.avaliacoes.equipamento_tipo_id
   );
 
   const perguntaIds = perguntas.map((p) => p.id);
@@ -87,11 +87,18 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
     aplicacao: aplicacao as AvaliacaoAplicada & {
       avaliacoes: {
         nome: string;
-        instrucoes_candidato: string | null;
-        instrucoes_avaliador: string | null;
         nota_minima: number;
-        exige_assinatura: boolean;
+        equipamento_tipo_id: string | null;
       };
+      candidatos_externos: {
+        nome: string;
+        telefone: string | null;
+        possui_cnh: boolean | null;
+        categoria_cnh: string | null;
+        funcao_pretendida: string | null;
+        empresas_anteriores: string | null;
+        observacoes: string | null;
+      } | null;
     },
     secoes: (secoes ?? []) as AvaliacaoSecao[],
     perguntas: perguntas as AvaliacaoPergunta[],
@@ -165,7 +172,8 @@ export interface AssinaturasInput {
 export async function finalizarAplicacao(
   aplicacaoId: string,
   assinaturas?: AssinaturasInput,
-  skipAssinaturaCheck = false
+  skipAssinaturaCheck = false,
+  observacaoFinal?: string
 ) {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
@@ -175,12 +183,8 @@ export async function finalizarAplicacao(
 
   const { secoes, perguntas, respostas, competencias, aplicacao } = runnerData;
 
-  if (
-    !skipAssinaturaCheck &&
-    aplicacao.avaliacoes.exige_assinatura &&
-    (!assinaturas?.avaliadoPath || !assinaturas?.avaliadorPath)
-  ) {
-    return { error: "Esta avaliação exige a assinatura do avaliado e do avaliador antes de finalizar." };
+  if (!skipAssinaturaCheck && (!assinaturas?.avaliadoPath || !assinaturas?.avaliadorPath)) {
+    return { error: "É necessário coletar a assinatura do avaliado e do avaliador antes de finalizar." };
   }
 
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
@@ -205,6 +209,7 @@ export async function finalizarAplicacao(
       ...(assinaturas?.avaliadorPath ? { assinatura_avaliador_path: assinaturas.avaliadorPath } : {}),
       parecer_sugerido: parecerSugerido,
       parecer_final: parecerSugerido,
+      ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
       finalizada_em: new Date().toISOString(),
       finalizada_por: profile.id,
     })

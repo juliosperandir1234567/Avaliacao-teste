@@ -30,6 +30,7 @@ export default async function AvaliacoesPage() {
         <h1 className="text-xl font-semibold">Banco de Avaliações</h1>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" render={<Link href="/avaliacoes/equipamentos">Equipamentos</Link>} />
+          <Button variant="outline" render={<Link href="/avaliacoes/importar-word">Importar do Word</Link>} />
           <Button render={<Link href="/avaliacoes/novo">+ Criar Nova Avaliação</Link>} />
         </div>
       </div>

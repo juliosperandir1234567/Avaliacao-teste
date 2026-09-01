@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, GraduationCap, XCircle, ShieldAlert } from "lucide-react";
+import { CheckCircle2, AlertTriangle, GraduationCap, XCircle, Ban, ShieldAlert } from "lucide-react";
 import { getDashboardData, listAvaliacoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -98,6 +98,7 @@ export default async function DashboardPage({
           label="Apto c/ acompanhamento"
           value={dados.parecerCount.apto_acompanhamento}
         />
+        <StatusCard icon={Ban} color="#d03b3b" label="Reprovados" value={dados.parecerCount.reprovado} />
         <StatusCard
           icon={GraduationCap}
           color="#ec835a"

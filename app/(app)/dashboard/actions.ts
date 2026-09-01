@@ -72,6 +72,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
   const parecerCount: Record<Parecer, number> = {
     apto: 0,
     apto_acompanhamento: 0,
+    reprovado: 0,
     necessita_treinamento: 0,
     nova_avaliacao: 0,
     nao_recomendado: 0,

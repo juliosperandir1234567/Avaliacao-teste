@@ -18,17 +18,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .eq("id", data.aplicacao.avaliador_id)
     .single();
 
-  let pessoaNome = "Candidato externo";
-  if (data.aplicacao.tipo_pessoa === "externo" && data.aplicacao.candidato_externo_id) {
-    const { data: candidato } = await supabase
-      .from("candidatos_externos")
-      .select("nome")
-      .eq("id", data.aplicacao.candidato_externo_id)
-      .single();
-    if (candidato) pessoaNome = candidato.nome;
-  } else if (data.aplicacao.colaborador_snapshot) {
-    pessoaNome = data.aplicacao.colaborador_snapshot.nome;
-  }
+  const pessoaNome =
+    data.aplicacao.tipo_pessoa === "externo"
+      ? (data.aplicacao.candidatos_externos?.nome ?? "Candidato externo")
+      : (data.aplicacao.colaborador_snapshot?.nome ?? "-");
 
   async function signedUrl(path: string | null) {
     if (!path) return null;
@@ -51,10 +44,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       matricula: data.aplicacao.colaborador_snapshot?.matricula ?? "-",
       cargo: data.aplicacao.colaborador_snapshot?.cargo ?? "-",
       estrutura: data.aplicacao.colaborador_snapshot?.estrutura ?? "-",
+      candidatoExterno: data.aplicacao.candidatos_externos ?? null,
       avaliadorNome: avaliadorProfile?.nome ?? "-",
       secoes: data.secoes,
       perguntas: data.perguntas,
       respostas: data.respostas,
+      alternativas: data.alternativas,
       alternativasTexto,
       competencias: data.competencias,
       assinaturaAvaliadoUrl,

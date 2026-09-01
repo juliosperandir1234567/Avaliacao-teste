@@ -208,7 +208,7 @@ export function gerarParecerSugerido(input: ParecerInput): Parecer | null {
   const notaLimitada = falhasCriticas.some((f) => f.consequencia === "limitar_nota");
 
   if (notaGeral < notaMinima || notaLimitada) {
-    return "necessita_treinamento";
+    return "reprovado";
   }
   if (competenciaAbaixoDoMinimo) {
     return "apto_acompanhamento";

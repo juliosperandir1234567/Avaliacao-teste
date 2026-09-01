@@ -21,10 +21,16 @@ export default async function RaioXPage({
 
   const { aplicacao, perguntas, respostas, competencias } = data;
 
+  const candidatoExterno = aplicacao.candidatos_externos;
   const pessoa =
     aplicacao.tipo_pessoa === "interno"
       ? aplicacao.colaborador_snapshot
-      : { nome: "Candidato externo", matricula: "-", cargo: "-", estrutura: "-" };
+      : {
+          nome: candidatoExterno?.nome ?? "Candidato externo",
+          matricula: "-",
+          cargo: candidatoExterno?.funcao_pretendida ?? "-",
+          estrutura: "-",
+        };
 
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const checklistPerguntas = perguntas.filter((p) => p.tipo === "checklist");
@@ -76,9 +82,34 @@ export default async function RaioXPage({
       <Card>
         <CardContent className="grid grid-cols-2 gap-3 pt-4 text-sm">
           <Info label="Nome" value={pessoa?.nome ?? "-"} />
-          <Info label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
-          <Info label="Função" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
-          <Info label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
+          {aplicacao.tipo_pessoa === "interno" ? (
+            <>
+              <Info label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
+              <Info label="Função" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
+              <Info label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
+            </>
+          ) : (
+            <>
+              <Info label="Telefone" value={candidatoExterno?.telefone ?? "-"} />
+              <Info
+                label="CNH"
+                value={
+                  candidatoExterno?.possui_cnh
+                    ? candidatoExterno.categoria_cnh || "Sim"
+                    : candidatoExterno?.possui_cnh === false
+                      ? "Não"
+                      : "-"
+                }
+              />
+              <Info label="Tipo de teste / Função pretendida" value={candidatoExterno?.funcao_pretendida ?? "-"} />
+              <Info label="Último emprego" value={candidatoExterno?.empresas_anteriores ?? "-"} />
+              {candidatoExterno?.observacoes ? (
+                <div className="col-span-2">
+                  <Info label="Observações" value={candidatoExterno.observacoes} />
+                </div>
+              ) : null}
+            </>
+          )}
         </CardContent>
       </Card>
 

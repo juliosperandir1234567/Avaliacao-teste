@@ -1,6 +1,7 @@
 import { listEquipamentosTipos } from "../actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NovoEquipamentoForm } from "./novo-equipamento-form";
+import { EquipamentoRow } from "./equipamento-row";
 
 export default async function EquipamentosPage() {
   const equipamentos = await listEquipamentosTipos();
@@ -34,9 +35,13 @@ export default async function EquipamentosPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {[...porFamilia.entries()].map(([familia, itens]) => (
-            <div key={familia}>
+            <div key={familia} className="flex flex-col gap-1">
               <p className="text-sm font-medium">{familia}</p>
-              <p className="text-sm text-muted-foreground">{itens.map((i) => i.nome).join(", ")}</p>
+              <div className="flex flex-col divide-y rounded-md border px-3">
+                {itens.map((i) => (
+                  <EquipamentoRow key={i.id} id={i.id} nome={i.nome} />
+                ))}
+              </div>
             </div>
           ))}
           {equipamentos.length === 0 ? (

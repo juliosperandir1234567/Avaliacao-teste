@@ -27,15 +27,11 @@ export interface BuilderState {
     Avaliacao,
     | "nome"
     | "funcao"
-    | "categoria"
     | "tipo"
     | "descricao"
-    | "instrucoes_candidato"
-    | "instrucoes_avaliador"
     | "nota_minima"
-    | "tempo_maximo_min"
     | "max_tentativas"
-    | "exige_assinatura"
+    | "equipamento_tipo_id"
     | "possui_itens_criticos"
     | "permite_nova_tentativa"
   >;
@@ -138,11 +134,29 @@ export async function createEquipamentoTipo(familia: string, nome: string) {
   return { success: true, tipo: data as EquipamentoTipo };
 }
 
+export async function deleteEquipamentoTipo(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("equipamentos_tipos").delete().eq("id", id);
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        error: "Este equipamento está em uso em uma avaliação ou pergunta e não pode ser excluído.",
+      };
+    }
+    return { error: error.message };
+  }
+  revalidatePath("/avaliacoes/equipamentos");
+  return { success: true };
+}
+
 export async function createAvaliacaoDraft(formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
   const funcao = String(formData.get("funcao") ?? "").trim();
-  if (!nome || !funcao) {
-    redirect(`/avaliacoes/novo?error=${encodeURIComponent("Nome e função são obrigatórios")}`);
+  const equipamentoTipoId = String(formData.get("equipamentoTipoId") ?? "").trim();
+  if (!nome || !funcao || !equipamentoTipoId) {
+    redirect(
+      `/avaliacoes/novo?error=${encodeURIComponent("Equipamento, nome e função são obrigatórios")}`
+    );
   }
 
   const supabase = await createClient();
@@ -152,7 +166,7 @@ export async function createAvaliacaoDraft(formData: FormData) {
 
   const { data, error } = await supabase
     .from("avaliacoes")
-    .insert({ nome, funcao, created_by: user?.id })
+    .insert({ nome, funcao, equipamento_tipo_id: equipamentoTipoId, created_by: user?.id })
     .select("id")
     .single();
 
@@ -162,6 +176,99 @@ export async function createAvaliacaoDraft(formData: FormData) {
 
   revalidatePath("/avaliacoes");
   redirect(`/avaliacoes/${data.id}/editar`);
+}
+
+export interface ImportacaoWordPergunta {
+  enunciado: string;
+  tipo: string;
+  alternativas: { texto: string; correta: boolean }[];
+  precisaRevisao: boolean;
+}
+
+export async function criarAvaliacaoDeImportacaoWord(
+  nome: string,
+  funcao: string,
+  equipamentoTipoId: string,
+  perguntas: ImportacaoWordPergunta[],
+  checklist: ImportacaoWordPergunta[]
+) {
+  if (!equipamentoTipoId) return { error: "Selecione o equipamento." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: avaliacao, error } = await supabase
+    .from("avaliacoes")
+    .insert({
+      nome,
+      funcao: funcao || nome,
+      equipamento_tipo_id: equipamentoTipoId,
+      tipo: "mista",
+      created_by: user?.id,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+  const avaliacaoId = avaliacao.id as string;
+
+  async function inserirSecao(nomeSecao: string, ordem: number, itens: ImportacaoWordPergunta[]) {
+    if (itens.length === 0) return;
+    const { data: secao, error: secaoError } = await supabase
+      .from("avaliacao_secoes")
+      .insert({ avaliacao_id: avaliacaoId, nome: nomeSecao, ordem, peso: 0 })
+      .select("id")
+      .single();
+    if (secaoError || !secao) return;
+
+    for (let i = 0; i < itens.length; i++) {
+      const item = itens[i];
+      const { data: pergunta, error: perguntaError } = await supabase
+        .from("avaliacao_perguntas")
+        .insert({
+          secao_id: secao.id,
+          tipo: item.tipo,
+          enunciado: item.enunciado,
+          peso: 1,
+          ordem: i,
+          item_critico: false,
+          config: item.precisaRevisao ? { precisa_revisao: true } : {},
+        })
+        .select("id")
+        .single();
+      if (perguntaError || !pergunta) continue;
+
+      if (item.alternativas.length > 0) {
+        await supabase.from("avaliacao_alternativas").insert(
+          item.alternativas.map((a, ordem2) => ({
+            pergunta_id: pergunta.id,
+            texto: a.texto,
+            correta: a.correta,
+            ordem: ordem2,
+          }))
+        );
+      }
+    }
+  }
+
+  await inserirSecao("Importado do Word", 0, perguntas);
+  await inserirSecao("Checklist (importado)", 1, checklist);
+
+  // Pesos das seções distribuídos igualmente para já deixar a soma em 100%.
+  const { data: secoesCriadas } = await supabase
+    .from("avaliacao_secoes")
+    .select("id")
+    .eq("avaliacao_id", avaliacaoId);
+  if (secoesCriadas && secoesCriadas.length > 0) {
+    const peso = Math.round((100 / secoesCriadas.length) * 100) / 100;
+    for (const s of secoesCriadas) {
+      await supabase.from("avaliacao_secoes").update({ peso }).eq("id", s.id);
+    }
+  }
+
+  revalidatePath("/avaliacoes");
+  redirect(`/avaliacoes/${avaliacaoId}/editar`);
 }
 
 export async function getAvaliacaoBuilderData(id: string) {
@@ -366,7 +473,7 @@ export async function duplicateAvaliacao(id: string, novoNome?: string) {
       nota_minima: original.avaliacao.nota_minima,
       tempo_maximo_min: original.avaliacao.tempo_maximo_min,
       max_tentativas: original.avaliacao.max_tentativas,
-      exige_assinatura: original.avaliacao.exige_assinatura,
+      equipamento_tipo_id: original.avaliacao.equipamento_tipo_id,
       possui_itens_criticos: original.avaliacao.possui_itens_criticos,
       permite_nova_tentativa: original.avaliacao.permite_nova_tentativa,
       avaliacao_origem_id: id,

@@ -127,13 +127,23 @@ export function AvaliacaoBuilder({
               onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, funcao: e.target.value } }))}
             />
           </Field>
-          <Field label="Categoria">
-            <Input
+          <Field label="Equipamento">
+            <Select
               disabled={!editavel}
-              className="h-10"
-              value={state.avaliacao.categoria ?? ""}
-              onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, categoria: e.target.value } }))}
-            />
+              value={state.avaliacao.equipamento_tipo_id ?? ""}
+              onValueChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, equipamento_tipo_id: v || null } }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Selecione o equipamento" />
+              </SelectTrigger>
+              <SelectContent>
+                {equipamentos.map((eq) => (
+                  <SelectItem key={eq.id} value={eq.id}>
+                    {eq.familia} — {eq.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Tipo">
             <Select
@@ -165,20 +175,6 @@ export function AvaliacaoBuilder({
               onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, nota_minima: Number(e.target.value) } }))}
             />
           </Field>
-          <Field label="Tempo máximo (min, opcional)">
-            <Input
-              disabled={!editavel}
-              type="number"
-              className="h-10"
-              value={state.avaliacao.tempo_maximo_min ?? ""}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  avaliacao: { ...s.avaliacao, tempo_maximo_min: e.target.value === "" ? null : Number(e.target.value) },
-                }))
-              }
-            />
-          </Field>
           <Field label="Descrição" full>
             <Textarea
               disabled={!editavel}
@@ -186,31 +182,7 @@ export function AvaliacaoBuilder({
               onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, descricao: e.target.value } }))}
             />
           </Field>
-          <Field label="Instruções para o candidato" full>
-            <Textarea
-              disabled={!editavel}
-              value={state.avaliacao.instrucoes_candidato ?? ""}
-              onChange={(e) =>
-                setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, instrucoes_candidato: e.target.value } }))
-              }
-            />
-          </Field>
-          <Field label="Instruções para o avaliador" full>
-            <Textarea
-              disabled={!editavel}
-              value={state.avaliacao.instrucoes_avaliador ?? ""}
-              onChange={(e) =>
-                setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, instrucoes_avaliador: e.target.value } }))
-              }
-            />
-          </Field>
           <div className="col-span-full flex flex-wrap gap-4 border-t pt-3">
-            <SwitchField
-              label="Exige assinatura"
-              checked={state.avaliacao.exige_assinatura}
-              disabled={!editavel}
-              onChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, exige_assinatura: v } }))}
-            />
             <SwitchField
               label="Possui itens críticos"
               checked={state.avaliacao.possui_itens_criticos}
