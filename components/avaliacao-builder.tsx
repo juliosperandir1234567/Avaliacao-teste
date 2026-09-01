@@ -18,8 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PerguntaEditor } from "@/components/pergunta-editor";
-import { BancoQuestoesDialog } from "@/components/banco-questoes-dialog";
-import type { AvaliacaoTipo, EquipamentoTipo } from "@/lib/types";
+import type { EquipamentoTipo } from "@/lib/types";
 import {
   saveAvaliacaoBuilder,
   deleteAvaliacao,
@@ -27,16 +26,6 @@ import {
   type BuilderSecao,
   type BuilderState,
 } from "@/app/(app)/avaliacoes/actions";
-
-const TIPO_LABELS: Record<AvaliacaoTipo, string> = {
-  teorica: "Teórica",
-  pratica: "Prática",
-  mista: "Mista",
-  checklist: "Checklist",
-  tecnica: "Técnica",
-  comportamental: "Comportamental",
-  competencias: "Avaliação por competências",
-};
 
 function novaPergunta(ordem: number): BuilderPergunta {
   return {
@@ -95,8 +84,6 @@ export function AvaliacaoBuilder({
     });
   }
 
-  const somaPesoSecoes = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
-
   return (
     <div className="flex flex-col gap-4 pb-24">
       {!editavel ? (
@@ -145,24 +132,6 @@ export function AvaliacaoBuilder({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Tipo">
-            <Select
-              disabled={!editavel}
-              value={state.avaliacao.tipo}
-              onValueChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, tipo: v as AvaliacaoTipo } }))}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(TIPO_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
           <Field label="Nota mínima (0 a 10)">
             <Input
               disabled={!editavel}
@@ -184,12 +153,6 @@ export function AvaliacaoBuilder({
           </Field>
           <div className="col-span-full flex flex-wrap gap-4 border-t pt-3">
             <SwitchField
-              label="Possui itens críticos"
-              checked={state.avaliacao.possui_itens_criticos}
-              disabled={!editavel}
-              onChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, possui_itens_criticos: v } }))}
-            />
-            <SwitchField
               label="Permite nova tentativa"
               checked={state.avaliacao.permite_nova_tentativa}
               disabled={!editavel}
@@ -201,80 +164,7 @@ export function AvaliacaoBuilder({
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Competências</CardTitle>
-          {editavel ? (
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={() =>
-                setState((s) => ({
-                  ...s,
-                  competencias: [...s.competencias, { id: crypto.randomUUID(), avaliacao_id: avaliacaoId, nome: "", nota_minima: null }],
-                }))
-              }
-            >
-              <Plus className="size-3.5" /> Competência
-            </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {state.competencias.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma competência cadastrada.</p>
-          ) : (
-            state.competencias.map((c) => (
-              <div key={c.id} className="flex items-center gap-2">
-                <Input
-                  disabled={!editavel}
-                  className="h-9 flex-1"
-                  placeholder="Nome da competência (ex: Segurança)"
-                  value={c.nome}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      competencias: s.competencias.map((x) => (x.id === c.id ? { ...x, nome: e.target.value } : x)),
-                    }))
-                  }
-                />
-                <Input
-                  disabled={!editavel}
-                  type="number"
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  placeholder="Nota mín."
-                  className="h-9 w-28"
-                  value={c.nota_minima ?? ""}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      competencias: s.competencias.map((x) =>
-                        x.id === c.id ? { ...x, nota_minima: e.target.value === "" ? null : Number(e.target.value) } : x
-                      ),
-                    }))
-                  }
-                />
-                {editavel ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    onClick={() => setState((s) => ({ ...s, competencias: s.competencias.filter((x) => x.id !== c.id) }))}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                ) : null}
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">
-            Seções {state.secoes.length > 0 ? `— soma de pesos: ${somaPesoSecoes}%` : ""}
-          </CardTitle>
+          <CardTitle className="text-base">Seções</CardTitle>
           {editavel ? (
             <Button
               variant="outline"
@@ -303,19 +193,6 @@ export function AvaliacaoBuilder({
                 }))
               }
             />
-            <Input
-              disabled={!editavel}
-              type="number"
-              className="h-9 w-24"
-              placeholder="Peso %"
-              value={secao.peso}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  secoes: s.secoes.map((x) => (x.id === secao.id ? { ...x, peso: Number(e.target.value) } : x)),
-                }))
-              }
-            />
             {editavel ? (
               <Button
                 variant="ghost"
@@ -332,8 +209,6 @@ export function AvaliacaoBuilder({
               <PerguntaEditor
                 key={pergunta.id}
                 pergunta={pergunta}
-                competencias={state.competencias}
-                equipamentos={equipamentos}
                 todasPerguntas={state.secoes.flatMap((s) => s.perguntas)}
                 onChange={(novaPergunta) =>
                   setState((s) => ({
@@ -356,36 +231,24 @@ export function AvaliacaoBuilder({
               />
             ))}
             {editavel ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={() =>
-                    setState((s) => ({
-                      ...s,
-                      secoes: s.secoes.map((sec) =>
-                        sec.id === secao.id
-                          ? { ...sec, perguntas: [...sec.perguntas, novaPergunta(sec.perguntas.length)] }
-                          : sec
-                      ),
-                    }))
-                  }
-                >
-                  <Plus className="size-3.5" /> Pergunta
-                </Button>
-                <BancoQuestoesDialog
-                  ordemInicial={secao.perguntas.length}
-                  onImportar={(pergunta) =>
-                    setState((s) => ({
-                      ...s,
-                      secoes: s.secoes.map((sec) =>
-                        sec.id === secao.id ? { ...sec, perguntas: [...sec.perguntas, pergunta] } : sec
-                      ),
-                    }))
-                  }
-                />
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() =>
+                  setState((s) => ({
+                    ...s,
+                    secoes: s.secoes.map((sec) =>
+                      sec.id === secao.id
+                        ? { ...sec, perguntas: [...sec.perguntas, novaPergunta(sec.perguntas.length)] }
+                        : sec
+                    ),
+                  }))
+                }
+                className="self-start"
+              >
+                <Plus className="size-3.5" /> Pergunta
+              </Button>
             ) : null}
           </CardContent>
         </Card>

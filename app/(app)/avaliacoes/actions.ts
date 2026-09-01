@@ -27,12 +27,10 @@ export interface BuilderState {
     Avaliacao,
     | "nome"
     | "funcao"
-    | "tipo"
     | "descricao"
     | "nota_minima"
     | "max_tentativas"
     | "equipamento_tipo_id"
-    | "possui_itens_criticos"
     | "permite_nova_tentativa"
   >;
   competencias: AvaliacaoCompetencia[];
@@ -58,58 +56,6 @@ export async function listAvaliacoesPublicadas() {
     .order("nome");
   if (error) throw new Error(error.message);
   return (data ?? []) as Avaliacao[];
-}
-
-export interface BancoQuestaoResultado {
-  id: string;
-  enunciado: string;
-  tipo: string;
-  item_critico: boolean;
-  peso: number;
-  config: Record<string, unknown>;
-  equipamento_tipo_id: string | null;
-  avaliacao_nome: string;
-  avaliacao_funcao: string;
-  alternativas: { texto: string; correta: boolean; ordem: number }[];
-}
-
-export async function buscarBancoQuestoes(filtros: {
-  texto?: string;
-  tipo?: string;
-  funcao?: string;
-}): Promise<BancoQuestaoResultado[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from("avaliacao_perguntas")
-    .select(
-      "id, enunciado, tipo, item_critico, peso, config, equipamento_tipo_id, avaliacao_alternativas(texto, correta, ordem), avaliacao_secoes!inner(avaliacoes!inner(nome, funcao))"
-    )
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (filtros.texto) query = query.ilike("enunciado", `%${filtros.texto}%`);
-  if (filtros.tipo) query = query.eq("tipo", filtros.tipo);
-  if (filtros.funcao) query = query.ilike("avaliacao_secoes.avaliacoes.funcao", `%${filtros.funcao}%`);
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  return (data ?? []).map((p) => {
-    const secao = p.avaliacao_secoes as unknown as { avaliacoes: { nome: string; funcao: string } };
-    return {
-      id: p.id,
-      enunciado: p.enunciado,
-      tipo: p.tipo,
-      item_critico: p.item_critico,
-      peso: p.peso,
-      config: p.config,
-      equipamento_tipo_id: p.equipamento_tipo_id,
-      avaliacao_nome: secao.avaliacoes.nome,
-      avaliacao_funcao: secao.avaliacoes.funcao,
-      alternativas: (p.avaliacao_alternativas ?? []) as { texto: string; correta: boolean; ordem: number }[],
-    };
-  });
 }
 
 export async function listEquipamentosTipos() {
@@ -255,18 +201,6 @@ export async function criarAvaliacaoDeImportacaoWord(
   await inserirSecao("Importado do Word", 0, perguntas);
   await inserirSecao("Checklist (importado)", 1, checklist);
 
-  // Pesos das seções distribuídos igualmente para já deixar a soma em 100%.
-  const { data: secoesCriadas } = await supabase
-    .from("avaliacao_secoes")
-    .select("id")
-    .eq("avaliacao_id", avaliacaoId);
-  if (secoesCriadas && secoesCriadas.length > 0) {
-    const peso = Math.round((100 / secoesCriadas.length) * 100) / 100;
-    for (const s of secoesCriadas) {
-      await supabase.from("avaliacao_secoes").update({ peso }).eq("id", s.id);
-    }
-  }
-
   revalidatePath("/avaliacoes");
   redirect(`/avaliacoes/${avaliacaoId}/editar`);
 }
@@ -331,10 +265,6 @@ export async function saveAvaliacaoBuilder(
   }
 
   if (publicar) {
-    const somaPesoSecoes = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
-    if (state.secoes.length > 0 && Math.abs(somaPesoSecoes - 100) > 0.5) {
-      return { error: `A soma dos pesos das seções deve ser 100% (atual: ${somaPesoSecoes}%)` };
-    }
     if (state.secoes.every((s) => s.perguntas.length === 0)) {
       return { error: "Adicione ao menos uma pergunta antes de publicar." };
     }

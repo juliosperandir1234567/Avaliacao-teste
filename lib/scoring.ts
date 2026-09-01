@@ -1,7 +1,6 @@
 import type {
   AvaliacaoCompetencia,
   AvaliacaoPergunta,
-  AvaliacaoSecao,
   ChecklistStatus,
   CriticidadeConsequencia,
   Parecer,
@@ -130,18 +129,6 @@ function mediaPonderada(itens: { peso: number; pontuacao: number | null }[]): nu
   return Math.round((soma / pesoTotal) * 10) / 10;
 }
 
-export function calcularNotaSecao(
-  secaoId: string,
-  perguntas: AvaliacaoPergunta[],
-  respostas: Resposta[]
-): number | null {
-  const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
-  const itens = perguntas
-    .filter((p) => p.secao_id === secaoId)
-    .map((p) => ({ peso: p.peso, pontuacao: respostaPorPergunta.get(p.id)?.pontuacao ?? null }));
-  return mediaPonderada(itens);
-}
-
 export function calcularNotaCompetencia(
   competenciaId: string,
   perguntas: AvaliacaoPergunta[],
@@ -167,15 +154,29 @@ export function calcularNotasPorCompetencia(
   return resultado;
 }
 
+/**
+ * Média ponderada de todas as perguntas da avaliação. Perguntas de checklist têm o peso
+ * dividido pela quantidade de itens de checklist na mesma seção, para que um grupo de
+ * verificação com muitos itens não pese mais que uma única pergunta comum.
+ */
 export function calcularNotaGeral(
-  secoes: AvaliacaoSecao[],
   perguntas: AvaliacaoPergunta[],
   respostas: Resposta[]
 ): number | null {
-  const itens = secoes.map((s) => ({
-    peso: s.peso,
-    pontuacao: calcularNotaSecao(s.id, perguntas, respostas),
-  }));
+  const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
+
+  const qtdChecklistPorSecao = new Map<string, number>();
+  for (const p of perguntas) {
+    if (p.tipo !== "checklist") continue;
+    qtdChecklistPorSecao.set(p.secao_id, (qtdChecklistPorSecao.get(p.secao_id) ?? 0) + 1);
+  }
+
+  const itens = perguntas.map((p) => {
+    const qtdChecklist = qtdChecklistPorSecao.get(p.secao_id) ?? 0;
+    const peso = p.tipo === "checklist" && qtdChecklist > 0 ? p.peso / qtdChecklist : p.peso;
+    return { peso, pontuacao: respostaPorPergunta.get(p.id)?.pontuacao ?? null };
+  });
+
   return mediaPonderada(itens);
 }
 

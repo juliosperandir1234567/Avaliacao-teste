@@ -17,34 +17,17 @@ import {
 } from "@/components/ui/select";
 import { createClient } from "@/utils/supabase/client";
 import { opcoesGatilho, podeSerPai } from "@/lib/conditional";
-import type {
-  AvaliacaoCompetencia,
-  CriticidadeConsequencia,
-  EquipamentoTipo,
-  PerguntaTipo,
-} from "@/lib/types";
+import type { PerguntaTipo } from "@/lib/types";
 import { PERGUNTA_TIPO_LABELS, TIPOS_PERGUNTA_DISPONIVEIS } from "@/lib/types";
 import type { BuilderPergunta } from "@/app/(app)/avaliacoes/actions";
 
-const CRITICIDADE_LABELS: Record<CriticidadeConsequencia, string> = {
-  alerta: "Apenas alerta",
-  desconto: "Desconto na nota",
-  limitar_nota: "Limitar nota (impede aprovação)",
-  exigir_nova_avaliacao: "Exigir nova avaliação",
-  nao_recomendar: "Não recomendar",
-};
-
 export function PerguntaEditor({
   pergunta,
-  competencias,
-  equipamentos,
   todasPerguntas,
   onChange,
   onRemove,
 }: {
   pergunta: BuilderPergunta;
-  competencias: AvaliacaoCompetencia[];
-  equipamentos: EquipamentoTipo[];
   todasPerguntas: BuilderPergunta[];
   onChange: (pergunta: BuilderPergunta) => void;
   onRemove: () => void;
@@ -148,45 +131,6 @@ export function PerguntaEditor({
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">Competência</Label>
-          <Select
-            value={pergunta.competencia_id ?? "none"}
-            onValueChange={(v) => update({ competencia_id: v === "none" ? null : v })}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {competencias.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">Equipamento</Label>
-          <Select
-            value={pergunta.equipamento_tipo_id ?? "none"}
-            onValueChange={(v) => update({ equipamento_tipo_id: v === "none" ? null : v })}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Comum (todos)</SelectItem>
-              {equipamentos.map((eq) => (
-                <SelectItem key={eq.id} value={eq.id}>
-                  {eq.familia} — {eq.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <PerguntaConfigFields pergunta={pergunta} onChange={update} onAddAlternativa={addAlternativa} />
@@ -275,46 +219,6 @@ export function PerguntaEditor({
           ) : null}
         </div>
       ) : null}
-
-      <div className="flex flex-wrap items-center gap-4 border-t pt-2">
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={pergunta.evidencia_obrigatoria} onCheckedChange={(v) => update({ evidencia_obrigatoria: v })} />
-          Evidência obrigatória
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch
-            checked={pergunta.observacao_obrigatoria_se_nao}
-            onCheckedChange={(v) => update({ observacao_obrigatoria_se_nao: v })}
-          />
-          Observação obrigatória se &quot;não&quot;
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch
-            checked={pergunta.item_critico}
-            onCheckedChange={(v) =>
-              update({ item_critico: v, criticidade_consequencia: v ? "alerta" : null })
-            }
-          />
-          Item crítico
-        </label>
-        {pergunta.item_critico ? (
-          <Select
-            value={pergunta.criticidade_consequencia ?? "alerta"}
-            onValueChange={(v) => update({ criticidade_consequencia: v as CriticidadeConsequencia })}
-          >
-            <SelectTrigger className="h-8 w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(CRITICIDADE_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -267,7 +267,7 @@ export function AplicacaoRunner({
         item_critico_falhou: p.item_critico && respostas[p.id].pontuacao === 0,
       }));
 
-    const notaPreliminar = calcularNotaGeral(secoes, perguntasVisiveis, respostasComoResposta);
+    const notaPreliminar = calcularNotaGeral(perguntasVisiveis, respostasComoResposta);
     const falhasCriticas = avaliarItensCriticos(perguntasVisiveis, respostasComoResposta);
     const naoAvaliados = totalItens - respondidas;
 
