@@ -197,6 +197,16 @@ export function AppShell({
                   />
                 );
               })}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                render={
+                  <form action={logout} className="w-full">
+                    <button type="submit" className="flex w-full items-center gap-2">
+                      <LogOut className="size-4" /> Sair
+                    </button>
+                  </form>
+                }
+              />
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
