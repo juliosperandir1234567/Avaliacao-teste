@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,6 @@ function nomeAvaliacao(l: LinhaAplicacao) {
 export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome: string }[] }) {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
-  const [matricula, setMatricula] = useState("");
   const [avaliacaoId, setAvaliacaoId] = useState("");
   const [resultado, setResultado] = useState("");
   const [incluirJaExportadas, setIncluirJaExportadas] = useState(false);
@@ -63,7 +62,6 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
     return {
       dataInicio: dataInicio || undefined,
       dataFim: dataFim || undefined,
-      matricula: matricula || undefined,
       avaliacaoId: avaliacaoId || undefined,
       resultado: (resultado as Parecer) || undefined,
       incluirJaExportadas,
@@ -80,6 +78,11 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
       setSelecionadasExportadas(new Set());
     });
   }
+
+  useEffect(() => {
+    atualizarPrevia();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function baixarZip() {
     if (selecionadas.size === 0) return;
@@ -131,9 +134,6 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
           </Field>
           <Field label="Até">
             <Input type="date" className="h-10" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-          </Field>
-          <Field label="Matrícula">
-            <Input className="h-10" value={matricula} onChange={(e) => setMatricula(e.target.value)} />
           </Field>
           <Field label="Avaliação">
             <Select value={avaliacaoId || "todas"} onValueChange={(v) => setAvaliacaoId(!v || v === "todas" ? "" : v)}>

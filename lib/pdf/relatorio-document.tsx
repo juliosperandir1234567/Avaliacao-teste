@@ -274,6 +274,38 @@ export function RelatorioDocument({
                 );
               }
 
+              if (p.tipo === "multipla_escolha" || p.tipo === "multiplas_respostas") {
+                const alternativasDaPergunta = alternativasPorPergunta.get(p.id) ?? [];
+                const marcadas = new Set<string>();
+                if (r?.resposta) {
+                  const v = r.resposta as Record<string, unknown>;
+                  if ("alternativa_id" in v && v.alternativa_id) marcadas.add(String(v.alternativa_id));
+                  if ("alternativa_ids" in v) (v.alternativa_ids as string[]).forEach((id) => marcadas.add(id));
+                }
+                return (
+                  <View key={p.id} style={styles.pergunta}>
+                    <Text style={styles.perguntaTitulo}>{p.enunciado}</Text>
+                    <Text style={styles.perguntaMeta}>
+                      {PERGUNTA_TIPO_LABELS[p.tipo]}
+                      {p.item_critico ? " · ITEM CRÍTICO" : ""} · Nota: {r?.pontuacao?.toFixed(1) ?? "-"}
+                    </Text>
+                    {alternativasDaPergunta.map((alt, i) => {
+                      const letra = String.fromCharCode(65 + i);
+                      const marcada = marcadas.has(alt.id);
+                      const estilo = alt.correta ? styles.correto : marcada ? styles.errado : undefined;
+                      return (
+                        <Text key={alt.id} style={estilo}>
+                          {letra}) {alt.texto}
+                          {alt.correta ? " ✓" : marcada ? " ✗ (marcada pelo candidato)" : ""}
+                        </Text>
+                      );
+                    })}
+                    {r?.observacao ? <Text style={styles.perguntaMeta}>Obs: {r.observacao}</Text> : null}
+                    {r?.item_critico_falhou ? <Text style={styles.critico}>FALHA CRÍTICA</Text> : null}
+                  </View>
+                );
+              }
+
               const errada = r?.pontuacao === 0;
               const acertouTotal = r?.pontuacao !== null && r?.pontuacao !== undefined && r.pontuacao >= 10;
               const correta = respostaCorretaTexto(p, alternativasPorPergunta.get(p.id) ?? []);

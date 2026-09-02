@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
-import { getConfiguracoesPublicas } from "@/lib/configuracoes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { APLICACAO_STATUS_LABELS, type AvaliacaoAplicada } from "@/lib/types";
@@ -12,8 +11,8 @@ type AplicacaoResumo = Pick<
 > & { candidatos_externos: { nome: string } | { nome: string }[] | null };
 
 export default async function HomePage() {
+  const profile = await getCurrentProfile();
   const supabase = await createClient();
-  const [profile, config] = await Promise.all([getCurrentProfile(), getConfiguracoesPublicas()]);
 
   const { data: pendencias } = await supabase
     .from("avaliacoes_aplicadas")
@@ -25,10 +24,7 @@ export default async function HomePage() {
     .limit(20);
 
   return (
-    <div
-      className="-m-4 flex min-h-[calc(100svh-3.5rem)] flex-col gap-6 bg-cover bg-center p-4"
-      style={config.backgroundUrl ? { backgroundImage: `url(${config.backgroundUrl})` } : undefined}
-    >
+    <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-semibold">Olá, {profile.nome.split(" ")[0]}</h1>
         <p className="text-sm text-muted-foreground">Fila de pendências de teste.</p>

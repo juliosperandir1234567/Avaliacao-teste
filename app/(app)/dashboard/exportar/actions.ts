@@ -7,7 +7,6 @@ import type { Parecer } from "@/lib/types";
 export interface FiltroExportacao {
   dataInicio?: string;
   dataFim?: string;
-  matricula?: string;
   avaliacaoId?: string;
   resultado?: Parecer;
   incluirJaExportadas?: boolean;
@@ -34,9 +33,6 @@ async function buscar(filtros: FiltroExportacao, apenasExportadas: boolean) {
   if (filtros.dataFim) query = query.lte("data", filtros.dataFim);
   if (filtros.avaliacaoId) query = query.eq("avaliacao_id", filtros.avaliacaoId);
   if (filtros.resultado) query = query.eq("parecer_final", filtros.resultado);
-  if (filtros.matricula) {
-    query = query.filter("colaborador_snapshot->>matricula", "ilike", `%${filtros.matricula}%`);
-  }
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);

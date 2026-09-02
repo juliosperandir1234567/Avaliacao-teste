@@ -100,8 +100,8 @@ export function ConfiguracoesForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Imagem de fundo da tela inicial</Label>
-        <p className="text-xs text-muted-foreground">Aparece como fundo da tela de Início, atrás do conteúdo.</p>
+        <Label>Imagem de fundo da tela de login</Label>
+        <p className="text-xs text-muted-foreground">Aparece como fundo atrás do card de login.</p>
         <div className="flex items-center gap-4">
           <div className="flex h-20 w-40 items-center justify-center rounded-md border bg-muted/30">
             {backgroundUrl ? (

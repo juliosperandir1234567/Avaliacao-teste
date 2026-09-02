@@ -81,7 +81,7 @@ export function AppShell({
 
       <div className="flex flex-1">
         {/* Desktop sidebar */}
-        <nav className="hidden w-56 shrink-0 border-r bg-background p-3 md:block">
+        <nav className="hidden w-56 shrink-0 border-r bg-primary/10 p-3 md:block">
           <ul className="flex flex-col gap-1">
             {items.map((item) => {
               const Icon = item.icon;

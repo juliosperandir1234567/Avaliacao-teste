@@ -15,7 +15,10 @@ export default async function LoginPage({
   const config = await getConfiguracoesPublicas();
 
   return (
-    <div className="flex min-h-svh flex-1 items-center justify-center p-4">
+    <div
+      className="flex min-h-svh flex-1 items-center justify-center bg-cover bg-center p-4"
+      style={config.backgroundUrl ? { backgroundImage: `url(${config.backgroundUrl})` } : undefined}
+    >
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           {config.logoUrl ? (
