@@ -89,7 +89,7 @@ export function NovoUsuarioForm() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Papel</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+            <Select items={ROLE_LABELS} value={role} onValueChange={(v) => setRole(v as UserRole)}>
               <SelectTrigger className="h-10">
                 <SelectValue />
               </SelectTrigger>

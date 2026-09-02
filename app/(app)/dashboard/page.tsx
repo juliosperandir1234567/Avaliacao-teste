@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CheckCircle2, Ban, ShieldAlert } from "lucide-react";
 import { getDashboardData, listAvaliacoesParaFiltro, listFuncoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ export default async function DashboardPage({
     resultado: (params.resultado as Parecer) || undefined,
     funcao: params.funcao || undefined,
   };
+  const temFiltroAtivo = Object.values(filtros).some(Boolean);
 
   const [dados, avaliacoes, funcoes] = await Promise.all([
     getDashboardData(filtros),
@@ -57,7 +59,7 @@ export default async function DashboardPage({
           <Input type="date" name="dataFim" defaultValue={params.dataFim} className="h-9 w-36" />
         </FilterField>
         <FilterField label="Tipo">
-          <Select name="tipoPessoa" defaultValue={params.tipoPessoa}>
+          <Select items={{ interno: "Interno", externo: "Externo" }} name="tipoPessoa" defaultValue={params.tipoPessoa}>
             <SelectTrigger className="h-9 w-36">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
@@ -82,7 +84,11 @@ export default async function DashboardPage({
           </Select>
         </FilterField>
         <FilterField label="Avaliação">
-          <Select name="avaliacaoId" defaultValue={params.avaliacaoId}>
+          <Select
+            items={avaliacoes.map((a) => ({ value: a.id, label: a.nome }))}
+            name="avaliacaoId"
+            defaultValue={params.avaliacaoId}
+          >
             <SelectTrigger className="h-9 w-44">
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
@@ -98,6 +104,9 @@ export default async function DashboardPage({
         <Button type="submit" size="sm" variant="secondary" className="h-9">
           Filtrar
         </Button>
+        {temFiltroAtivo ? (
+          <Button size="sm" variant="ghost" className="h-9" render={<Link href="/dashboard">Limpar filtro</Link>} />
+        ) : null}
       </form>
 
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-4 lg:grid-cols-8">

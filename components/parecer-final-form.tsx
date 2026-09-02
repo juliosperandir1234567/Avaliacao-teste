@@ -43,7 +43,7 @@ export function ParecerFinalForm({
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">Parecer final do avaliador</Label>
-        <Select value={parecer} onValueChange={(v) => setParecer(v as Parecer)}>
+        <Select items={PARECER_LABELS} value={parecer} onValueChange={(v) => setParecer(v as Parecer)}>
           <SelectTrigger className="h-10">
             <SelectValue />
           </SelectTrigger>

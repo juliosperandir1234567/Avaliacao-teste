@@ -124,7 +124,11 @@ export function PerguntaFormDialog({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Tipo de resposta</Label>
-            <Select value={draft.tipo} onValueChange={(v) => update({ tipo: v as PerguntaTipo, config: {} })}>
+            <Select
+              items={Object.fromEntries(TIPOS_PERGUNTA_DISPONIVEIS.map((v) => [v, PERGUNTA_TIPO_LABELS[v]]))}
+              value={draft.tipo}
+              onValueChange={(v) => update({ tipo: v as PerguntaTipo, config: {} })}
+            >
               <SelectTrigger className="h-10">
                 <SelectValue />
               </SelectTrigger>
@@ -192,6 +196,13 @@ export function PerguntaFormDialog({
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Pergunta condicional (mostrar somente se...)</Label>
                 <Select
+                  items={[
+                    { value: "none", label: "Sempre exibir" },
+                    ...paisPossiveis.map((p) => ({
+                      value: p.id,
+                      label: p.enunciado.slice(0, 40) || "(sem enunciado)",
+                    })),
+                  ]}
                   value={draft.config.condicional_pergunta_id ?? "none"}
                   onValueChange={(v) =>
                     update({
@@ -220,6 +231,7 @@ export function PerguntaFormDialog({
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs">for igual a</Label>
                   <Select
+                    items={opcoesGatilho(paiSelecionado.tipo)}
                     value={draft.config.condicional_valor ?? ""}
                     onValueChange={(v) => update({ config: { ...draft.config, condicional_valor: v ?? undefined } })}
                   >
@@ -336,6 +348,11 @@ function PerguntaConfigFields({
         <div className="flex flex-col gap-1">
           <Label className="text-xs">Gabarito (opcional — deixe em branco para correção manual)</Label>
           <Select
+            items={{
+              manual: "Correção manual",
+              true: pergunta.tipo === "sim_nao" ? "Sim" : "Verdadeiro",
+              false: pergunta.tipo === "sim_nao" ? "Não" : "Falso",
+            }}
             value={
               pergunta.config.resposta_correta === undefined
                 ? "manual"
