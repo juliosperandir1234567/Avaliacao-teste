@@ -248,7 +248,7 @@ function FilterField({ label, children }: { label: string; children: React.React
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card>
-      <CardContent className="p-1.5">
+      <CardContent className="p-1.5 text-center">
         <p className="truncate text-[10px] text-muted-foreground">{label}</p>
         <p className="text-base font-bold">{value}</p>
       </CardContent>
@@ -269,7 +269,7 @@ function StatusCard({
 }) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-1.5 p-1.5">
+      <CardContent className="flex items-center justify-center gap-1.5 p-1.5 text-center">
         <Icon className="size-3.5 shrink-0" style={{ color }} />
         <div className="min-w-0">
           <p className="truncate text-[10px] text-muted-foreground">{label}</p>
