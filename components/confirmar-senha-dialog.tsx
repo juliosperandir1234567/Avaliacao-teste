@@ -19,21 +19,25 @@ export function ConfirmarSenhaDialog({
   onOpenChange: (open: boolean) => void;
   titulo: string;
   descricao: string;
-  onConfirm: (senha: string) => Promise<{ error?: string }>;
+  onConfirm: (emailAdmin: string, senha: string) => Promise<{ error?: string }>;
   onSuccess: () => void;
 }) {
+  const [emailAdmin, setEmailAdmin] = useState("");
   const [senha, setSenha] = useState("");
   const [pending, startTransition] = useTransition();
 
   function fechar(v: boolean) {
     onOpenChange(v);
-    if (!v) setSenha("");
+    if (!v) {
+      setEmailAdmin("");
+      setSenha("");
+    }
   }
 
   function confirmar() {
-    if (!senha) return;
+    if (!emailAdmin || !senha) return;
     startTransition(async () => {
-      const result = await onConfirm(senha);
+      const result = await onConfirm(emailAdmin, senha);
       if (result?.error) {
         toast.error(result.error);
         return;
@@ -52,10 +56,18 @@ export function ConfirmarSenhaDialog({
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">{descricao}</p>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Sua senha</Label>
+            <Label className="text-xs">E-mail do administrador</Label>
+            <Input
+              type="email"
+              autoFocus
+              value={emailAdmin}
+              onChange={(e) => setEmailAdmin(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">Senha do administrador</Label>
             <Input
               type="password"
-              autoFocus
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               onKeyDown={(e) => {
@@ -63,7 +75,7 @@ export function ConfirmarSenhaDialog({
               }}
             />
           </div>
-          <Button variant="destructive" disabled={pending || !senha} onClick={confirmar}>
+          <Button variant="destructive" disabled={pending || !emailAdmin || !senha} onClick={confirmar}>
             {pending ? "Excluindo..." : "Excluir definitivamente"}
           </Button>
         </div>

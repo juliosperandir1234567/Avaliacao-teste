@@ -3,11 +3,9 @@ import { listCandidatos } from "./actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CandidatosTable } from "@/components/candidatos-table";
-import { getCurrentProfile } from "@/lib/auth";
 
 export default async function CandidatosPage() {
-  const [candidatos, profile] = await Promise.all([listCandidatos(), getCurrentProfile()]);
-  const ehAdmin = profile.role === "admin";
+  const candidatos = await listCandidatos();
 
   return (
     <div className="flex flex-col gap-4">
@@ -18,7 +16,7 @@ export default async function CandidatosPage() {
 
       <Card>
         <CardContent className="p-0">
-          <CandidatosTable candidatos={candidatos} ehAdmin={ehAdmin} />
+          <CandidatosTable candidatos={candidatos} />
         </CardContent>
       </Card>
     </div>

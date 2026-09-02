@@ -114,24 +114,35 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   redirect("/");
 }
 
-export async function excluirCandidatos(aplicacaoIds: string[], senha: string): Promise<{ error?: string }> {
-  const profile = await getCurrentProfile();
-  if (profile.role !== "admin") return { error: "Apenas administradores podem excluir candidatos." };
-  if (!senha) return { error: "Digite sua senha." };
+export async function excluirCandidatos(
+  aplicacaoIds: string[],
+  emailAdmin: string,
+  senha: string
+): Promise<{ error?: string }> {
+  if (!emailAdmin || !senha) return { error: "Digite o e-mail e a senha do administrador." };
   if (aplicacaoIds.length === 0) return { error: "Nenhum candidato selecionado." };
 
+  // Qualquer papel pode clicar em excluir, mas a exclusao so acontece autenticada como um
+  // admin de verdade -- por isso reautentica com as credenciais digitadas (nao a sessao atual)
+  // e usa esse client (ja com a sessao do admin) pra fazer a exclusao, respeitando a RLS.
   const verifyClient = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   );
-  const { error: authError } = await verifyClient.auth.signInWithPassword({
-    email: profile.email,
+  const { data: authData, error: authError } = await verifyClient.auth.signInWithPassword({
+    email: emailAdmin,
     password: senha,
   });
-  if (authError) return { error: "Senha incorreta." };
+  if (authError || !authData.user) return { error: "E-mail ou senha incorretos." };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("avaliacoes_aplicadas").delete().in("id", aplicacaoIds);
+  const { data: perfilInformado } = await verifyClient
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .single();
+  if (perfilInformado?.role !== "admin") return { error: "Essas credenciais não pertencem a um administrador." };
+
+  const { error } = await verifyClient.from("avaliacoes_aplicadas").delete().in("id", aplicacaoIds);
   if (error) return { error: error.message };
 
   revalidatePath("/candidatos");

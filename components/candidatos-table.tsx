@@ -19,7 +19,7 @@ function nomeDe(c: Candidato) {
   return c.colaborador_snapshot?.nome ?? candidatoExterno?.nome ?? "-";
 }
 
-export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato[]; ehAdmin: boolean }) {
+export function CandidatosTable({ candidatos }: { candidatos: Candidato[] }) {
   const router = useRouter();
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [idsParaExcluir, setIdsParaExcluir] = useState<string[]>([]);
@@ -47,7 +47,7 @@ export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato
 
   return (
     <>
-      {ehAdmin && selecionados.size > 0 ? (
+      {selecionados.size > 0 ? (
         <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
           <span className="text-sm text-muted-foreground">{selecionados.size} selecionado(s)</span>
           <Button
@@ -65,23 +65,21 @@ export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
             <tr>
-              {ehAdmin ? (
-                <th className="w-10 px-4 py-2">
-                  <Checkbox checked={todosSelecionados} onCheckedChange={alternarTodos} />
-                </th>
-              ) : null}
+              <th className="w-10 px-4 py-2">
+                <Checkbox checked={todosSelecionados} onCheckedChange={alternarTodos} />
+              </th>
               <th className="px-4 py-2 font-medium">Nome</th>
               <th className="px-4 py-2 font-medium">Tipo</th>
               <th className="px-4 py-2 font-medium">Função</th>
               <th className="px-4 py-2 font-medium">Data</th>
               <th className="px-4 py-2 font-medium">Status</th>
-              {ehAdmin ? <th className="px-4 py-2 font-medium">Ações</th> : null}
+              <th className="px-4 py-2 font-medium">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {candidatos.length === 0 ? (
               <tr>
-                <td colSpan={ehAdmin ? 7 : 5} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                   Nenhum candidato cadastrado ainda.
                 </td>
               </tr>
@@ -90,11 +88,9 @@ export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato
                 const nome = nomeDe(c);
                 return (
                   <tr key={c.id} className="hover:bg-muted/40">
-                    {ehAdmin ? (
-                      <td className="px-4 py-2">
-                        <Checkbox checked={selecionados.has(c.id)} onCheckedChange={() => alternar(c.id)} />
-                      </td>
-                    ) : null}
+                    <td className="px-4 py-2">
+                      <Checkbox checked={selecionados.has(c.id)} onCheckedChange={() => alternar(c.id)} />
+                    </td>
                     <td className="px-4 py-2">
                       <Link
                         href={`/aplicacoes/${c.id}/relatorio`}
@@ -112,13 +108,11 @@ export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato
                         {APLICACAO_STATUS_LABELS[c.status as AplicacaoStatus]}
                       </Badge>
                     </td>
-                    {ehAdmin ? (
-                      <td className="px-4 py-2">
-                        <Button variant="ghost" size="icon-sm" type="button" onClick={() => abrirExclusao([c.id])}>
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </td>
-                    ) : null}
+                    <td className="px-4 py-2">
+                      <Button variant="ghost" size="icon-sm" type="button" onClick={() => abrirExclusao([c.id])}>
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </td>
                   </tr>
                 );
               })
@@ -131,8 +125,8 @@ export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato
         open={dialogAberto}
         onOpenChange={setDialogAberto}
         titulo={idsParaExcluir.length > 1 ? `Excluir ${idsParaExcluir.length} candidatos?` : "Excluir candidato?"}
-        descricao="Essa ação remove definitivamente a prova/pendência selecionada e não pode ser desfeita. Confirme sua senha de administrador para continuar."
-        onConfirm={(senha) => excluirCandidatos(idsParaExcluir, senha)}
+        descricao="Essa ação remove definitivamente a prova/pendência selecionada e não pode ser desfeita. Confirme e-mail e senha de um administrador para continuar."
+        onConfirm={(emailAdmin, senha) => excluirCandidatos(idsParaExcluir, emailAdmin, senha)}
         onSuccess={() => {
           toast.success(idsParaExcluir.length > 1 ? "Candidatos excluídos" : "Candidato excluído");
           setSelecionados(new Set());
