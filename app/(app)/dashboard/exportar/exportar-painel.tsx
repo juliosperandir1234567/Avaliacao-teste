@@ -309,7 +309,7 @@ function TabelaAplicacoes({
                     variant="ghost"
                     size="icon-sm"
                     render={
-                      <Link href={`/aplicacoes/${l.id}/raiox`} target="_blank">
+                      <Link href={`/aplicacoes/${l.id}/relatorio`} target="_blank">
                         <Eye className="size-4" />
                       </Link>
                     }

@@ -96,7 +96,11 @@ export function CandidatosTable({ candidatos, ehAdmin }: { candidatos: Candidato
                       </td>
                     ) : null}
                     <td className="px-4 py-2">
-                      <Link href={`/aplicacoes/${c.id}/raiox`} className="text-primary hover:underline">
+                      <Link
+                        href={`/aplicacoes/${c.id}/relatorio`}
+                        target="_blank"
+                        className="text-primary hover:underline"
+                      >
                         {nome}
                       </Link>
                     </td>
