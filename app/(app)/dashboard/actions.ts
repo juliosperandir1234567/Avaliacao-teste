@@ -9,6 +9,7 @@ export interface DashboardFiltros {
   tipoPessoa?: TipoPessoa;
   avaliacaoId?: string;
   resultado?: Parecer;
+  funcao?: string;
 }
 
 interface AplicacaoRow {
@@ -19,7 +20,10 @@ interface AplicacaoRow {
   falhas_criticas_count: number;
   parecer_final: Parecer | null;
   data: string;
-  avaliacoes: { nome: string } | null;
+  funcao_avaliada: string | null;
+  colaborador_snapshot: { nome: string } | null;
+  candidatos_externos: { nome: string } | null;
+  avaliacoes: { nome: string; equipamentos_tipos: { familia: string } | null } | null;
 }
 
 const NOTA_BUCKETS = [
@@ -37,7 +41,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
   let query = supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, data, avaliacoes(nome)"
+      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, data, funcao_avaliada, colaborador_snapshot, candidatos_externos(nome), avaliacoes(nome, equipamentos_tipos(familia))"
     )
     .eq("status", "finalizada")
     .order("data", { ascending: true })
@@ -48,6 +52,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
   if (filtros.tipoPessoa) query = query.eq("tipo_pessoa", filtros.tipoPessoa);
   if (filtros.avaliacaoId) query = query.eq("avaliacao_id", filtros.avaliacaoId);
   if (filtros.resultado) query = query.eq("parecer_final", filtros.resultado);
+  if (filtros.funcao) query = query.eq("funcao_avaliada", filtros.funcao);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -94,6 +99,35 @@ export async function getDashboardData(filtros: DashboardFiltros) {
       notaMedia: v.notas.length > 0 ? v.notas.reduce((acc, n) => acc + n, 0) / v.notas.length : 0,
     }))
     .sort((a, b) => b.quantidade - a.quantidade);
+
+  const porFuncaoMap = new Map<string, number[]>();
+  for (const a of aplicacoes) {
+    if (a.nota_geral === null || !a.funcao_avaliada) continue;
+    const familia = a.avaliacoes?.equipamentos_tipos?.familia;
+    const label = familia ? `${familia} - ${a.funcao_avaliada}` : a.funcao_avaliada;
+    const list = porFuncaoMap.get(label) ?? [];
+    list.push(a.nota_geral);
+    porFuncaoMap.set(label, list);
+  }
+  const notaPorFuncao = [...porFuncaoMap.entries()]
+    .map(([nome, notasFuncao]) => ({
+      nome,
+      quantidade: notasFuncao.length,
+      notaMedia: notasFuncao.reduce((acc, n) => acc + n, 0) / notasFuncao.length,
+    }))
+    .sort((a, b) => b.quantidade - a.quantidade);
+
+  const resultadosIndividuais = filtros.funcao
+    ? aplicacoes
+        .map((a) => ({
+          nome: (a.tipo_pessoa === "interno" ? a.colaborador_snapshot?.nome : a.candidatos_externos?.nome) ?? "-",
+          tipoPessoa: a.tipo_pessoa,
+          data: a.data,
+          notaGeral: a.nota_geral,
+          parecerFinal: a.parecer_final,
+        }))
+        .sort((a, b) => (b.notaGeral ?? -1) - (a.notaGeral ?? -1))
+    : [];
 
   const distribuicaoNotas = NOTA_BUCKETS.map((b) => ({
     label: b.label,
@@ -142,9 +176,11 @@ export async function getDashboardData(filtros: DashboardFiltros) {
     notaMedia,
     parecerCount,
     resultadosPorAvaliacao,
+    notaPorFuncao,
     distribuicaoNotas,
     evolucaoTemporal,
     principaisFalhas,
+    resultadosIndividuais,
   };
 }
 
@@ -152,4 +188,11 @@ export async function listAvaliacoesParaFiltro() {
   const supabase = await createClient();
   const { data } = await supabase.from("avaliacoes").select("id, nome").order("nome");
   return data ?? [];
+}
+
+export async function listFuncoesParaFiltro() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("avaliacoes").select("funcao").order("funcao");
+  const funcoes = [...new Set((data ?? []).map((a) => a.funcao))];
+  return funcoes;
 }

@@ -1,5 +1,5 @@
-import { CheckCircle2, Ban, RotateCcw, ShieldAlert } from "lucide-react";
-import { getDashboardData, listAvaliacoesParaFiltro } from "./actions";
+import { CheckCircle2, Ban, ShieldAlert } from "lucide-react";
+import { getDashboardData, listAvaliacoesParaFiltro, listFuncoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   BarraDistribuicao,
   LinhaEvolucao,
 } from "@/components/dashboard-charts";
-import type { Parecer, TipoPessoa } from "@/lib/types";
+import { PARECER_LABELS, type Parecer, type TipoPessoa } from "@/lib/types";
 
 export default async function DashboardPage({
   searchParams,
@@ -26,6 +26,7 @@ export default async function DashboardPage({
     tipoPessoa?: string;
     avaliacaoId?: string;
     resultado?: string;
+    funcao?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -35,9 +36,14 @@ export default async function DashboardPage({
     tipoPessoa: (params.tipoPessoa as TipoPessoa) || undefined,
     avaliacaoId: params.avaliacaoId || undefined,
     resultado: (params.resultado as Parecer) || undefined,
+    funcao: params.funcao || undefined,
   };
 
-  const [dados, avaliacoes] = await Promise.all([getDashboardData(filtros), listAvaliacoesParaFiltro()]);
+  const [dados, avaliacoes, funcoes] = await Promise.all([
+    getDashboardData(filtros),
+    listAvaliacoesParaFiltro(),
+    listFuncoesParaFiltro(),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -61,6 +67,20 @@ export default async function DashboardPage({
             </SelectContent>
           </Select>
         </FilterField>
+        <FilterField label="Função">
+          <Select name="funcao" defaultValue={params.funcao}>
+            <SelectTrigger className="h-9 w-44">
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              {funcoes.map((f) => (
+                <SelectItem key={f} value={f}>
+                  {f}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterField>
         <FilterField label="Avaliação">
           <Select name="avaliacaoId" defaultValue={params.avaliacaoId}>
             <SelectTrigger className="h-9 w-44">
@@ -80,7 +100,7 @@ export default async function DashboardPage({
         </Button>
       </form>
 
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         <StatCard label="Total de avaliações" value={dados.totais.total} />
         <StatCard label="Hoje" value={dados.totais.hoje} />
         <StatCard label="No mês" value={dados.totais.noMes} />
@@ -89,12 +109,6 @@ export default async function DashboardPage({
         <StatCard label="Nota média" value={dados.notaMedia !== null ? dados.notaMedia.toFixed(1) : "-"} />
         <StatusCard icon={CheckCircle2} color="#0ca30c" label="Aptos" value={dados.parecerCount.apto} />
         <StatusCard icon={Ban} color="#d03b3b" label="Reprovados" value={dados.parecerCount.reprovado} />
-        <StatusCard
-          icon={RotateCcw}
-          color="#898781"
-          label="Nova avaliação"
-          value={dados.parecerCount.nova_avaliacao}
-        />
       </div>
 
       {dados.totais.falhasCriticas > 0 ? (
@@ -104,6 +118,46 @@ export default async function DashboardPage({
         </div>
       ) : null}
 
+      {params.funcao ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Resultados individuais — {params.funcao}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dados.resultadosIndividuais.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum resultado no período filtrado.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs text-muted-foreground">
+                      <th className="py-1.5 pr-3 font-medium">Nome</th>
+                      <th className="py-1.5 pr-3 font-medium">Tipo</th>
+                      <th className="py-1.5 pr-3 font-medium">Data</th>
+                      <th className="py-1.5 pr-3 font-medium">Nota</th>
+                      <th className="py-1.5 pr-3 font-medium">Parecer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dados.resultadosIndividuais.map((r, i) => (
+                      <tr key={i} className="border-b last:border-0">
+                        <td className="py-1.5 pr-3">{r.nome}</td>
+                        <td className="py-1.5 pr-3 capitalize">{r.tipoPessoa}</td>
+                        <td className="py-1.5 pr-3">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                        <td className="py-1.5 pr-3 font-medium">
+                          {r.notaGeral !== null ? r.notaGeral.toFixed(1) : "-"}
+                        </td>
+                        <td className="py-1.5 pr-3">{r.parecerFinal ? PARECER_LABELS[r.parecerFinal] : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -111,6 +165,15 @@ export default async function DashboardPage({
           </CardHeader>
           <CardContent>
             <BarraNotaMedia data={dados.resultadosPorAvaliacao} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Nota média por função</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarraNotaMedia data={dados.notaPorFuncao} />
           </CardContent>
         </Card>
 
@@ -177,8 +240,8 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card>
       <CardContent className="p-1.5">
-        <p className="text-base font-bold">{value}</p>
         <p className="truncate text-[10px] text-muted-foreground">{label}</p>
+        <p className="text-base font-bold">{value}</p>
       </CardContent>
     </Card>
   );
@@ -200,8 +263,8 @@ function StatusCard({
       <CardContent className="flex items-center gap-1.5 p-1.5">
         <Icon className="size-3.5 shrink-0" style={{ color }} />
         <div className="min-w-0">
-          <p className="text-base font-bold">{value}</p>
           <p className="truncate text-[10px] text-muted-foreground">{label}</p>
+          <p className="text-base font-bold">{value}</p>
         </div>
       </CardContent>
     </Card>
