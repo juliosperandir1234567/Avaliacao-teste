@@ -39,11 +39,13 @@ export function AppShell({
   children,
   logoUrl,
   nomeEmpresa,
+  pendenciasCount = 0,
 }: {
   profile: Profile;
   children: React.ReactNode;
   logoUrl?: string | null;
   nomeEmpresa?: string | null;
+  pendenciasCount?: number;
 }) {
   const pathname = usePathname();
   const items = navItemsForRole(profile.role);
@@ -108,7 +110,14 @@ export function AppShell({
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
-                    <Icon className="size-4" />
+                    <span className="relative">
+                      <Icon className="size-4" />
+                      {item.href === "/" && pendenciasCount > 0 ? (
+                        <span className="absolute -right-1.5 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-bold text-destructive-foreground">
+                          {pendenciasCount > 9 ? "9+" : pendenciasCount}
+                        </span>
+                      ) : null}
+                    </span>
                     {item.label}
                   </Link>
                 </li>
@@ -146,7 +155,14 @@ export function AppShell({
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <Icon className="size-5" />
+              <span className="relative">
+                <Icon className="size-5" />
+                {item.href === "/" && pendenciasCount > 0 ? (
+                  <span className="absolute -right-2 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-bold text-destructive-foreground">
+                    {pendenciasCount > 9 ? "9+" : pendenciasCount}
+                  </span>
+                ) : null}
+              </span>
               <span className="truncate px-1">{item.label}</span>
             </Link>
           );
