@@ -116,7 +116,7 @@ export default async function DashboardPage({
         <StatCard label="Internos" value={dados.totais.internos} />
         <StatCard label="Externos" value={dados.totais.externos} />
         <StatCard label="Nota média" value={dados.notaMedia !== null ? dados.notaMedia.toFixed(1) : "-"} />
-        <StatusCard icon={CheckCircle2} color="#0ca30c" label="Aptos" value={dados.parecerCount.apto} />
+        <StatusCard icon={CheckCircle2} color="#0ca30c" label="Aprovados" value={dados.parecerCount.apto} />
         <StatusCard icon={Ban} color="#d03b3b" label="Reprovados" value={dados.parecerCount.reprovado} />
       </div>
 

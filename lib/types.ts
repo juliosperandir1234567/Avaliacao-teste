@@ -284,7 +284,7 @@ export interface Resposta {
 }
 
 export const PARECER_LABELS: Record<Parecer, string> = {
-  apto: "Apto",
+  apto: "Aprovado",
   apto_acompanhamento: "Apto com acompanhamento",
   reprovado: "Reprovado",
   necessita_treinamento: "Necessita treinamento",

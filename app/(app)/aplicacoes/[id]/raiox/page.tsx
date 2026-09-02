@@ -102,6 +102,7 @@ export default async function RaioXPage({
           </div>
 
           <div className="flex flex-col gap-1 border-t pt-3">
+            <FieldLine label="Tipo" value={aplicacao.tipo_pessoa === "interno" ? "Interno" : "Externo"} />
             <FieldLine label="Candidato" value={pessoa?.nome ?? "-"} />
             {aplicacao.tipo_pessoa === "interno" ? (
               <>

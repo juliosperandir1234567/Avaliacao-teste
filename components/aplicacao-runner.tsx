@@ -320,19 +320,16 @@ export function AplicacaoRunner({
             <div className="flex flex-col gap-1.5 border-t pt-3">
               <Label>Parecer final</Label>
               <Select
-                items={PARECER_LABELS}
-                value={parecerFinal ?? "apto"}
+                items={{ apto: PARECER_LABELS.apto, reprovado: PARECER_LABELS.reprovado }}
+                value={parecerFinal === "reprovado" ? "reprovado" : "apto"}
                 onValueChange={(v) => setParecerEscolhido(v as Parecer)}
               >
                 <SelectTrigger className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PARECER_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="apto">{PARECER_LABELS.apto}</SelectItem>
+                  <SelectItem value="reprovado">{PARECER_LABELS.reprovado}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
