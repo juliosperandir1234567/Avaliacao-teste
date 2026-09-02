@@ -368,19 +368,13 @@ export function RelatorioDocument({
           <Text>{aplicacao.motivo_interrupcao}</Text>
         ) : null}
 
-        <Text style={styles.h2}>Parecer</Text>
-        <Text>
-          Sugerido:{" "}
-          {aplicacao.parecer_sugerido
-            ? PARECER_LABELS[aplicacao.parecer_sugerido as Parecer]
-            : "-"}
-        </Text>
         {aplicacao.parecer_justificativa ? (
-          <Text>Observação: {aplicacao.parecer_justificativa}</Text>
+          <>
+            <Text style={styles.h2}>Observação</Text>
+            <Text>{aplicacao.parecer_justificativa}</Text>
+          </>
         ) : null}
-      </Page>
 
-      <Page size="A4" style={styles.page} wrap>
         {secoesOrdenadas.map((secao) => (
           <View key={secao.id}>
             <Text style={styles.h2}>{secao.nome}</Text>
