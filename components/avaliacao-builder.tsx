@@ -20,7 +20,7 @@ import {
 import { PerguntaCard } from "@/components/pergunta-card";
 import { PerguntaFormDialog } from "@/components/pergunta-form-dialog";
 import { ChecklistBulkAdd } from "@/components/checklist-bulk-add";
-import type { EquipamentoTipo } from "@/lib/types";
+import type { AvaliacaoStatus, EquipamentoTipo } from "@/lib/types";
 import {
   saveAvaliacaoBuilder,
   deleteAvaliacao,
@@ -62,13 +62,14 @@ export function AvaliacaoBuilder({
   avaliacaoId,
   initial,
   equipamentos,
-  editavel,
+  statusInicial,
 }: {
   avaliacaoId: string;
   initial: BuilderState;
   equipamentos: EquipamentoTipo[];
-  editavel: boolean;
+  statusInicial: AvaliacaoStatus;
 }) {
+  const jaPublicada = statusInicial !== "rascunho" && statusInicial !== "em_revisao";
   const router = useRouter();
   const [state, setState] = useState<BuilderState>(initial);
   const [pending, startTransition] = useTransition();
@@ -135,21 +136,19 @@ export function AvaliacaoBuilder({
         toast.error(result.error);
         return;
       }
-      toast.success(publicar ? "Avaliação publicada" : "Rascunho salvo");
-      if (publicar) router.push("/avaliacoes");
-      else router.refresh();
+      if (jaPublicada) {
+        toast.success("Alterações salvas");
+        router.refresh();
+      } else {
+        toast.success(publicar ? "Avaliação publicada" : "Rascunho salvo");
+        if (publicar) router.push("/avaliacoes");
+        else router.refresh();
+      }
     });
   }
 
   return (
     <div className="flex flex-col gap-4 pb-24">
-      {!editavel ? (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-          Esta avaliação está publicada e não pode mais ser editada diretamente. Use “Duplicar” no
-          banco de avaliações para criar uma nova versão.
-        </div>
-      ) : null}
-
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Dados da Avaliação</CardTitle>
@@ -157,7 +156,6 @@ export function AvaliacaoBuilder({
         <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Nome">
             <Input
-              disabled={!editavel}
               className="h-10"
               value={state.avaliacao.nome}
               onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, nome: e.target.value } }))}
@@ -165,7 +163,6 @@ export function AvaliacaoBuilder({
           </Field>
           <Field label="Função">
             <Input
-              disabled={!editavel}
               className="h-10"
               value={state.avaliacao.funcao}
               onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, funcao: e.target.value } }))}
@@ -173,7 +170,6 @@ export function AvaliacaoBuilder({
           </Field>
           <Field label="Equipamento">
             <Select
-              disabled={!editavel}
               value={state.avaliacao.equipamento_tipo_id ?? ""}
               onValueChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, equipamento_tipo_id: v || null } }))}
             >
@@ -191,7 +187,6 @@ export function AvaliacaoBuilder({
           </Field>
           <Field label="Nota mínima (0 a 10)">
             <Input
-              disabled={!editavel}
               type="number"
               min={0}
               max={10}
@@ -203,7 +198,6 @@ export function AvaliacaoBuilder({
           </Field>
           <Field label="Descrição" full>
             <Textarea
-              disabled={!editavel}
               value={state.avaliacao.descricao ?? ""}
               onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, descricao: e.target.value } }))}
             />
@@ -212,7 +206,6 @@ export function AvaliacaoBuilder({
             <SwitchField
               label="Permite nova tentativa"
               checked={state.avaliacao.permite_nova_tentativa}
-              disabled={!editavel}
               onChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, permite_nova_tentativa: v } }))}
             />
           </div>
@@ -224,16 +217,14 @@ export function AvaliacaoBuilder({
           <CardTitle className="text-base">
             Seções {state.secoes.length > 0 ? `— soma de pontos: ${somaPontosSecoes}/10` : ""}
           </CardTitle>
-          {editavel ? (
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={() => setState((s) => ({ ...s, secoes: [...s.secoes, novaSecao(s.secoes.length)] }))}
-            >
-              <Plus className="size-3.5" /> Seção
-            </Button>
-          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            onClick={() => setState((s) => ({ ...s, secoes: [...s.secoes, novaSecao(s.secoes.length)] }))}
+          >
+            <Plus className="size-3.5" /> Seção
+          </Button>
         </CardHeader>
       </Card>
 
@@ -241,7 +232,6 @@ export function AvaliacaoBuilder({
         <Card key={secao.id}>
           <CardHeader className="flex flex-row items-center gap-2">
             <Input
-              disabled={!editavel}
               className="h-9 flex-1 font-medium"
               placeholder={`Seção ${secaoIdx + 1}`}
               value={secao.nome}
@@ -253,7 +243,6 @@ export function AvaliacaoBuilder({
               }
             />
             <Input
-              disabled={!editavel}
               type="number"
               min={0}
               max={10}
@@ -268,16 +257,14 @@ export function AvaliacaoBuilder({
                 }))
               }
             />
-            {editavel ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                type="button"
-                onClick={() => setState((s) => ({ ...s, secoes: s.secoes.filter((x) => x.id !== secao.id) }))}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={() => setState((s) => ({ ...s, secoes: s.secoes.filter((x) => x.id !== secao.id) }))}
+            >
+              <Trash2 className="size-4" />
+            </Button>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {secao.perguntas.map((pergunta, idx) => (
@@ -285,7 +272,7 @@ export function AvaliacaoBuilder({
                 key={pergunta.id}
                 pergunta={pergunta}
                 numero={idx + 1}
-                editavel={editavel}
+                editavel
                 podeSubir={idx > 0}
                 podeDescer={idx < secao.perguntas.length - 1}
                 onEdit={() => abrirEdicao(secao.id, pergunta)}
@@ -294,71 +281,69 @@ export function AvaliacaoBuilder({
                 onMoveDown={() => moverPergunta(secao.id, pergunta.id, 1)}
               />
             ))}
-            {editavel ? (
-              <Button
-                type="button"
-                onClick={() => abrirNovaPergunta(secao.id)}
-                className="self-start"
-              >
-                <Plus className="size-3.5" /> Nova questão
-              </Button>
-            ) : null}
-            {editavel ? (
-              <ChecklistBulkAdd
-                onAdd={(itens) =>
-                  setState((s) => ({
-                    ...s,
-                    secoes: s.secoes.map((sec) =>
-                      sec.id === secao.id
-                        ? {
-                            ...sec,
-                            perguntas: [
-                              ...sec.perguntas,
-                              ...itens.map((enunciado, i) => ({
-                                ...novaPergunta(sec.perguntas.length + i),
-                                enunciado,
-                              })),
-                            ],
-                          }
-                        : sec
-                    ),
-                  }))
-                }
-              />
-            ) : null}
+            <Button type="button" onClick={() => abrirNovaPergunta(secao.id)} className="self-start">
+              <Plus className="size-3.5" /> Nova questão
+            </Button>
+            <ChecklistBulkAdd
+              onAdd={(itens) =>
+                setState((s) => ({
+                  ...s,
+                  secoes: s.secoes.map((sec) =>
+                    sec.id === secao.id
+                      ? {
+                          ...sec,
+                          perguntas: [
+                            ...sec.perguntas,
+                            ...itens.map((enunciado, i) => ({
+                              ...novaPergunta(sec.perguntas.length + i),
+                              enunciado,
+                            })),
+                          ],
+                        }
+                      : sec
+                  ),
+                }))
+              }
+            />
           </CardContent>
         </Card>
       ))}
 
-      {editavel ? (
-        <div className="fixed inset-x-0 bottom-16 z-30 flex justify-center gap-2 border-t bg-background p-3 md:bottom-0 md:left-56">
-          <Button
-            variant="ghost"
-            className="text-destructive"
-            disabled={pending}
-            onClick={() => {
-              if (!confirm("Excluir esta avaliação? Essa ação não pode ser desfeita.")) return;
-              startTransition(async () => {
-                const result = await deleteAvaliacao(avaliacaoId);
-                if (result?.error) {
-                  toast.error(result.error);
-                  return;
-                }
-                toast.success("Avaliação excluída");
-                router.push("/avaliacoes");
-              });
-            }}
-          >
-            Excluir
-          </Button>
-          <Button variant="outline" disabled={pending} onClick={() => save(false)}>
-            Salvar Rascunho
-          </Button>
+      <div className="fixed inset-x-0 bottom-16 z-30 flex justify-center gap-2 border-t bg-background p-3 md:bottom-0 md:left-56">
+        <Button
+          variant="ghost"
+          className="text-destructive"
+          disabled={pending}
+          onClick={() => {
+            if (!confirm("Excluir esta avaliação? Essa ação não pode ser desfeita.")) return;
+            startTransition(async () => {
+              const result = await deleteAvaliacao(avaliacaoId);
+              if (result?.error) {
+                toast.error(result.error);
+                return;
+              }
+              toast.success("Avaliação excluída");
+              router.push("/avaliacoes");
+            });
+          }}
+        >
+          Excluir
+        </Button>
+        {jaPublicada ? (
           <Button disabled={pending} onClick={() => save(true)}>
-            Publicar
+            {pending ? "Salvando..." : "Salvar alterações"}
           </Button>
-        </div>
-      ) : null}
+        ) : (
+          <>
+            <Button variant="outline" disabled={pending} onClick={() => save(false)}>
+              Salvar Rascunho
+            </Button>
+            <Button disabled={pending} onClick={() => save(true)}>
+              Publicar
+            </Button>
+          </>
+        )}
+      </div>
 
       <PerguntaFormDialog
         open={editando !== null}

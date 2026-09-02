@@ -254,16 +254,6 @@ export async function saveAvaliacaoBuilder(
 ) {
   const supabase = await createClient();
 
-  const { data: current } = await supabase
-    .from("avaliacoes")
-    .select("status")
-    .eq("id", avaliacaoId)
-    .single();
-
-  if (current && current.status !== "rascunho" && current.status !== "em_revisao") {
-    return { error: "Avaliações publicadas não podem ser editadas. Duplique para criar uma nova versão." };
-  }
-
   if (publicar) {
     if (state.secoes.every((s) => s.perguntas.length === 0)) {
       return { error: "Adicione ao menos uma pergunta antes de publicar." };

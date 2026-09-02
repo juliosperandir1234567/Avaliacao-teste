@@ -15,8 +15,6 @@ export default async function EditarAvaliacaoPage({
 
   if (!data) notFound();
 
-  const editavel = data.avaliacao.status === "rascunho" || data.avaliacao.status === "em_revisao";
-
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">{data.avaliacao.nome || "Nova avaliação"}</h1>
@@ -24,7 +22,7 @@ export default async function EditarAvaliacaoPage({
         avaliacaoId={id}
         initial={{ avaliacao: data.avaliacao, competencias: data.competencias, secoes: data.secoes }}
         equipamentos={equipamentos}
-        editavel={editavel}
+        statusInicial={data.avaliacao.status}
       />
     </div>
   );
