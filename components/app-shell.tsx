@@ -50,10 +50,9 @@ export function AppShell({
   const pathname = usePathname();
   const items = navItemsForRole(profile.role);
   const ativoHref = hrefAtivo(pathname, items.map((i) => i.href));
-  const temMais = items.length > 5;
-  const mobilePrincipais = temMais ? items.slice(0, 4) : items;
-  const mobileMais = temMais ? items.slice(4) : [];
-  const colunasMobile = mobilePrincipais.length + (mobileMais.length > 0 ? 1 : 0);
+  const mobilePrincipais = items.slice(0, 4);
+  const mobileMais = items.slice(4);
+  const colunasMobile = mobilePrincipais.length + 1;
 
   return (
     <div className="flex min-h-svh w-full flex-col">
@@ -167,49 +166,47 @@ export function AppShell({
             </Link>
           );
         })}
-        {mobileMais.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={`flex w-full flex-col items-center gap-1 py-2 text-[11px] font-medium ${
-                mobileMais.some((item) => item.href === ativoHref) ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <MoreHorizontal className="size-5" />
-              <span className="truncate px-1">Mais</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top">
-              {mobileMais.map((item) => {
-                const Icon = item.icon;
-                const active = item.href === ativoHref;
-                return (
-                  <DropdownMenuItem
-                    key={item.href}
-                    render={
-                      <Link
-                        href={item.href}
-                        prefetch={false}
-                        className={`flex w-full items-center gap-2 ${active ? "text-primary" : ""}`}
-                      >
-                        <Icon className="size-4" />
-                        {item.label}
-                      </Link>
-                    }
-                  />
-                );
-              })}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                render={
-                  <form action={logout} className="w-full">
-                    <button type="submit" className="flex w-full items-center gap-2">
-                      <LogOut className="size-4" /> Sair
-                    </button>
-                  </form>
-                }
-              />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={`flex w-full flex-col items-center gap-1 py-2 text-[11px] font-medium ${
+              mobileMais.some((item) => item.href === ativoHref) ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <MoreHorizontal className="size-5" />
+            <span className="truncate px-1">Mais</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top">
+            {mobileMais.map((item) => {
+              const Icon = item.icon;
+              const active = item.href === ativoHref;
+              return (
+                <DropdownMenuItem
+                  key={item.href}
+                  render={
+                    <Link
+                      href={item.href}
+                      prefetch={false}
+                      className={`flex w-full items-center gap-2 ${active ? "text-primary" : ""}`}
+                    >
+                      <Icon className="size-4" />
+                      {item.label}
+                    </Link>
+                  }
+                />
+              );
+            })}
+            {mobileMais.length > 0 ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem
+              render={
+                <form action={logout} className="w-full">
+                  <button type="submit" className="flex w-full items-center gap-2">
+                    <LogOut className="size-4" /> Sair
+                  </button>
+                </form>
+              }
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
       </nav>
     </div>
   );
