@@ -28,6 +28,8 @@ const styles = StyleSheet.create({
   perguntaTitulo: { fontWeight: 600, marginBottom: 2 },
   perguntaMeta: { color: "#6b7280", fontSize: 8, marginBottom: 2 },
   critico: { color: "#b91c1c", fontWeight: 700 },
+  correto: { color: "#15803d", fontWeight: 700 },
+  errado: { color: "#b91c1c", fontWeight: 700 },
   assinaturas: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
   assinaturaBox: { width: "45%", alignItems: "center" },
   assinaturaImg: { width: 160, height: 70, objectFit: "contain", border: "1 solid #e5e7eb" },
@@ -258,7 +260,22 @@ export function RelatorioDocument({
             .sort((a, b) => a.ordem - b.ordem)
             .map((p) => {
               const r = respostaPorPergunta.get(p.id);
+
+              if (p.tipo === "checklist") {
+                const status = r?.resposta && "status" in r.resposta ? r.resposta.status : null;
+                const corStatus = status === "sim" ? styles.correto : status === "nao" ? styles.errado : undefined;
+                return (
+                  <View key={p.id} style={styles.pergunta}>
+                    <Text style={styles.perguntaTitulo}>{p.enunciado}</Text>
+                    <Text style={corStatus}>{respostaTexto(p, r, alternativasTexto)}</Text>
+                    {r?.observacao ? <Text style={styles.perguntaMeta}>Obs: {r.observacao}</Text> : null}
+                    {r?.item_critico_falhou ? <Text style={styles.critico}>FALHA CRÍTICA</Text> : null}
+                  </View>
+                );
+              }
+
               const errada = r?.pontuacao === 0;
+              const acertouTotal = r?.pontuacao !== null && r?.pontuacao !== undefined && r.pontuacao >= 10;
               const correta = respostaCorretaTexto(p, alternativasPorPergunta.get(p.id) ?? []);
               return (
                 <View key={p.id} style={styles.pergunta}>
@@ -267,10 +284,12 @@ export function RelatorioDocument({
                     {PERGUNTA_TIPO_LABELS[p.tipo]}
                     {p.item_critico ? " · ITEM CRÍTICO" : ""} · Nota: {r?.pontuacao?.toFixed(1) ?? "-"}
                   </Text>
-                  <Text style={errada ? styles.critico : undefined}>
+                  <Text style={errada ? styles.errado : acertouTotal ? styles.correto : undefined}>
                     Resposta marcada: {respostaTexto(p, r, alternativasTexto)}
                   </Text>
-                  {correta && correta !== "Correção manual" ? <Text>Resposta correta: {correta}</Text> : null}
+                  {correta && correta !== "Correção manual" ? (
+                    <Text style={styles.correto}>Resposta correta: {correta}</Text>
+                  ) : null}
                   {r?.observacao ? <Text style={styles.perguntaMeta}>Obs: {r.observacao}</Text> : null}
                   {r?.item_critico_falhou ? <Text style={styles.critico}>FALHA CRÍTICA</Text> : null}
                 </View>

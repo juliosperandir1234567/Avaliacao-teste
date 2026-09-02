@@ -14,17 +14,9 @@ export interface RespostaLocalChecklist {
   evidencias: string[];
 }
 
-const COLUNAS_PADRAO: { status: ChecklistStatus; label: string }[] = [
+const COLUNAS: { status: ChecklistStatus; label: string }[] = [
   { status: "sim", label: "Sim" },
   { status: "nao", label: "Não" },
-  { status: "nao_avaliado", label: "N/A" },
-];
-
-const COLUNAS_PARCIAL: { status: ChecklistStatus; label: string }[] = [
-  { status: "sim", label: "Sim" },
-  { status: "parcial", label: "Parcial" },
-  { status: "nao", label: "Não" },
-  { status: "nao_avaliado", label: "N/A" },
 ];
 
 export function ChecklistTable({
@@ -41,16 +33,13 @@ export function ChecklistTable({
   onUploadEvidencia: (perguntaId: string, file: File) => void;
 }) {
   const [expandido, setExpandido] = useState<string | null>(null);
-  const usaParcial = perguntas.some((p) => p.config.escala === "sim_parcial_nao_na");
-  const colunas = usaParcial ? COLUNAS_PARCIAL : COLUNAS_PADRAO;
-
   return (
     <div className="overflow-x-auto rounded-md border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-xs text-muted-foreground">
           <tr>
             <th className="px-3 py-2 text-left font-medium">Item</th>
-            {colunas.map((c) => (
+            {COLUNAS.map((c) => (
               <th key={c.status} className="px-2 py-2 text-center font-medium">
                 {c.label}
               </th>
@@ -62,7 +51,6 @@ export function ChecklistTable({
           {perguntas.map((p) => {
             const resposta = respostaPorPergunta.get(p.id);
             const statusAtual = resposta?.valor && "status" in resposta.valor ? resposta.valor.status : null;
-            const disponiveis = p.config.escala === "sim_parcial_nao_na" ? COLUNAS_PARCIAL : COLUNAS_PADRAO;
             const precisaObs = p.observacao_obrigatoria_se_nao && statusAtual === "nao" && !resposta?.observacao;
             const isExpandido = expandido === p.id;
 
@@ -77,29 +65,24 @@ export function ChecklistTable({
                       </Badge>
                     ) : null}
                   </td>
-                  {colunas.map((c) => {
-                    const habilitada = disponiveis.some((d) => d.status === c.status);
-                    return (
-                      <td key={c.status} className="px-2 py-2 text-center">
-                        {habilitada ? (
-                          <button
-                            type="button"
-                            onClick={() => onSetStatus(p.id, c.status)}
-                            className={`inline-flex size-7 items-center justify-center rounded border text-xs font-medium transition-colors ${
-                              statusAtual === c.status
-                                ? c.status === "nao"
-                                  ? "border-destructive bg-destructive text-destructive-foreground"
-                                  : "border-primary bg-primary text-primary-foreground"
-                                : "border-input bg-background hover:bg-muted"
-                            }`}
-                            aria-label={c.label}
-                          >
-                            {statusAtual === c.status ? "✓" : ""}
-                          </button>
-                        ) : null}
-                      </td>
-                    );
-                  })}
+                  {COLUNAS.map((c) => (
+                    <td key={c.status} className="px-2 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => onSetStatus(p.id, c.status)}
+                        className={`inline-flex size-7 items-center justify-center rounded border text-xs font-medium transition-colors ${
+                          statusAtual === c.status
+                            ? c.status === "nao"
+                              ? "border-destructive bg-destructive text-destructive-foreground"
+                              : "border-primary bg-primary text-primary-foreground"
+                            : "border-input bg-background hover:bg-muted"
+                        }`}
+                        aria-label={c.label}
+                      >
+                        {statusAtual === c.status ? "✓" : ""}
+                      </button>
+                    </td>
+                  ))}
                   <td className="px-1 text-center">
                     <Button
                       type="button"
@@ -119,7 +102,7 @@ export function ChecklistTable({
                 </tr>
                 {isExpandido ? (
                   <tr key={`${p.id}-detalhe`}>
-                    <td colSpan={colunas.length + 2} className="bg-muted/30 px-3 py-3">
+                    <td colSpan={COLUNAS.length + 2} className="bg-muted/30 px-3 py-3">
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
                           <label className="text-xs text-muted-foreground">

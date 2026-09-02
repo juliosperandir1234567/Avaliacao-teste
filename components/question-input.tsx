@@ -84,19 +84,10 @@ export function QuestionInput({
 
     case "checklist": {
       const atual = value && "status" in value ? value.status : null;
-      const parcial = pergunta.config.escala === "sim_parcial_nao_na";
-      const opcoes: { status: ChecklistStatus; label: string }[] = parcial
-        ? [
-            { status: "sim", label: "Realizou corretamente" },
-            { status: "parcial", label: "Realizou parcialmente" },
-            { status: "nao", label: "Não realizou" },
-            { status: "nao_avaliado", label: "Não avaliado" },
-          ]
-        : [
-            { status: "sim", label: "Sim" },
-            { status: "nao", label: "Não" },
-            { status: "nao_avaliado", label: "Não avaliado" },
-          ];
+      const opcoes: { status: ChecklistStatus; label: string }[] = [
+        { status: "sim", label: "Sim" },
+        { status: "nao", label: "Não" },
+      ];
       return (
         <div className="flex flex-col gap-2">
           {opcoes.map((op) => (

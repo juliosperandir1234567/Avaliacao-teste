@@ -333,6 +333,7 @@ export function AplicacaoRunner({
                       toast.error(result.error);
                       return;
                     }
+                    window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
                     router.push(`/aplicacoes/${aplicacaoId}/raiox`);
                   })
                 }
@@ -386,6 +387,7 @@ export function AplicacaoRunner({
                       toast.error(result.error);
                       return;
                     }
+                    window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
                     router.push(`/aplicacoes/${aplicacaoId}/raiox`);
                   })
                 }
@@ -487,25 +489,6 @@ export function AplicacaoRunner({
               />
             </div>
           ) : null}
-
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">
-              Observação {pergunta.observacao_obrigatoria_se_nao ? "(obrigatória se resposta negativa)" : "(opcional)"}
-            </Label>
-            <Textarea
-              value={respostaAtual?.observacao ?? ""}
-              onChange={(e) => {
-                const base: RespostaLocal = respostaAtual ?? {
-                  valor: { texto: "" } as RespostaValor,
-                  observacao: "",
-                  pontuacaoManual: null,
-                  evidencias: [],
-                  pontuacao: null,
-                };
-                persistir(pergunta.id, { ...base, observacao: e.target.value });
-              }}
-            />
-          </div>
 
           <div className="flex flex-col gap-1.5">
             <Label className="flex items-center gap-1 text-xs">

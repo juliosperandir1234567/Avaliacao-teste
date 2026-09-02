@@ -56,7 +56,7 @@ export default async function RaioXPage({
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Raio-X do Avaliado</h1>
+          <h1 className="text-xl font-semibold">Resultado da Avaliação</h1>
           <p className="text-sm text-muted-foreground">{aplicacao.funcao_avaliada}</p>
         </div>
         {aplicacao.status === "finalizada" ? (

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -231,18 +232,48 @@ function PerguntaConfigFields({
 
   switch (pergunta.tipo) {
     case "multipla_escolha":
+      return (
+        <div className="flex flex-col gap-2">
+          <RadioGroup
+            value={pergunta.alternativas.find((a) => a.correta)?.id ?? ""}
+            onValueChange={(v) =>
+              onChange({
+                alternativas: pergunta.alternativas.map((a) => ({ ...a, correta: a.id === v })),
+              })
+            }
+            className="flex flex-col gap-2"
+          >
+            {pergunta.alternativas.map((alt) => (
+              <div key={alt.id} className="flex items-center gap-2">
+                <RadioGroupItem value={alt.id} />
+                <Input
+                  className="h-9 flex-1"
+                  value={alt.texto}
+                  onChange={(e) => updateAlternativa(alt.id, { texto: e.target.value })}
+                  placeholder="Texto da alternativa"
+                />
+                <Button variant="ghost" size="icon" type="button" onClick={() => removeAlternativa(alt.id)}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+          </RadioGroup>
+          <Button variant="outline" size="sm" type="button" onClick={onAddAlternativa} className="self-start">
+            <Plus className="size-3.5" /> Alternativa
+          </Button>
+        </div>
+      );
+
     case "multiplas_respostas":
       return (
         <div className="flex flex-col gap-2">
-          {pergunta.tipo === "multiplas_respostas" ? (
-            <label className="flex items-center gap-2 text-sm">
-              <Switch
-                checked={Boolean(pergunta.config.pontuacao_parcial)}
-                onCheckedChange={(v) => onChange({ config: { ...pergunta.config, pontuacao_parcial: v } })}
-              />
-              Permitir pontuação parcial
-            </label>
-          ) : null}
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={Boolean(pergunta.config.pontuacao_parcial)}
+              onCheckedChange={(v) => onChange({ config: { ...pergunta.config, pontuacao_parcial: v } })}
+            />
+            Permitir pontuação parcial
+          </label>
           {pergunta.alternativas.map((alt) => (
             <div key={alt.id} className="flex items-center gap-2">
               <Checkbox
