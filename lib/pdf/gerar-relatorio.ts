@@ -63,6 +63,7 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       estrutura: data.aplicacao.colaborador_snapshot?.estrutura ?? "-",
       possuiCnhInterno: data.aplicacao.colaborador_snapshot?.possui_cnh ?? null,
       categoriaCnhInterno: data.aplicacao.colaborador_snapshot?.categoria_cnh ?? null,
+      observacoesInterno: data.aplicacao.colaborador_snapshot?.observacoes ?? null,
       candidatoExterno: data.aplicacao.candidatos_externos ?? null,
       avaliadorNome: avaliadorProfile?.nome ?? "-",
       secoes: data.secoes,

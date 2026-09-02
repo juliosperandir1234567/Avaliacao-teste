@@ -217,6 +217,7 @@ export interface ColaboradorSnapshot {
   estrutura: string;
   possui_cnh?: boolean | null;
   categoria_cnh?: string | null;
+  observacoes?: string | null;
 }
 
 export interface AvaliacaoAplicada {

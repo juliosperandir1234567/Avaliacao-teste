@@ -85,7 +85,7 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
         },
         { onConflict: "matricula" }
       )
-      .select("id, matricula, nome, cargo, estrutura, possui_cnh, categoria_cnh")
+      .select("id, matricula, nome, cargo, estrutura, possui_cnh, categoria_cnh, observacoes")
       .single();
     if (error) return { error: error.message };
     colaboradorId = colaborador.id as string;
@@ -96,6 +96,7 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
       estrutura: colaborador.estrutura,
       possui_cnh: colaborador.possui_cnh,
       categoria_cnh: colaborador.categoria_cnh,
+      observacoes: colaborador.observacoes,
     };
   }
 

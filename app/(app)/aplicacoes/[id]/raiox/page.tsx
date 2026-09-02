@@ -120,6 +120,9 @@ export default async function RaioXPage({
                   }
                 />
                 <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
+                {aplicacao.colaborador_snapshot?.observacoes ? (
+                  <FieldLine label="Observações" value={aplicacao.colaborador_snapshot.observacoes} />
+                ) : null}
               </>
             ) : (
               <>

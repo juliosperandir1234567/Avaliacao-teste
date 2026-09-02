@@ -39,6 +39,9 @@ export default async function AplicarPage({
                 ? "Não"
                 : "-",
           },
+          ...(colaborador?.observacoes
+            ? [{ label: "Observações", value: colaborador.observacoes }]
+            : []),
         ]
       : [
           { label: "Telefone", value: candidatoExterno?.telefone ?? "-" },

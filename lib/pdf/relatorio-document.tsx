@@ -204,6 +204,7 @@ export function RelatorioDocument({
   estrutura,
   possuiCnhInterno,
   categoriaCnhInterno,
+  observacoesInterno,
   candidatoExterno,
   avaliadorNome,
   secoes,
@@ -225,6 +226,7 @@ export function RelatorioDocument({
   estrutura: string;
   possuiCnhInterno: boolean | null;
   categoriaCnhInterno: string | null;
+  observacoesInterno: string | null;
   candidatoExterno: {
     telefone: string | null;
     possui_cnh: boolean | null;
@@ -289,6 +291,9 @@ export function RelatorioDocument({
                       : "-"
                 }
               />
+              {observacoesInterno ? (
+                <FieldLine label="Observações" value={observacoesInterno} />
+              ) : null}
             </>
           ) : (
             <>
