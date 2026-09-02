@@ -274,11 +274,52 @@ export async function saveAvaliacaoBuilder(
     .eq("id", avaliacaoId);
   if (updateError) return { error: updateError.message };
 
-  // Wipe-and-reinsert: seguro pois só ocorre enquanto a avaliacao esta em rascunho/em_revisao
-  // (avaliacoes publicadas nao sao mais editadas por este fluxo).
-  await supabase.from("avaliacao_secoes").delete().eq("avaliacao_id", avaliacaoId);
-  await supabase.from("avaliacao_competencias").delete().eq("avaliacao_id", avaliacaoId);
+  // Upsert em vez de wipe-and-reinsert: uma avaliacao ja aplicada tem respostas apontando
+  // pra avaliacao_perguntas (sem cascade), entao apagar e reinserir a secao/pergunta inteira
+  // quebra com "duplicate key" (o delete falha pela FK e o insert seguinte colide com a linha
+  // que continuou la). Só apagamos secoes/perguntas/alternativas que o usuario de fato removeu
+  // da tela, e se a exclusão esbarrar em respostas já registradas, o item fica preservado.
+  const secaoIds = state.secoes.map((s) => s.id);
+  const perguntaIds = state.secoes.flatMap((s) => s.perguntas.map((p) => p.id));
+  const alternativaIds = state.secoes.flatMap((s) => s.perguntas.flatMap((p) => p.alternativas.map((a) => a.id)));
 
+  const [{ data: secoesAntigas }, { data: perguntasAntigas }, { data: alternativasAntigas }] = await Promise.all([
+    supabase.from("avaliacao_secoes").select("id").eq("avaliacao_id", avaliacaoId),
+    supabase
+      .from("avaliacao_perguntas")
+      .select("id, avaliacao_secoes!inner(avaliacao_id)")
+      .eq("avaliacao_secoes.avaliacao_id", avaliacaoId),
+    supabase
+      .from("avaliacao_alternativas")
+      .select("id, avaliacao_perguntas!inner(secao_id, avaliacao_secoes!inner(avaliacao_id))")
+      .eq("avaliacao_perguntas.avaliacao_secoes.avaliacao_id", avaliacaoId),
+  ]);
+
+  const alternativasRemovidas = (alternativasAntigas ?? [])
+    .map((a) => a.id as string)
+    .filter((id) => !alternativaIds.includes(id));
+  const perguntasRemovidas = (perguntasAntigas ?? [])
+    .map((p) => p.id as string)
+    .filter((id) => !perguntaIds.includes(id));
+  const secoesRemovidas = (secoesAntigas ?? [])
+    .map((s) => s.id as string)
+    .filter((id) => !secaoIds.includes(id));
+
+  let itensPreservados = 0;
+  if (alternativasRemovidas.length > 0) {
+    const { error } = await supabase.from("avaliacao_alternativas").delete().in("id", alternativasRemovidas);
+    if (error) itensPreservados += alternativasRemovidas.length;
+  }
+  for (const id of perguntasRemovidas) {
+    const { error } = await supabase.from("avaliacao_perguntas").delete().eq("id", id);
+    if (error) itensPreservados += 1;
+  }
+  for (const id of secoesRemovidas) {
+    const { error } = await supabase.from("avaliacao_secoes").delete().eq("id", id);
+    if (error) itensPreservados += 1;
+  }
+
+  await supabase.from("avaliacao_competencias").delete().eq("avaliacao_id", avaliacaoId);
   if (state.competencias.length > 0) {
     const { error } = await supabase.from("avaliacao_competencias").insert(
       state.competencias.map((c) => ({
@@ -292,7 +333,7 @@ export async function saveAvaliacaoBuilder(
   }
 
   if (state.secoes.length > 0) {
-    const { error } = await supabase.from("avaliacao_secoes").insert(
+    const { error } = await supabase.from("avaliacao_secoes").upsert(
       state.secoes.map((s) => ({
         id: s.id,
         avaliacao_id: avaliacaoId,
@@ -323,7 +364,7 @@ export async function saveAvaliacaoBuilder(
   );
 
   if (todasPerguntas.length > 0) {
-    const { error } = await supabase.from("avaliacao_perguntas").insert(todasPerguntas);
+    const { error } = await supabase.from("avaliacao_perguntas").upsert(todasPerguntas);
     if (error) return { error: error.message };
   }
 
@@ -340,13 +381,19 @@ export async function saveAvaliacaoBuilder(
   );
 
   if (todasAlternativas.length > 0) {
-    const { error } = await supabase.from("avaliacao_alternativas").insert(todasAlternativas);
+    const { error } = await supabase.from("avaliacao_alternativas").upsert(todasAlternativas);
     if (error) return { error: error.message };
   }
 
   revalidatePath("/avaliacoes");
   revalidatePath(`/avaliacoes/${avaliacaoId}/editar`);
-  return { success: true };
+  return {
+    success: true,
+    warning:
+      itensPreservados > 0
+        ? `${itensPreservados} item(ns) não puderam ser removidos porque já têm respostas registradas de candidatos e foram mantidos na prova.`
+        : undefined,
+  };
 }
 
 export async function setAvaliacaoStatus(id: string, status: AvaliacaoStatus) {

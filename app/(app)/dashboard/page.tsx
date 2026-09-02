@@ -127,45 +127,45 @@ export default async function DashboardPage({
         </div>
       ) : null}
 
-      {params.funcao ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Resultados individuais — {params.funcao}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dados.resultadosIndividuais.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum resultado no período filtrado.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th className="py-1.5 pr-3 font-medium">Nome</th>
-                      <th className="py-1.5 pr-3 font-medium">Tipo</th>
-                      <th className="py-1.5 pr-3 font-medium">Data</th>
-                      <th className="py-1.5 pr-3 font-medium">Nota</th>
-                      <th className="py-1.5 pr-3 font-medium">Parecer</th>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Resultados individuais{params.funcao ? ` — ${params.funcao}` : ""}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dados.resultadosIndividuais.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum resultado no período filtrado.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-1.5 pr-3 font-medium">Nome</th>
+                    <th className="py-1.5 pr-3 font-medium">Tipo</th>
+                    <th className="py-1.5 pr-3 font-medium">Data</th>
+                    <th className="py-1.5 pr-3 font-medium">Nota</th>
+                    <th className="py-1.5 pr-3 font-medium">Parecer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.resultadosIndividuais.map((r, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="py-1.5 pr-3">{r.nome}</td>
+                      <td className="py-1.5 pr-3 capitalize">{r.tipoPessoa}</td>
+                      <td className="py-1.5 pr-3">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="py-1.5 pr-3 font-medium">
+                        {r.notaGeral !== null ? r.notaGeral.toFixed(1) : "-"}
+                      </td>
+                      <td className="py-1.5 pr-3">{r.parecerFinal ? PARECER_LABELS[r.parecerFinal] : "-"}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {dados.resultadosIndividuais.map((r, i) => (
-                      <tr key={i} className="border-b last:border-0">
-                        <td className="py-1.5 pr-3">{r.nome}</td>
-                        <td className="py-1.5 pr-3 capitalize">{r.tipoPessoa}</td>
-                        <td className="py-1.5 pr-3">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                        <td className="py-1.5 pr-3 font-medium">
-                          {r.notaGeral !== null ? r.notaGeral.toFixed(1) : "-"}
-                        </td>
-                        <td className="py-1.5 pr-3">{r.parecerFinal ? PARECER_LABELS[r.parecerFinal] : "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

@@ -117,17 +117,15 @@ export async function getDashboardData(filtros: DashboardFiltros) {
     }))
     .sort((a, b) => b.quantidade - a.quantidade);
 
-  const resultadosIndividuais = filtros.funcao
-    ? aplicacoes
-        .map((a) => ({
-          nome: (a.tipo_pessoa === "interno" ? a.colaborador_snapshot?.nome : a.candidatos_externos?.nome) ?? "-",
-          tipoPessoa: a.tipo_pessoa,
-          data: a.data,
-          notaGeral: a.nota_geral,
-          parecerFinal: a.parecer_final,
-        }))
-        .sort((a, b) => (b.notaGeral ?? -1) - (a.notaGeral ?? -1))
-    : [];
+  const resultadosIndividuais = aplicacoes
+    .map((a) => ({
+      nome: (a.tipo_pessoa === "interno" ? a.colaborador_snapshot?.nome : a.candidatos_externos?.nome) ?? "-",
+      tipoPessoa: a.tipo_pessoa,
+      data: a.data,
+      notaGeral: a.nota_geral,
+      parecerFinal: a.parecer_final,
+    }))
+    .sort((a, b) => (b.notaGeral ?? -1) - (a.notaGeral ?? -1));
 
   const distribuicaoNotas = NOTA_BUCKETS.map((b) => ({
     label: b.label,

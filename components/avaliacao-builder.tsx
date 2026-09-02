@@ -136,6 +136,7 @@ export function AvaliacaoBuilder({
         toast.error(result.error);
         return;
       }
+      if (result?.warning) toast.warning(result.warning);
       if (jaPublicada) {
         toast.success("Alterações salvas");
         router.refresh();
@@ -170,6 +171,7 @@ export function AvaliacaoBuilder({
           </Field>
           <Field label="Equipamento">
             <Select
+              items={equipamentos.map((eq) => ({ value: eq.id, label: `${eq.familia} — ${eq.nome}` }))}
               value={state.avaliacao.equipamento_tipo_id ?? ""}
               onValueChange={(v) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, equipamento_tipo_id: v || null } }))}
             >
