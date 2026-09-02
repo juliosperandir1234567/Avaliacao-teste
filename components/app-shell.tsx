@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, MoreHorizontal } from "lucide-react";
 import { navItemsForRole } from "./nav-items";
 import type { Profile } from "@/lib/types";
 import { logout } from "@/app/(app)/actions";
@@ -48,6 +48,10 @@ export function AppShell({
   const pathname = usePathname();
   const items = navItemsForRole(profile.role);
   const ativoHref = hrefAtivo(pathname, items.map((i) => i.href));
+  const temMais = items.length > 5;
+  const mobilePrincipais = temMais ? items.slice(0, 4) : items;
+  const mobileMais = temMais ? items.slice(4) : [];
+  const colunasMobile = mobilePrincipais.length + (mobileMais.length > 0 ? 1 : 0);
 
   return (
     <div className="flex min-h-svh w-full flex-col">
@@ -128,9 +132,9 @@ export function AppShell({
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t bg-background md:hidden"
-        style={{ gridTemplateColumns: `repeat(${Math.min(items.length, 5)}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${colunasMobile}, minmax(0, 1fr))` }}
       >
-        {items.slice(0, 5).map((item) => {
+        {mobilePrincipais.map((item) => {
           const Icon = item.icon;
           const active = item.href === ativoHref;
           return (
@@ -147,6 +151,39 @@ export function AppShell({
             </Link>
           );
         })}
+        {mobileMais.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={`flex w-full flex-col items-center gap-1 py-2 text-[11px] font-medium ${
+                mobileMais.some((item) => item.href === ativoHref) ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <MoreHorizontal className="size-5" />
+              <span className="truncate px-1">Mais</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top">
+              {mobileMais.map((item) => {
+                const Icon = item.icon;
+                const active = item.href === ativoHref;
+                return (
+                  <DropdownMenuItem
+                    key={item.href}
+                    render={
+                      <Link
+                        href={item.href}
+                        prefetch={false}
+                        className={`flex w-full items-center gap-2 ${active ? "text-primary" : ""}`}
+                      >
+                        <Icon className="size-4" />
+                        {item.label}
+                      </Link>
+                    }
+                  />
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </nav>
     </div>
   );
