@@ -16,7 +16,6 @@ interface AplicacaoRow {
   avaliacao_id: string;
   tipo_pessoa: TipoPessoa;
   nota_geral: number | null;
-  notas_por_competencia: Record<string, number> | null;
   falhas_criticas_count: number;
   parecer_final: Parecer | null;
   data: string;
@@ -38,7 +37,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
   let query = supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "id, avaliacao_id, tipo_pessoa, nota_geral, notas_por_competencia, falhas_criticas_count, parecer_final, data, avaliacoes(nome)"
+      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, data, avaliacoes(nome)"
     )
     .eq("status", "finalizada")
     .order("data", { ascending: true })
@@ -96,22 +95,6 @@ export async function getDashboardData(filtros: DashboardFiltros) {
     }))
     .sort((a, b) => b.quantidade - a.quantidade);
 
-  const competenciaMap = new Map<string, number[]>();
-  for (const a of aplicacoes) {
-    if (!a.notas_por_competencia) continue;
-    for (const [nome, nota] of Object.entries(a.notas_por_competencia)) {
-      const list = competenciaMap.get(nome) ?? [];
-      list.push(nota);
-      competenciaMap.set(nome, list);
-    }
-  }
-  const desempenhoPorCompetencia = [...competenciaMap.entries()]
-    .map(([nome, notas2]) => ({
-      nome,
-      notaMedia: notas2.reduce((acc, n) => acc + n, 0) / notas2.length,
-    }))
-    .sort((a, b) => b.notaMedia - a.notaMedia);
-
   const distribuicaoNotas = NOTA_BUCKETS.map((b) => ({
     label: b.label,
     quantidade: notas.filter((n) => n >= b.min && n <= b.max).length,
@@ -159,7 +142,6 @@ export async function getDashboardData(filtros: DashboardFiltros) {
     notaMedia,
     parecerCount,
     resultadosPorAvaliacao,
-    desempenhoPorCompetencia,
     distribuicaoNotas,
     evolucaoTemporal,
     principaisFalhas,

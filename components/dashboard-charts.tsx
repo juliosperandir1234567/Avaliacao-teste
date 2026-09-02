@@ -10,7 +10,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Cell,
+  LabelList,
 } from "recharts";
 
 const BLUE = "#2a78d6";
@@ -41,7 +41,15 @@ export function BarraNotaMedia({ data }: { data: { nome: string; notaMedia: numb
             "Nota média",
           ]}
         />
-        <Bar dataKey="notaMedia" fill={BLUE} radius={[0, 4, 4, 0]} barSize={16} />
+        <Bar dataKey="notaMedia" fill={BLUE} radius={[0, 4, 4, 0]} barSize={16}>
+          <LabelList
+            dataKey="notaMedia"
+            position="right"
+            fontSize={11}
+            fill={INK}
+            formatter={(v) => Number(v).toFixed(1)}
+          />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
@@ -55,25 +63,8 @@ export function BarraDistribuicao({ data }: { data: { label: string; quantidade:
         <XAxis dataKey="label" stroke={AXIS} fontSize={11} tickLine={false} axisLine={{ stroke: GRID }} />
         <YAxis stroke={AXIS} fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
         <Tooltip contentStyle={tooltipStyle} formatter={(v) => [Number(v), "Avaliações"]} />
-        <Bar dataKey="quantidade" fill={BLUE} radius={[4, 4, 0, 0]} barSize={32} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-export function BarraCompetencias({ data }: { data: { nome: string; notaMedia: number }[] }) {
-  if (data.length === 0) return <EmptyState />;
-  return (
-    <ResponsiveContainer width="100%" height={Math.max(160, data.length * 32)}>
-      <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24 }}>
-        <CartesianGrid horizontal={false} stroke={GRID} />
-        <XAxis type="number" domain={[0, 10]} stroke={AXIS} fontSize={11} tickLine={false} axisLine={{ stroke: GRID }} />
-        <YAxis type="category" dataKey="nome" stroke={AXIS} fontSize={11} width={140} tickLine={false} axisLine={false} />
-        <Tooltip contentStyle={tooltipStyle} formatter={(v) => [Number(v).toFixed(1), "Nota média"]} />
-        <Bar dataKey="notaMedia" radius={[0, 4, 4, 0]} barSize={14}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.notaMedia < 7 ? "#ec835a" : BLUE} />
-          ))}
+        <Bar dataKey="quantidade" fill={BLUE} radius={[4, 4, 0, 0]} barSize={32}>
+          <LabelList dataKey="quantidade" position="top" fontSize={11} fill={INK} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>

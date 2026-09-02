@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, GraduationCap, XCircle, Ban, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Ban, RotateCcw, ShieldAlert } from "lucide-react";
 import { getDashboardData, listAvaliacoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import {
 import {
   BarraNotaMedia,
   BarraDistribuicao,
-  BarraCompetencias,
   LinhaEvolucao,
 } from "@/components/dashboard-charts";
 import type { Parecer, TipoPessoa } from "@/lib/types";
@@ -81,31 +80,21 @@ export default async function DashboardPage({
         </Button>
       </form>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
         <StatCard label="Total de avaliações" value={dados.totais.total} />
         <StatCard label="Hoje" value={dados.totais.hoje} />
         <StatCard label="No mês" value={dados.totais.noMes} />
         <StatCard label="Internos" value={dados.totais.internos} />
         <StatCard label="Externos" value={dados.totais.externos} />
         <StatCard label="Nota média" value={dados.notaMedia !== null ? dados.notaMedia.toFixed(1) : "-"} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatusCard icon={CheckCircle2} color="#0ca30c" label="Aptos" value={dados.parecerCount.apto} />
-        <StatusCard
-          icon={AlertTriangle}
-          color="#fab219"
-          label="Apto c/ acompanhamento"
-          value={dados.parecerCount.apto_acompanhamento}
-        />
         <StatusCard icon={Ban} color="#d03b3b" label="Reprovados" value={dados.parecerCount.reprovado} />
         <StatusCard
-          icon={GraduationCap}
-          color="#ec835a"
-          label="Necessita treinamento"
-          value={dados.parecerCount.necessita_treinamento}
+          icon={RotateCcw}
+          color="#898781"
+          label="Nova avaliação"
+          value={dados.parecerCount.nova_avaliacao}
         />
-        <StatusCard icon={XCircle} color="#d03b3b" label="Não recomendados" value={dados.parecerCount.nao_recomendado} />
       </div>
 
       {dados.totais.falhasCriticas > 0 ? (
@@ -122,15 +111,6 @@ export default async function DashboardPage({
           </CardHeader>
           <CardContent>
             <BarraNotaMedia data={dados.resultadosPorAvaliacao} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Desempenho por competência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BarraCompetencias data={dados.desempenhoPorCompetencia} />
           </CardContent>
         </Card>
 
@@ -196,9 +176,9 @@ function FilterField({ label, children }: { label: string; children: React.React
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card>
-      <CardContent className="p-3">
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
+      <CardContent className="p-1.5">
+        <p className="text-base font-bold">{value}</p>
+        <p className="truncate text-[10px] text-muted-foreground">{label}</p>
       </CardContent>
     </Card>
   );
@@ -217,11 +197,11 @@ function StatusCard({
 }) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-3 p-3">
-        <Icon className="size-6 shrink-0" style={{ color }} />
-        <div>
-          <p className="text-lg font-bold">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
+      <CardContent className="flex items-center gap-1.5 p-1.5">
+        <Icon className="size-3.5 shrink-0" style={{ color }} />
+        <div className="min-w-0">
+          <p className="text-base font-bold">{value}</p>
+          <p className="truncate text-[10px] text-muted-foreground">{label}</p>
         </div>
       </CardContent>
     </Card>
