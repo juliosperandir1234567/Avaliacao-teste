@@ -25,21 +25,15 @@ import type {
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827" },
   headerCard: {
-    position: "relative",
     border: "1 solid #86b58c",
     borderRadius: 8,
     padding: 14,
     marginBottom: 12,
   },
-  headerTopo: { alignItems: "center", textAlign: "center", gap: 4 },
-  headerLogo: {
-    position: "absolute",
-    top: 14,
-    left: 14,
-    width: 68,
-    height: 68,
-    objectFit: "contain",
-  },
+  headerLinha: { flexDirection: "row", alignItems: "center" },
+  headerLogoCol: { width: 90, alignItems: "flex-start" },
+  headerLogo: { width: 90, height: 90, objectFit: "contain" },
+  headerTopo: { flexGrow: 1, alignItems: "center", textAlign: "center", gap: 4 },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
   headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
   headerSubtitulo: { fontSize: 12, fontWeight: 700, marginTop: 1 },
@@ -260,16 +254,21 @@ export function RelatorioDocument({
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerCard}>
-          {logoUrl ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image src={logoUrl} style={styles.headerLogo} />
-          ) : null}
-          <View style={styles.headerTopo}>
-            {nomeEmpresa ? (
-              <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
-            ) : null}
-            <Text style={styles.headerTitulo}>RELATÓRIO DE AVALIAÇÃO</Text>
-            <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
+          <View style={styles.headerLinha}>
+            <View style={styles.headerLogoCol}>
+              {logoUrl ? (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image src={logoUrl} style={styles.headerLogo} />
+              ) : null}
+            </View>
+            <View style={styles.headerTopo}>
+              {nomeEmpresa ? (
+                <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
+              ) : null}
+              <Text style={styles.headerTitulo}>RELATÓRIO DE AVALIAÇÃO</Text>
+              <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
+            </View>
+            <View style={styles.headerLogoCol} />
           </View>
 
           <View style={styles.headerDivisor} />
