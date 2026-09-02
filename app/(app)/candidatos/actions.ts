@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 
@@ -108,6 +110,30 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   if (error) return { error: error.message };
 
   redirect("/");
+}
+
+export async function excluirCandidato(aplicacaoId: string, senha: string): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "admin") return { error: "Apenas administradores podem excluir candidatos." };
+  if (!senha) return { error: "Digite sua senha." };
+
+  const verifyClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  );
+  const { error: authError } = await verifyClient.auth.signInWithPassword({
+    email: profile.email,
+    password: senha,
+  });
+  if (authError) return { error: "Senha incorreta." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("avaliacoes_aplicadas").delete().eq("id", aplicacaoId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/candidatos");
+  revalidatePath("/");
+  return {};
 }
 
 export async function listCandidatos() {

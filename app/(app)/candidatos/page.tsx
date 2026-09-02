@@ -3,10 +3,13 @@ import { listCandidatos } from "./actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ExcluirCandidatoButton } from "@/components/excluir-candidato-button";
+import { getCurrentProfile } from "@/lib/auth";
 import { APLICACAO_STATUS_LABELS, type AplicacaoStatus } from "@/lib/types";
 
 export default async function CandidatosPage() {
-  const candidatos = await listCandidatos();
+  const [candidatos, profile] = await Promise.all([listCandidatos(), getCurrentProfile()]);
+  const ehAdmin = profile.role === "admin";
 
   return (
     <div className="flex flex-col gap-4">
@@ -26,12 +29,13 @@ export default async function CandidatosPage() {
                   <th className="px-4 py-2 font-medium">Função</th>
                   <th className="px-4 py-2 font-medium">Data</th>
                   <th className="px-4 py-2 font-medium">Status</th>
+                  {ehAdmin ? <th className="px-4 py-2 font-medium">Ações</th> : null}
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {candidatos.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={ehAdmin ? 6 : 5} className="px-4 py-8 text-center text-muted-foreground">
                       Nenhum candidato cadastrado ainda.
                     </td>
                   </tr>
@@ -56,6 +60,11 @@ export default async function CandidatosPage() {
                             {APLICACAO_STATUS_LABELS[c.status as AplicacaoStatus]}
                           </Badge>
                         </td>
+                        {ehAdmin ? (
+                          <td className="px-4 py-2">
+                            <ExcluirCandidatoButton aplicacaoId={c.id} nome={nome} />
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })
