@@ -26,6 +26,7 @@ const internoSchema = z.object({
   estrutura: z.string().trim().min(1, "Estrutura é obrigatória"),
   possuiCnh: z.boolean().optional(),
   categoriaCnh: z.string().trim().optional(),
+  observacoes: z.string().trim().optional(),
   avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
 });
 
@@ -80,6 +81,7 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
           estrutura: data.estrutura,
           possui_cnh: data.possuiCnh ?? null,
           categoria_cnh: data.categoriaCnh || null,
+          observacoes: data.observacoes || null,
         },
         { onConflict: "matricula" }
       )

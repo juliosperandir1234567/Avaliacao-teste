@@ -63,6 +63,7 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
               estrutura,
               possuiCnh,
               categoriaCnh,
+              observacoes,
               avaliacaoId,
             };
 
@@ -140,15 +141,14 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
         </div>
 
         {tipoPessoa === "externo" ? (
-          <>
-            <Field label="Último emprego">
-              <Input className="h-11" value={ultimoEmprego} onChange={(e) => setUltimoEmprego(e.target.value)} />
-            </Field>
-            <Field label="Observações">
-              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
-            </Field>
-          </>
+          <Field label="Último emprego">
+            <Input className="h-11" value={ultimoEmprego} onChange={(e) => setUltimoEmprego(e.target.value)} />
+          </Field>
         ) : null}
+
+        <Field label="Observações">
+          <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+        </Field>
 
         <Field label="Tipo de teste / Avaliação">
           {avaliacoes.length === 0 ? (
@@ -157,9 +157,13 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
               candidatos.
             </p>
           ) : (
-            <Select value={avaliacaoId} onValueChange={(v) => setAvaliacaoId(v ?? "")}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione a avaliação" />
+            <Select
+              items={avaliacoes.map((a) => ({ value: a.id, label: `${a.nome} — ${a.funcao}` }))}
+              value={avaliacaoId}
+              onValueChange={(v) => setAvaliacaoId(v ?? "")}
+            >
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue placeholder="Selecione a avaliação" className="truncate whitespace-nowrap" />
               </SelectTrigger>
               <SelectContent>
                 {avaliacoes.map((a) => (

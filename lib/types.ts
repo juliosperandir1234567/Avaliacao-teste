@@ -18,6 +18,7 @@ export interface Colaborador {
   estrutura: string;
   possui_cnh: boolean | null;
   categoria_cnh: string | null;
+  observacoes: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
