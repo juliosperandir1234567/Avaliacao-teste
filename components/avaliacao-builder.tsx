@@ -160,14 +160,22 @@ export function AvaliacaoBuilder({
         toast.error(result.error);
         return;
       }
-      if (result?.warning) toast.warning(result.warning);
-      if (jaPublicada) {
-        toast.success("Alterações salvas");
-        router.refresh();
+      const mensagemSucesso = jaPublicada
+        ? "Alterações salvas"
+        : publicar
+          ? "Avaliação publicada"
+          : "Rascunho salvo";
+      if (result?.warning) {
+        toast.warning(`${mensagemSucesso}. ${result.warning}`, { duration: 12000 });
       } else {
-        toast.success(publicar ? "Avaliação publicada" : "Rascunho salvo");
-        if (publicar) router.push("/avaliacoes");
-        else router.refresh();
+        toast.success(mensagemSucesso);
+      }
+      if (jaPublicada) {
+        router.refresh();
+      } else if (publicar) {
+        router.push("/avaliacoes");
+      } else {
+        router.refresh();
       }
     });
   }

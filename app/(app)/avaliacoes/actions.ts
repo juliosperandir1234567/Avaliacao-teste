@@ -284,10 +284,10 @@ export async function saveAvaliacaoBuilder(
   const alternativaIds = state.secoes.flatMap((s) => s.perguntas.flatMap((p) => p.alternativas.map((a) => a.id)));
 
   const [{ data: secoesAntigas }, { data: perguntasAntigas }, { data: alternativasAntigas }] = await Promise.all([
-    supabase.from("avaliacao_secoes").select("id").eq("avaliacao_id", avaliacaoId),
+    supabase.from("avaliacao_secoes").select("id, nome").eq("avaliacao_id", avaliacaoId),
     supabase
       .from("avaliacao_perguntas")
-      .select("id, avaliacao_secoes!inner(avaliacao_id)")
+      .select("id, enunciado, avaliacao_secoes!inner(avaliacao_id)")
       .eq("avaliacao_secoes.avaliacao_id", avaliacaoId),
     supabase
       .from("avaliacao_alternativas")
@@ -299,24 +299,24 @@ export async function saveAvaliacaoBuilder(
     .map((a) => a.id as string)
     .filter((id) => !alternativaIds.includes(id));
   const perguntasRemovidas = (perguntasAntigas ?? [])
-    .map((p) => p.id as string)
-    .filter((id) => !perguntaIds.includes(id));
+    .filter((p) => !perguntaIds.includes(p.id as string))
+    .map((p) => ({ id: p.id as string, enunciado: p.enunciado as string }));
   const secoesRemovidas = (secoesAntigas ?? [])
-    .map((s) => s.id as string)
-    .filter((id) => !secaoIds.includes(id));
+    .filter((s) => !secaoIds.includes(s.id as string))
+    .map((s) => ({ id: s.id as string, nome: s.nome as string }));
 
-  let itensPreservados = 0;
+  const itensNaoRemovidos: string[] = [];
   if (alternativasRemovidas.length > 0) {
     const { error } = await supabase.from("avaliacao_alternativas").delete().in("id", alternativasRemovidas);
-    if (error) itensPreservados += alternativasRemovidas.length;
+    if (error) itensNaoRemovidos.push(`${alternativasRemovidas.length} alternativa(s)`);
   }
-  for (const id of perguntasRemovidas) {
-    const { error } = await supabase.from("avaliacao_perguntas").delete().eq("id", id);
-    if (error) itensPreservados += 1;
+  for (const pergunta of perguntasRemovidas) {
+    const { error } = await supabase.from("avaliacao_perguntas").delete().eq("id", pergunta.id);
+    if (error) itensNaoRemovidos.push(`"${pergunta.enunciado.slice(0, 40)}"`);
   }
-  for (const id of secoesRemovidas) {
-    const { error } = await supabase.from("avaliacao_secoes").delete().eq("id", id);
-    if (error) itensPreservados += 1;
+  for (const secao of secoesRemovidas) {
+    const { error } = await supabase.from("avaliacao_secoes").delete().eq("id", secao.id);
+    if (error) itensNaoRemovidos.push(`seção "${secao.nome}"`);
   }
 
   await supabase.from("avaliacao_competencias").delete().eq("avaliacao_id", avaliacaoId);
@@ -390,8 +390,8 @@ export async function saveAvaliacaoBuilder(
   return {
     success: true,
     warning:
-      itensPreservados > 0
-        ? `${itensPreservados} item(ns) não puderam ser removidos porque já têm respostas registradas de candidatos e foram mantidos na prova.`
+      itensNaoRemovidos.length > 0
+        ? `Não foi possível remover: ${itensNaoRemovidos.join(", ")} — já têm resposta de candidato registrada e foram mantidos na prova.`
         : undefined,
   };
 }
