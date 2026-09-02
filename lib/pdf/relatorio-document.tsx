@@ -264,7 +264,6 @@ export function RelatorioDocument({
 
           <View style={styles.headerDivisor} />
 
-          <FieldLine label="Prova" value={avaliacaoNome} />
           {aplicacao.tipo_pessoa === "interno" ? (
             <>
               <FieldLine label="Matrícula" value={matricula} />

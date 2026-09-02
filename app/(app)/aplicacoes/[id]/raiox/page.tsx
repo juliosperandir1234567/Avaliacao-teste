@@ -100,7 +100,6 @@ export default async function RaioXPage({
           </div>
 
           <div className="flex flex-col gap-1 border-t pt-3">
-            <FieldLine label="Prova" value={aplicacao.avaliacoes.nome} />
             <FieldLine label="Candidato" value={pessoa?.nome ?? "-"} />
             {aplicacao.tipo_pessoa === "interno" ? (
               <>
@@ -117,6 +116,7 @@ export default async function RaioXPage({
                         : "-"
                   }
                 />
+                <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
               </>
             ) : (
               <>
@@ -138,7 +138,6 @@ export default async function RaioXPage({
                 ) : null}
               </>
             )}
-            <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
           </div>
 
           <div className="flex flex-col gap-1 border-t pt-3">

@@ -1,12 +1,7 @@
-import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/lib/auth";
 import { listAvaliacoes } from "@/app/(app)/avaliacoes/actions";
 import { ExportarPainel } from "./exportar-painel";
 
 export default async function ExportarPage() {
-  const profile = await getCurrentProfile();
-  if (profile.role !== "admin" && profile.role !== "recrutamento") redirect("/dashboard");
-
   const avaliacoes = await listAvaliacoes();
 
   return (
