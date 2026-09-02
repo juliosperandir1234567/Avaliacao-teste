@@ -244,6 +244,7 @@ export interface AvaliacaoAplicada {
   finalizada_por: string | null;
   assinatura_avaliado_path: string | null;
   assinatura_avaliador_path: string | null;
+  exportado_em: string | null;
 }
 
 export interface AuditLogEntry {

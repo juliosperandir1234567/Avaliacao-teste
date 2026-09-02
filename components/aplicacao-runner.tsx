@@ -70,6 +70,8 @@ function agruparPassos(perguntas: AvaliacaoPergunta[]): Passo[] {
 export function AplicacaoRunner({
   aplicacaoId,
   tituloAvaliacao,
+  pessoaNome,
+  pessoaDetalhes,
   secoes,
   perguntas,
   alternativas,
@@ -77,6 +79,8 @@ export function AplicacaoRunner({
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
+  pessoaNome: string;
+  pessoaDetalhes: { label: string; value: string }[];
   secoes: AvaliacaoSecao[];
   perguntas: AvaliacaoPergunta[];
   alternativas: AvaliacaoAlternativa[];
@@ -366,6 +370,19 @@ export function AplicacaoRunner({
         <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setMostrarInterromper(true)}>
           <ShieldAlert className="size-4" /> Interromper por segurança
         </Button>
+      </div>
+
+      <div className="rounded-md border bg-muted/20 p-2.5 text-xs">
+        <p className="font-semibold text-sm">{pessoaNome}</p>
+        <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+          {pessoaDetalhes
+            .filter((d) => d.value && d.value !== "-")
+            .map((d) => (
+              <span key={d.label}>
+                {d.label}: {d.value}
+              </span>
+            ))}
+        </p>
       </div>
 
       {mostrarInterromper ? (

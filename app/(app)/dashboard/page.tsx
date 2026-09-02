@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { CheckCircle2, AlertTriangle, GraduationCap, XCircle, Ban, ShieldAlert } from "lucide-react";
 import { getDashboardData, listAvaliacoesParaFiltro } from "./actions";
+import { getCurrentProfile } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,11 +40,20 @@ export default async function DashboardPage({
     resultado: (params.resultado as Parecer) || undefined,
   };
 
-  const [dados, avaliacoes] = await Promise.all([getDashboardData(filtros), listAvaliacoesParaFiltro()]);
+  const [dados, avaliacoes, profile] = await Promise.all([
+    getDashboardData(filtros),
+    listAvaliacoesParaFiltro(),
+    getCurrentProfile(),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Dashboard Executivo</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Dashboard Executivo</h1>
+        {profile.role === "admin" || profile.role === "recrutamento" ? (
+          <Button variant="outline" size="sm" render={<Link href="/dashboard/exportar">Exportar PDFs</Link>} />
+        ) : null}
+      </div>
 
       <form className="flex flex-wrap items-end gap-2" action="/dashboard">
         <FilterField label="De">

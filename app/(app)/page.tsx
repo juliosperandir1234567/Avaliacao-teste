@@ -8,7 +8,7 @@ import { APLICACAO_STATUS_LABELS, type AvaliacaoAplicada } from "@/lib/types";
 type AplicacaoResumo = Pick<
   AvaliacaoAplicada,
   "id" | "funcao_avaliada" | "status" | "data" | "tipo_pessoa" | "nota_geral" | "colaborador_snapshot" | "parecer_final"
->;
+> & { candidatos_externos: { nome: string } | { nome: string }[] | null };
 
 export default async function HomePage() {
   const profile = await getCurrentProfile();
@@ -17,7 +17,7 @@ export default async function HomePage() {
   const { data: pendencias } = await supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final"
+      "id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final, candidatos_externos(nome)"
     )
     .not("status", "in", "(finalizada,cancelada)")
     .order("created_at", { ascending: false })
@@ -47,6 +47,8 @@ export default async function HomePage() {
 }
 
 function AplicacaoRow({ a }: { a: AplicacaoResumo }) {
+  const candidatoExterno = Array.isArray(a.candidatos_externos) ? a.candidatos_externos[0] : a.candidatos_externos;
+  const nome = a.colaborador_snapshot?.nome ?? candidatoExterno?.nome ?? "Candidato externo";
   return (
     <Link
       href={`/aplicacoes/${a.id}/aplicar`}
@@ -55,7 +57,7 @@ function AplicacaoRow({ a }: { a: AplicacaoResumo }) {
     >
       <div className="flex flex-col">
         <span className="font-medium">
-          {a.colaborador_snapshot?.nome ?? "Candidato externo"} — {a.funcao_avaliada}
+          {nome} — {a.funcao_avaliada}
         </span>
         <span className="text-xs text-muted-foreground">
           {new Date(a.data).toLocaleDateString("pt-BR")} · {a.tipo_pessoa === "interno" ? "Interno" : "Externo"}
