@@ -23,9 +23,15 @@ const ROLE_LABELS: Record<Profile["role"], string> = {
   recrutamento: "Recrutamento",
 };
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname.startsWith(href);
+/** Escolhe o item de menu ativo pelo href mais específico (mais longo) que bate com a
+ * rota atual, pra evitar que "/dashboard" fique marcado junto de "/dashboard/exportar". */
+function hrefAtivo(pathname: string, hrefs: string[]) {
+  let melhor: string | null = null;
+  for (const href of hrefs) {
+    const bate = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+    if (bate && (!melhor || href.length > melhor.length)) melhor = href;
+  }
+  return melhor;
 }
 
 export function AppShell({
@@ -41,6 +47,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const items = navItemsForRole(profile.role);
+  const ativoHref = hrefAtivo(pathname, items.map((i) => i.href));
 
   return (
     <div className="flex min-h-svh w-full flex-col">
@@ -81,11 +88,11 @@ export function AppShell({
 
       <div className="flex flex-1">
         {/* Desktop sidebar */}
-        <nav className="hidden w-56 shrink-0 border-r bg-primary/10 p-3 md:block">
+        <nav className="hidden w-56 shrink-0 flex-col justify-between border-r bg-primary/10 p-3 md:flex">
           <ul className="flex flex-col gap-1">
             {items.map((item) => {
               const Icon = item.icon;
-              const active = isActive(pathname, item.href);
+              const active = item.href === ativoHref;
               return (
                 <li key={item.href}>
                   <Link
@@ -104,6 +111,14 @@ export function AppShell({
               );
             })}
           </ul>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+            >
+              <LogOut className="size-4" /> Sair
+            </button>
+          </form>
         </nav>
 
         <main className="flex-1 pb-20 md:pb-6">
@@ -117,7 +132,7 @@ export function AppShell({
       >
         {items.slice(0, 5).map((item) => {
           const Icon = item.icon;
-          const active = isActive(pathname, item.href);
+          const active = item.href === ativoHref;
           return (
             <Link
               key={item.href}
