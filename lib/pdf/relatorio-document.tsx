@@ -30,11 +30,11 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
-  headerTopo: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerLogo: { width: 34, height: 34, objectFit: "contain" },
-  headerTitulo: { fontSize: 13, fontWeight: 700 },
-  headerSubtitulo: { fontSize: 11, fontWeight: 700, marginTop: 1 },
-  headerEmpresa: { fontSize: 8, color: "#6b7280", marginTop: 1 },
+  headerTopo: { alignItems: "center", textAlign: "center", gap: 4 },
+  headerLogo: { width: 56, height: 56, objectFit: "contain", marginBottom: 4 },
+  headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
+  headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
+  headerSubtitulo: { fontSize: 12, fontWeight: 700, marginTop: 1 },
   headerDivisor: {
     borderBottom: "1 solid #e5e7eb",
     marginVertical: 8,
@@ -255,13 +255,11 @@ export function RelatorioDocument({
               // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={logoUrl} style={styles.headerLogo} />
             ) : null}
-            <View>
-              <Text style={styles.headerTitulo}>RELATÓRIO DE AVALIAÇÃO</Text>
-              <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
-              {nomeEmpresa ? (
-                <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
-              ) : null}
-            </View>
+            {nomeEmpresa ? (
+              <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
+            ) : null}
+            <Text style={styles.headerTitulo}>RELATÓRIO DE AVALIAÇÃO</Text>
+            <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
           </View>
 
           <View style={styles.headerDivisor} />

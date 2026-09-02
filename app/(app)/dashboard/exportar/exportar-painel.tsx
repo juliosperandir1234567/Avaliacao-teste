@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -275,12 +277,13 @@ function TabelaAplicacoes({
             <th className="px-2 py-2 font-medium">Prova</th>
             <th className="px-2 py-2 font-medium">Resultado</th>
             {mostrarExportadoEm ? <th className="px-2 py-2 font-medium">Exportado em</th> : null}
+            <th className="px-2 py-2 font-medium">Ações</th>
           </tr>
         </thead>
         <tbody className="divide-y">
           {linhas.length === 0 ? (
             <tr>
-              <td colSpan={mostrarExportadoEm ? 6 : 5} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={mostrarExportadoEm ? 7 : 6} className="px-4 py-6 text-center text-muted-foreground">
                 Nenhuma avaliação encontrada.
               </td>
             </tr>
@@ -301,6 +304,17 @@ function TabelaAplicacoes({
                     {l.exportado_em ? new Date(l.exportado_em).toLocaleString("pt-BR") : "-"}
                   </td>
                 ) : null}
+                <td className="px-2 py-2">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    render={
+                      <Link href={`/aplicacoes/${l.id}/raiox`} target="_blank">
+                        <Eye className="size-4" />
+                      </Link>
+                    }
+                  />
+                </td>
               </tr>
             ))
           )}

@@ -173,7 +173,8 @@ export async function finalizarAplicacao(
   aplicacaoId: string,
   assinaturas?: AssinaturasInput,
   skipAssinaturaCheck = false,
-  observacaoFinal?: string
+  observacaoFinal?: string,
+  parecerEscolhido?: Parecer
 ) {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
@@ -208,7 +209,7 @@ export async function finalizarAplicacao(
       ...(assinaturas?.avaliadoPath ? { assinatura_avaliado_path: assinaturas.avaliadoPath } : {}),
       ...(assinaturas?.avaliadorPath ? { assinatura_avaliador_path: assinaturas.avaliadorPath } : {}),
       parecer_sugerido: parecerSugerido,
-      parecer_final: parecerSugerido,
+      parecer_final: parecerEscolhido ?? parecerSugerido,
       ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
       finalizada_em: new Date().toISOString(),
       finalizada_por: profile.id,

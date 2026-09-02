@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { corrigirResposta } from "@/app/(app)/aplicacoes/actions";
 import { precisaCorrecaoManual } from "@/lib/scoring";
+import { ParecerFinalForm } from "@/components/parecer-final-form";
 import { PERGUNTA_TIPO_LABELS } from "@/lib/types";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoPergunta,
   AvaliacaoSecao,
+  Parecer,
   Resposta,
   RespostaValor,
 } from "@/lib/types";
@@ -38,6 +40,8 @@ export function CorrecaoPanel({
   alternativas,
   respostas,
   auditLog,
+  parecerFinal,
+  parecerJustificativa,
 }: {
   aplicacaoId: string;
   secoes: AvaliacaoSecao[];
@@ -45,6 +49,8 @@ export function CorrecaoPanel({
   alternativas: AvaliacaoAlternativa[];
   respostas: Resposta[];
   auditLog: AuditRow[];
+  parecerFinal: Parecer;
+  parecerJustificativa: string;
 }) {
   const [aberto, setAberto] = useState(false);
 
@@ -66,6 +72,16 @@ export function CorrecaoPanel({
             Alterar uma resposta desta avaliação já finalizada exige um motivo e fica registrado na
             trilha de auditoria abaixo. A nota geral e o parecer sugerido são recalculados automaticamente.
           </p>
+
+          <div className="rounded-md border p-3">
+            <p className="mb-2 text-sm font-medium">Parecer final</p>
+            <ParecerFinalForm
+              aplicacaoId={aplicacaoId}
+              parecerFinal={parecerFinal}
+              justificativa={parecerJustificativa}
+              editavel
+            />
+          </div>
 
           <div className="flex flex-col divide-y">
             {secoes

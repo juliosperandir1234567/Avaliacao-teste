@@ -66,6 +66,8 @@ export default async function AplicarPage({
       perguntas={data.perguntas}
       alternativas={data.alternativas}
       respostasIniciais={data.respostas}
+      notaMinima={data.aplicacao.avaliacoes.nota_minima}
+      competencias={data.competencias}
     />
   );
 }

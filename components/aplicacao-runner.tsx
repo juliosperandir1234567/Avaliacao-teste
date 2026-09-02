@@ -11,6 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { QuestionInput } from "@/components/question-input";
 import { PerguntaImagem } from "@/components/pergunta-imagem";
 import { SignaturePad } from "@/components/signature-pad";
@@ -21,14 +28,22 @@ import {
   interromperPorSeguranca,
   salvarResposta,
 } from "@/app/(app)/aplicacoes/actions";
-import { avaliarItensCriticos, calcularNotaGeral, precisaCorrecaoManual } from "@/lib/scoring";
+import {
+  avaliarItensCriticos,
+  calcularNotaGeral,
+  calcularNotasPorCompetencia,
+  gerarParecerSugerido,
+  precisaCorrecaoManual,
+} from "@/lib/scoring";
 import { condicaoAtendida } from "@/lib/conditional";
-import { PERGUNTA_TIPO_LABELS } from "@/lib/types";
+import { PARECER_LABELS, PERGUNTA_TIPO_LABELS } from "@/lib/types";
 import type {
   AvaliacaoAlternativa,
+  AvaliacaoCompetencia,
   AvaliacaoPergunta,
   AvaliacaoSecao,
   ChecklistStatus,
+  Parecer,
   Resposta,
   RespostaValor,
 } from "@/lib/types";
@@ -76,6 +91,8 @@ export function AplicacaoRunner({
   perguntas,
   alternativas,
   respostasIniciais,
+  notaMinima,
+  competencias,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -85,6 +102,8 @@ export function AplicacaoRunner({
   perguntas: AvaliacaoPergunta[];
   alternativas: AvaliacaoAlternativa[];
   respostasIniciais: Resposta[];
+  notaMinima: number;
+  competencias: AvaliacaoCompetencia[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -137,6 +156,7 @@ export function AplicacaoRunner({
   const [assinaturaAvaliadoPath, setAssinaturaAvaliadoPath] = useState<string | null>(null);
   const [assinaturaAvaliadorPath, setAssinaturaAvaliadorPath] = useState<string | null>(null);
   const [observacaoFinal, setObservacaoFinal] = useState("");
+  const [parecerEscolhido, setParecerEscolhido] = useState<Parecer | null>(null);
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -274,6 +294,15 @@ export function AplicacaoRunner({
     const notaPreliminar = calcularNotaGeral(secoes, perguntasVisiveis, respostasComoResposta);
     const falhasCriticas = avaliarItensCriticos(perguntasVisiveis, respostasComoResposta);
     const naoAvaliados = totalItens - respondidas;
+    const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntasVisiveis, respostasComoResposta);
+    const parecerSugerido = gerarParecerSugerido({
+      notaGeral: notaPreliminar,
+      notaMinima,
+      competencias,
+      notasPorCompetencia,
+      falhasCriticas,
+    });
+    const parecerFinal = parecerEscolhido ?? parecerSugerido;
 
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-4">
@@ -289,7 +318,27 @@ export function AplicacaoRunner({
             <Row label="Nota preliminar" value={notaPreliminar !== null ? notaPreliminar.toFixed(1) : "-"} />
 
             <div className="flex flex-col gap-1.5 border-t pt-3">
-              <Label htmlFor="observacaoFinal">Observação final (parecer)</Label>
+              <Label>Parecer final</Label>
+              <Select
+                items={PARECER_LABELS}
+                value={parecerFinal ?? "apto"}
+                onValueChange={(v) => setParecerEscolhido(v as Parecer)}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PARECER_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="observacaoFinal">Observação final</Label>
               <Textarea
                 id="observacaoFinal"
                 value={observacaoFinal}
@@ -331,7 +380,8 @@ export function AplicacaoRunner({
                         avaliadorPath: assinaturaAvaliadorPath ?? undefined,
                       },
                       false,
-                      observacaoFinal.trim() || undefined
+                      observacaoFinal.trim() || undefined,
+                      parecerFinal ?? undefined
                     );
                     if (result?.error) {
                       toast.error(result.error);

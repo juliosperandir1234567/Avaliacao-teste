@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ParecerFinalForm } from "@/components/parecer-final-form";
 import { CorrecaoPanel } from "@/components/correcao-panel";
 import {
   APLICACAO_STATUS_LABELS,
@@ -58,8 +57,6 @@ export default async function RaioXPage({
   }
 
   const itensAvaliados = respostas.filter((r) => r.pontuacao !== null).length;
-  const editavelParecer =
-    profile.role !== "gestor" && profile.role !== "recrutamento" && aplicacao.status === "finalizada";
 
   const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl] = await Promise.all([
     aplicacao.assinatura_avaliado_path ? getSignedUrl("assinaturas", aplicacao.assinatura_avaliado_path) : null,
@@ -93,17 +90,17 @@ export default async function RaioXPage({
 
       <Card className="border-primary/40">
         <CardContent className="flex flex-col gap-3 pt-4 text-sm">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center gap-2 text-center">
             {config.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={config.logoUrl} alt="" className="h-9 w-9 object-contain" />
+              <img src={config.logoUrl} alt="" className="h-16 w-16 object-contain" />
             ) : null}
             <div>
-              <p className="text-sm font-bold uppercase">Resultado da Avaliação</p>
-              <p className="text-base font-semibold">{aplicacao.avaliacoes.nome}</p>
               {config.nomeEmpresa ? (
-                <p className="text-xs text-muted-foreground">{config.nomeEmpresa}</p>
+                <p className="text-sm font-semibold text-muted-foreground">{config.nomeEmpresa}</p>
               ) : null}
+              <p className="text-base font-bold uppercase">Resultado da Avaliação</p>
+              <p className="text-lg font-bold">{aplicacao.avaliacoes.nome}</p>
             </div>
           </div>
 
@@ -161,12 +158,30 @@ export default async function RaioXPage({
       </Card>
 
       <Card>
-        <CardHeader className="items-center text-center">
-          <CardTitle className="text-sm font-normal text-muted-foreground">Nota Geral</CardTitle>
-          <p className="text-4xl font-bold">
-            {aplicacao.nota_geral !== null ? aplicacao.nota_geral.toFixed(1) : "-"}
-            <span className="text-lg text-muted-foreground"> / 10</span>
-          </p>
+        <CardHeader className="flex-row items-center justify-center gap-8 text-center">
+          <div>
+            <CardTitle className="text-sm font-normal text-muted-foreground">Nota Geral</CardTitle>
+            <p className="text-4xl font-bold">
+              {aplicacao.nota_geral !== null ? aplicacao.nota_geral.toFixed(1) : "-"}
+              <span className="text-lg text-muted-foreground"> / 10</span>
+            </p>
+          </div>
+          {aplicacao.parecer_final ? (
+            <div>
+              <CardTitle className="text-sm font-normal text-muted-foreground">Status</CardTitle>
+              <p
+                className={`text-xl font-bold ${
+                  aplicacao.parecer_final === "apto"
+                    ? "text-green-600"
+                    : aplicacao.parecer_final === "reprovado" || aplicacao.parecer_final === "nao_recomendado"
+                      ? "text-destructive"
+                      : ""
+                }`}
+              >
+                {PARECER_LABELS[aplicacao.parecer_final as Parecer]}
+              </p>
+            </div>
+          ) : null}
         </CardHeader>
         {competencias.length > 0 ? (
           <CardContent className="grid grid-cols-2 gap-2 border-t pt-3 text-sm sm:grid-cols-3">
@@ -195,34 +210,6 @@ export default async function RaioXPage({
           <Badge variant="default">Sim: {checklistStats.sim}</Badge>
           {checklistStats.parcial > 0 ? <Badge variant="secondary">Parcial: {checklistStats.parcial}</Badge> : null}
           <Badge variant="destructive">Não: {checklistStats.nao}</Badge>
-          <Badge variant="outline">Não avaliados: {checklistStats.nao_avaliado}</Badge>
-          <Badge variant={aplicacao.falhas_criticas_count > 0 ? "destructive" : "outline"}>
-            Falhas críticas: {aplicacao.falhas_criticas_count}
-          </Badge>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Parecer</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="text-sm">
-            <span className="text-muted-foreground">Parecer sugerido pelo sistema: </span>
-            <span className="font-medium">
-              {aplicacao.parecer_sugerido ? PARECER_LABELS[aplicacao.parecer_sugerido as Parecer] : "-"}
-            </span>
-          </div>
-          {aplicacao.status === "finalizada" ? (
-            <ParecerFinalForm
-              aplicacaoId={id}
-              parecerFinal={(aplicacao.parecer_final ?? aplicacao.parecer_sugerido ?? "apto") as Parecer}
-              justificativa={aplicacao.parecer_justificativa ?? ""}
-              editavel={editavelParecer}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">A avaliação ainda não foi finalizada.</p>
-          )}
         </CardContent>
       </Card>
 
@@ -258,6 +245,8 @@ export default async function RaioXPage({
           alternativas={data.alternativas}
           respostas={respostas}
           auditLog={auditLog}
+          parecerFinal={(aplicacao.parecer_final ?? aplicacao.parecer_sugerido ?? "apto") as Parecer}
+          parecerJustificativa={aplicacao.parecer_justificativa ?? ""}
         />
       ) : null}
     </div>
