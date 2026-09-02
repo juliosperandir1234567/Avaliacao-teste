@@ -36,8 +36,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     left: 14,
-    width: 48,
-    height: 48,
+    width: 68,
+    height: 68,
     objectFit: "contain",
   },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
@@ -539,9 +539,7 @@ export function RelatorioDocument({
               })}
           </View>
         ))}
-      </Page>
 
-      <Page size="A4" style={styles.page}>
         <Text style={styles.h2}>Assinaturas</Text>
         <View style={styles.assinaturas}>
           <View style={styles.assinaturaBox}>
