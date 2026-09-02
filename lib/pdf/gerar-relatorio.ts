@@ -4,6 +4,22 @@ import { getAplicacaoRunnerData } from "@/app/(app)/aplicacoes/actions";
 import { RelatorioDocument } from "./relatorio-document";
 import { getConfiguracoesPublicas } from "@/lib/configuracoes";
 
+/** Baixa a imagem e converte pra data URI: o Image do @react-pdf/renderer as vezes falha a
+ * buscar uma URL remota do storage direto (fetch no runtime do servidor), entao embutir os
+ * bytes já resolvidos evita depender disso. */
+async function logoComoDataUri(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") || "image/png";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 /** Gera o buffer do PDF de relatório de uma aplicação. Reaproveitado pela rota de
  * download individual e pela exportação em lote (ZIP). */
 export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
@@ -29,9 +45,10 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
     return signed?.signedUrl ?? null;
   }
 
-  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl] = await Promise.all([
+  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, logoDataUri] = await Promise.all([
     signedUrl(data.aplicacao.assinatura_avaliado_path),
     signedUrl(data.aplicacao.assinatura_avaliador_path),
+    logoComoDataUri(config.logoUrl),
   ]);
 
   const alternativasTexto = new Map(data.alternativas.map((a) => [a.id, a.texto]));
@@ -56,7 +73,7 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       competencias: data.competencias,
       assinaturaAvaliadoUrl,
       assinaturaAvaliadorUrl,
-      logoUrl: config.logoUrl,
+      logoUrl: logoDataUri,
       nomeEmpresa: config.nomeEmpresa,
     })
   );

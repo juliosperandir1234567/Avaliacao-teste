@@ -25,13 +25,21 @@ import type {
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827" },
   headerCard: {
+    position: "relative",
     border: "1 solid #86b58c",
     borderRadius: 8,
     padding: 14,
     marginBottom: 12,
   },
   headerTopo: { alignItems: "center", textAlign: "center", gap: 4 },
-  headerLogo: { width: 56, height: 56, objectFit: "contain", marginBottom: 4 },
+  headerLogo: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    width: 48,
+    height: 48,
+    objectFit: "contain",
+  },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
   headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
   headerSubtitulo: { fontSize: 12, fontWeight: 700, marginTop: 1 },
@@ -250,11 +258,11 @@ export function RelatorioDocument({
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerCard}>
+          {logoUrl ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={logoUrl} style={styles.headerLogo} />
+          ) : null}
           <View style={styles.headerTopo}>
-            {logoUrl ? (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image src={logoUrl} style={styles.headerLogo} />
-            ) : null}
             {nomeEmpresa ? (
               <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
             ) : null}

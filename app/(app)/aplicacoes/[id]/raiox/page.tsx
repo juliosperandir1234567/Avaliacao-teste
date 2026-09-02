@@ -83,20 +83,22 @@ export default async function RaioXPage({
         </Alert>
       ) : null}
 
-      <Card className="border-primary/40">
+      <Card className="relative border-primary/40">
         <CardContent className="flex flex-col gap-3 pt-4 text-sm">
+          {config.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={config.logoUrl}
+              alt=""
+              className="absolute left-4 top-4 h-12 w-12 object-contain"
+            />
+          ) : null}
           <div className="flex flex-col items-center gap-2 text-center">
-            {config.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={config.logoUrl} alt="" className="h-16 w-16 object-contain" />
+            {config.nomeEmpresa ? (
+              <p className="text-sm font-semibold text-muted-foreground">{config.nomeEmpresa}</p>
             ) : null}
-            <div>
-              {config.nomeEmpresa ? (
-                <p className="text-sm font-semibold text-muted-foreground">{config.nomeEmpresa}</p>
-              ) : null}
-              <p className="text-base font-bold uppercase">Resultado da Avaliação</p>
-              <p className="text-lg font-bold">{aplicacao.avaliacoes.nome}</p>
-            </div>
+            <p className="text-base font-bold uppercase">Resultado da Avaliação</p>
+            <p className="text-lg font-bold">{aplicacao.avaliacoes.nome}</p>
           </div>
 
           <div className="flex flex-col gap-1 border-t pt-3">
