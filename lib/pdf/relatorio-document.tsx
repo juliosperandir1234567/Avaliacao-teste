@@ -6,7 +6,11 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer";
-import { PARECER_LABELS, PERGUNTA_TIPO_LABELS } from "@/lib/types";
+import {
+  APLICACAO_STATUS_LABELS,
+  PARECER_LABELS,
+  PERGUNTA_TIPO_LABELS,
+} from "@/lib/types";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoAplicada,
@@ -20,6 +24,22 @@ import type {
 
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827" },
+  headerCard: {
+    border: "1 solid #86b58c",
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 12,
+  },
+  headerTopo: { flexDirection: "row", alignItems: "center", gap: 10 },
+  headerLogo: { width: 34, height: 34, objectFit: "contain" },
+  headerTitulo: { fontSize: 13, fontWeight: 700 },
+  headerSubtitulo: { fontSize: 11, fontWeight: 700, marginTop: 1 },
+  headerEmpresa: { fontSize: 8, color: "#6b7280", marginTop: 1 },
+  headerDivisor: {
+    borderBottom: "1 solid #e5e7eb",
+    marginVertical: 8,
+  },
+  linhaCampo: { marginBottom: 3 },
   h1: { fontSize: 16, fontWeight: 700, marginBottom: 2 },
   h2: {
     fontSize: 11,
@@ -111,6 +131,15 @@ function respostaTexto(
       : `${v.valor_numerico} ${pergunta.config.unidade ?? ""}`;
   if ("texto" in v) return String(v.texto || "-");
   return "-";
+}
+
+function FieldLine({ label, value }: { label: string; value: string }) {
+  return (
+    <Text style={styles.linhaCampo}>
+      <Text style={styles.label}>{label}: </Text>
+      <Text style={styles.value}>{value}</Text>
+    </Text>
+  );
 }
 
 /** Cor do status final: verde pra aprovado, vermelho pra reprovado/não recomendado. */
@@ -220,100 +249,85 @@ export function RelatorioDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {logoUrl ? (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <Image
-            src={logoUrl}
-            style={{
-              height: 32,
-              maxWidth: 140,
-              marginBottom: 8,
-              objectFit: "contain",
-            }}
-          />
-        ) : nomeEmpresa ? (
-          <Text style={{ fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
-            {nomeEmpresa}
-          </Text>
-        ) : null}
-        <Text style={styles.h1}>Relatório de Avaliação</Text>
-        <Text style={styles.sub}>
-          {avaliacaoNome} — versão {aplicacao.avaliacao_versao} ·{" "}
-          {new Date(aplicacao.data).toLocaleDateString("pt-BR")}
-        </Text>
-
-        <View style={styles.row}>
-          <View style={styles.field}>
-            <Text style={styles.label}>Nome</Text>
-            <Text style={styles.value}>{pessoaNome}</Text>
+        <View style={styles.headerCard}>
+          <View style={styles.headerTopo}>
+            {logoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={logoUrl} style={styles.headerLogo} />
+            ) : null}
+            <View>
+              <Text style={styles.headerTitulo}>RELATÓRIO DE AVALIAÇÃO</Text>
+              <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
+              {nomeEmpresa ? (
+                <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
+              ) : null}
+            </View>
           </View>
+
+          <View style={styles.headerDivisor} />
+
+          <FieldLine label="Prova" value={avaliacaoNome} />
           {aplicacao.tipo_pessoa === "interno" ? (
             <>
-              <View style={styles.field}>
-                <Text style={styles.label}>Matrícula</Text>
-                <Text style={styles.value}>{matricula}</Text>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Cargo atual</Text>
-                <Text style={styles.value}>{cargo}</Text>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Estrutura</Text>
-                <Text style={styles.value}>{estrutura}</Text>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>CNH</Text>
-                <Text style={styles.value}>
-                  {possuiCnhInterno
+              <FieldLine label="Matrícula" value={matricula} />
+              <FieldLine label="Colaborador" value={pessoaNome} />
+              <FieldLine label="Cargo" value={cargo} />
+              <FieldLine label="Estrutura" value={estrutura} />
+              <FieldLine
+                label="CNH"
+                value={
+                  possuiCnhInterno
                     ? categoriaCnhInterno || "Sim"
                     : possuiCnhInterno === false
                       ? "Não"
-                      : "-"}
-                </Text>
-              </View>
+                      : "-"
+                }
+              />
             </>
           ) : (
             <>
-              <View style={styles.field}>
-                <Text style={styles.label}>Telefone</Text>
-                <Text style={styles.value}>
-                  {candidatoExterno?.telefone ?? "-"}
-                </Text>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>CNH</Text>
-                <Text style={styles.value}>
-                  {candidatoExterno?.possui_cnh
+              <FieldLine label="Candidato" value={pessoaNome} />
+              <FieldLine
+                label="Telefone"
+                value={candidatoExterno?.telefone ?? "-"}
+              />
+              <FieldLine
+                label="CNH"
+                value={
+                  candidatoExterno?.possui_cnh
                     ? candidatoExterno.categoria_cnh || "Sim"
                     : candidatoExterno?.possui_cnh === false
                       ? "Não"
-                      : "-"}
-                </Text>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Último emprego</Text>
-                <Text style={styles.value}>
-                  {candidatoExterno?.empresas_anteriores ?? "-"}
-                </Text>
-              </View>
+                      : "-"
+                }
+              />
+              <FieldLine
+                label="Último emprego"
+                value={candidatoExterno?.empresas_anteriores ?? "-"}
+              />
               {candidatoExterno?.observacoes ? (
-                <View style={styles.field}>
-                  <Text style={styles.label}>Observações</Text>
-                  <Text style={styles.value}>
-                    {candidatoExterno.observacoes}
-                  </Text>
-                </View>
+                <FieldLine
+                  label="Observações"
+                  value={candidatoExterno.observacoes}
+                />
               ) : null}
             </>
           )}
-          <View style={styles.field}>
-            <Text style={styles.label}>Função avaliada</Text>
-            <Text style={styles.value}>{aplicacao.funcao_avaliada}</Text>
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Avaliador</Text>
-            <Text style={styles.value}>{avaliadorNome}</Text>
-          </View>
+          <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
+
+          <View style={styles.headerDivisor} />
+
+          <FieldLine label="Avaliador" value={avaliadorNome} />
+          <FieldLine
+            label="Data/Hora"
+            value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
+          />
+          <Text style={styles.linhaCampo}>
+            <Text style={styles.label}>Situação: </Text>
+            <Text style={styles.value}>
+              {APLICACAO_STATUS_LABELS[aplicacao.status]}
+            </Text>
+          </Text>
         </View>
 
         <View style={styles.notaRow}>

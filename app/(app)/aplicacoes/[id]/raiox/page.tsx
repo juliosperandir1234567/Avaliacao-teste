@@ -2,13 +2,20 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAplicacaoRunnerData, getSignedUrl, getAuditLog } from "../../actions";
 import { getCurrentProfile } from "@/lib/auth";
+import { getConfiguracoesPublicas } from "@/lib/configuracoes";
+import { createClient } from "@/utils/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ParecerFinalForm } from "@/components/parecer-final-form";
 import { CorrecaoPanel } from "@/components/correcao-panel";
-import { PARECER_LABELS, type ChecklistStatus, type Parecer } from "@/lib/types";
+import {
+  APLICACAO_STATUS_LABELS,
+  PARECER_LABELS,
+  type ChecklistStatus,
+  type Parecer,
+} from "@/lib/types";
 
 export default async function RaioXPage({
   params,
@@ -16,10 +23,19 @@ export default async function RaioXPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, profile] = await Promise.all([getAplicacaoRunnerData(id), getCurrentProfile()]);
+  const [data, profile, config] = await Promise.all([
+    getAplicacaoRunnerData(id),
+    getCurrentProfile(),
+    getConfiguracoesPublicas(),
+  ]);
   if (!data) notFound();
 
   const { aplicacao, perguntas, respostas, competencias } = data;
+
+  const supabase = await createClient();
+  const { data: avaliadorProfile } = aplicacao.avaliador_id
+    ? await supabase.from("profiles").select("nome").eq("id", aplicacao.avaliador_id).single()
+    : { data: null };
 
   const candidatoExterno = aplicacao.candidatos_externos;
   const pessoa =
@@ -54,12 +70,8 @@ export default async function RaioXPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold">Resultado da Avaliação</h1>
-          <p className="text-sm text-muted-foreground">{aplicacao.funcao_avaliada}</p>
-        </div>
-        {aplicacao.status === "finalizada" ? (
+      {aplicacao.status === "finalizada" ? (
+        <div className="flex justify-end">
           <Button
             variant="outline"
             size="sm"
@@ -69,8 +81,8 @@ export default async function RaioXPage({
               </Link>
             }
           />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {aplicacao.interrompida_seguranca ? (
         <Alert variant="destructive">
@@ -79,47 +91,72 @@ export default async function RaioXPage({
         </Alert>
       ) : null}
 
-      <Card>
-        <CardContent className="grid grid-cols-2 gap-3 pt-4 text-sm">
-          <Info label="Nome" value={pessoa?.nome ?? "-"} />
-          {aplicacao.tipo_pessoa === "interno" ? (
-            <>
-              <Info label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
-              <Info label="Função" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
-              <Info label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
-              <Info
-                label="CNH"
-                value={
-                  aplicacao.colaborador_snapshot?.possui_cnh
-                    ? aplicacao.colaborador_snapshot.categoria_cnh || "Sim"
-                    : aplicacao.colaborador_snapshot?.possui_cnh === false
-                      ? "Não"
-                      : "-"
-                }
-              />
-            </>
-          ) : (
-            <>
-              <Info label="Telefone" value={candidatoExterno?.telefone ?? "-"} />
-              <Info
-                label="CNH"
-                value={
-                  candidatoExterno?.possui_cnh
-                    ? candidatoExterno.categoria_cnh || "Sim"
-                    : candidatoExterno?.possui_cnh === false
-                      ? "Não"
-                      : "-"
-                }
-              />
-              <Info label="Tipo de teste / Função pretendida" value={candidatoExterno?.funcao_pretendida ?? "-"} />
-              <Info label="Último emprego" value={candidatoExterno?.empresas_anteriores ?? "-"} />
-              {candidatoExterno?.observacoes ? (
-                <div className="col-span-2">
-                  <Info label="Observações" value={candidatoExterno.observacoes} />
-                </div>
+      <Card className="border-primary/40">
+        <CardContent className="flex flex-col gap-3 pt-4 text-sm">
+          <div className="flex items-center gap-3">
+            {config.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={config.logoUrl} alt="" className="h-9 w-9 object-contain" />
+            ) : null}
+            <div>
+              <p className="text-sm font-bold uppercase">Resultado da Avaliação</p>
+              <p className="text-base font-semibold">{aplicacao.avaliacoes.nome}</p>
+              {config.nomeEmpresa ? (
+                <p className="text-xs text-muted-foreground">{config.nomeEmpresa}</p>
               ) : null}
-            </>
-          )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 border-t pt-3">
+            <FieldLine label="Prova" value={aplicacao.avaliacoes.nome} />
+            <FieldLine label="Candidato" value={pessoa?.nome ?? "-"} />
+            {aplicacao.tipo_pessoa === "interno" ? (
+              <>
+                <FieldLine label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
+                <FieldLine label="Cargo" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
+                <FieldLine label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
+                <FieldLine
+                  label="CNH"
+                  value={
+                    aplicacao.colaborador_snapshot?.possui_cnh
+                      ? aplicacao.colaborador_snapshot.categoria_cnh || "Sim"
+                      : aplicacao.colaborador_snapshot?.possui_cnh === false
+                        ? "Não"
+                        : "-"
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <FieldLine label="Telefone" value={candidatoExterno?.telefone ?? "-"} />
+                <FieldLine
+                  label="CNH"
+                  value={
+                    candidatoExterno?.possui_cnh
+                      ? candidatoExterno.categoria_cnh || "Sim"
+                      : candidatoExterno?.possui_cnh === false
+                        ? "Não"
+                        : "-"
+                  }
+                />
+                <FieldLine label="Tipo de teste / Função pretendida" value={candidatoExterno?.funcao_pretendida ?? "-"} />
+                <FieldLine label="Último emprego" value={candidatoExterno?.empresas_anteriores ?? "-"} />
+                {candidatoExterno?.observacoes ? (
+                  <FieldLine label="Observações" value={candidatoExterno.observacoes} />
+                ) : null}
+              </>
+            )}
+            <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
+          </div>
+
+          <div className="flex flex-col gap-1 border-t pt-3">
+            <FieldLine label="Avaliador" value={avaliadorProfile?.nome ?? "-"} />
+            <FieldLine
+              label="Data/Hora"
+              value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
+            />
+            <FieldLine label="Situação" value={APLICACAO_STATUS_LABELS[aplicacao.status]} />
+          </div>
         </CardContent>
       </Card>
 
@@ -227,11 +264,11 @@ export default async function RaioXPage({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function FieldLine({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium">{value}</p>
-    </div>
+    <p>
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="font-medium">{value}</span>
+    </p>
   );
 }
