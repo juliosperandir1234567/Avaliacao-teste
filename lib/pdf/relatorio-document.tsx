@@ -272,7 +272,7 @@ export function RelatorioDocument({
 
           <View style={styles.headerDivisor} />
 
-          <FieldLine label="Tipo" value={aplicacao.tipo_pessoa === "interno" ? "Interno" : "Externo"} />
+          <FieldLine label="Teste" value={aplicacao.tipo_pessoa === "interno" ? "Interno" : "Externo"} />
           {aplicacao.tipo_pessoa === "interno" ? (
             <>
               <FieldLine label="Matrícula" value={matricula} />
