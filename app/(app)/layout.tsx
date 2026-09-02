@@ -9,7 +9,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [profile, config, { count: pendenciasCount }] = await Promise.all([
     getCurrentProfile(),
     getConfiguracoesPublicas(),
-    supabase.from("avaliacoes_aplicadas").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+    supabase
+      .from("avaliacoes_aplicadas")
+      .select("id", { count: "exact", head: true })
+      .not("status", "in", "(finalizada,cancelada)"),
   ]);
 
   return (
