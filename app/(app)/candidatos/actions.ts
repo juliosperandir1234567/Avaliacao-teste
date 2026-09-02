@@ -112,10 +112,11 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   redirect("/");
 }
 
-export async function excluirCandidato(aplicacaoId: string, senha: string): Promise<{ error?: string }> {
+export async function excluirCandidatos(aplicacaoIds: string[], senha: string): Promise<{ error?: string }> {
   const profile = await getCurrentProfile();
   if (profile.role !== "admin") return { error: "Apenas administradores podem excluir candidatos." };
   if (!senha) return { error: "Digite sua senha." };
+  if (aplicacaoIds.length === 0) return { error: "Nenhum candidato selecionado." };
 
   const verifyClient = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -128,7 +129,7 @@ export async function excluirCandidato(aplicacaoId: string, senha: string): Prom
   if (authError) return { error: "Senha incorreta." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("avaliacoes_aplicadas").delete().eq("id", aplicacaoId);
+  const { error } = await supabase.from("avaliacoes_aplicadas").delete().in("id", aplicacaoIds);
   if (error) return { error: error.message };
 
   revalidatePath("/candidatos");
