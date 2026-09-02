@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   UserCog,
+  FileDown,
 } from "lucide-react";
 
 export interface NavItem {
@@ -40,6 +41,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Usuários",
     icon: UserCog,
     roles: ["admin"],
+  },
+  {
+    href: "/dashboard/exportar",
+    label: "Exportar",
+    icon: FileDown,
+    roles: ["admin", "recrutamento"],
   },
   {
     href: "/configuracoes",

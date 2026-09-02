@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 
-export async function updateConfiguracoes(input: { nomeEmpresa?: string; logoPath?: string }) {
+export async function updateConfiguracoes(input: {
+  nomeEmpresa?: string;
+  logoPath?: string;
+  backgroundPath?: string;
+}) {
   const profile = await getCurrentProfile();
   if (profile.role !== "admin") return { error: "Apenas administradores podem alterar as configurações." };
 
@@ -14,6 +18,7 @@ export async function updateConfiguracoes(input: { nomeEmpresa?: string; logoPat
     .update({
       ...(input.nomeEmpresa !== undefined ? { nome_empresa: input.nomeEmpresa || null } : {}),
       ...(input.logoPath !== undefined ? { logo_path: input.logoPath || null } : {}),
+      ...(input.backgroundPath !== undefined ? { background_path: input.backgroundPath || null } : {}),
       updated_by: profile.id,
     })
     .eq("id", 1);

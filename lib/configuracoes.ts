@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 export interface ConfiguracoesPublicas {
   nomeEmpresa: string | null;
   logoUrl: string | null;
+  backgroundUrl: string | null;
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -15,12 +16,13 @@ export async function getConfiguracoesPublicas(): Promise<ConfiguracoesPublicas>
   const supabase = await createClient();
   const { data } = await supabase
     .from("configuracoes")
-    .select("nome_empresa, logo_path")
+    .select("nome_empresa, logo_path, background_path")
     .eq("id", 1)
     .maybeSingle();
 
   return {
     nomeEmpresa: data?.nome_empresa ?? null,
     logoUrl: data?.logo_path ? publicStorageUrl("branding", data.logo_path) : null,
+    backgroundUrl: data?.background_path ? publicStorageUrl("branding", data.background_path) : null,
   };
 }

@@ -18,7 +18,11 @@ export default async function ConfiguracoesPage() {
           <CardTitle className="text-base">Identidade visual</CardTitle>
         </CardHeader>
         <CardContent>
-          <ConfiguracoesForm nomeEmpresaInicial={config.nomeEmpresa ?? ""} logoUrlInicial={config.logoUrl} />
+          <ConfiguracoesForm
+            nomeEmpresaInicial={config.nomeEmpresa ?? ""}
+            logoUrlInicial={config.logoUrl}
+            backgroundUrlInicial={config.backgroundUrl}
+          />
         </CardContent>
       </Card>
     </div>
