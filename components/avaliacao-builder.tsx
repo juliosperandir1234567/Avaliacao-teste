@@ -17,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PerguntaEditor } from "@/components/pergunta-editor";
+import { PerguntaCard } from "@/components/pergunta-card";
+import { PerguntaFormDialog } from "@/components/pergunta-form-dialog";
 import { ChecklistBulkAdd } from "@/components/checklist-bulk-add";
 import type { EquipamentoTipo } from "@/lib/types";
 import {
@@ -71,8 +72,61 @@ export function AvaliacaoBuilder({
   const router = useRouter();
   const [state, setState] = useState<BuilderState>(initial);
   const [pending, startTransition] = useTransition();
+  const [editando, setEditando] = useState<{ secaoId: string; pergunta: BuilderPergunta; isNew: boolean } | null>(
+    null
+  );
 
   const somaPontosSecoes = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
+
+  function abrirNovaPergunta(secaoId: string) {
+    setEditando({ secaoId, pergunta: novaPergunta(0), isNew: true });
+  }
+
+  function abrirEdicao(secaoId: string, pergunta: BuilderPergunta) {
+    setEditando({ secaoId, pergunta, isNew: false });
+  }
+
+  function salvarPergunta(p: BuilderPergunta) {
+    if (!editando) return;
+    setState((s) => ({
+      ...s,
+      secoes: s.secoes.map((sec) => {
+        if (sec.id !== editando.secaoId) return sec;
+        const existe = sec.perguntas.some((x) => x.id === p.id);
+        return {
+          ...sec,
+          perguntas: existe
+            ? sec.perguntas.map((x) => (x.id === p.id ? p : x))
+            : [...sec.perguntas, { ...p, ordem: sec.perguntas.length }],
+        };
+      }),
+    }));
+    setEditando(null);
+  }
+
+  function excluirPergunta(secaoId: string, perguntaId: string) {
+    setState((s) => ({
+      ...s,
+      secoes: s.secoes.map((sec) =>
+        sec.id === secaoId ? { ...sec, perguntas: sec.perguntas.filter((p) => p.id !== perguntaId) } : sec
+      ),
+    }));
+  }
+
+  function moverPergunta(secaoId: string, perguntaId: string, direcao: -1 | 1) {
+    setState((s) => ({
+      ...s,
+      secoes: s.secoes.map((sec) => {
+        if (sec.id !== secaoId) return sec;
+        const idx = sec.perguntas.findIndex((p) => p.id === perguntaId);
+        const novoIdx = idx + direcao;
+        if (idx < 0 || novoIdx < 0 || novoIdx >= sec.perguntas.length) return sec;
+        const perguntas = [...sec.perguntas];
+        [perguntas[idx], perguntas[novoIdx]] = [perguntas[novoIdx], perguntas[idx]];
+        return { ...sec, perguntas: perguntas.map((p, i) => ({ ...p, ordem: i })) };
+      }),
+    }));
+  }
 
   function save(publicar: boolean) {
     startTransition(async () => {
@@ -226,49 +280,27 @@ export function AvaliacaoBuilder({
             ) : null}
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {secao.perguntas.map((pergunta) => (
-              <PerguntaEditor
+            {secao.perguntas.map((pergunta, idx) => (
+              <PerguntaCard
                 key={pergunta.id}
                 pergunta={pergunta}
-                todasPerguntas={state.secoes.flatMap((s) => s.perguntas)}
-                onChange={(novaPergunta) =>
-                  setState((s) => ({
-                    ...s,
-                    secoes: s.secoes.map((sec) =>
-                      sec.id === secao.id
-                        ? { ...sec, perguntas: sec.perguntas.map((p) => (p.id === novaPergunta.id ? novaPergunta : p)) }
-                        : sec
-                    ),
-                  }))
-                }
-                onRemove={() =>
-                  setState((s) => ({
-                    ...s,
-                    secoes: s.secoes.map((sec) =>
-                      sec.id === secao.id ? { ...sec, perguntas: sec.perguntas.filter((p) => p.id !== pergunta.id) } : sec
-                    ),
-                  }))
-                }
+                numero={idx + 1}
+                editavel={editavel}
+                podeSubir={idx > 0}
+                podeDescer={idx < secao.perguntas.length - 1}
+                onEdit={() => abrirEdicao(secao.id, pergunta)}
+                onDelete={() => excluirPergunta(secao.id, pergunta.id)}
+                onMoveUp={() => moverPergunta(secao.id, pergunta.id, -1)}
+                onMoveDown={() => moverPergunta(secao.id, pergunta.id, 1)}
               />
             ))}
             {editavel ? (
               <Button
-                variant="outline"
-                size="sm"
                 type="button"
-                onClick={() =>
-                  setState((s) => ({
-                    ...s,
-                    secoes: s.secoes.map((sec) =>
-                      sec.id === secao.id
-                        ? { ...sec, perguntas: [...sec.perguntas, novaPergunta(sec.perguntas.length)] }
-                        : sec
-                    ),
-                  }))
-                }
+                onClick={() => abrirNovaPergunta(secao.id)}
                 className="self-start"
               >
-                <Plus className="size-3.5" /> Pergunta
+                <Plus className="size-3.5" /> Nova questão
               </Button>
             ) : null}
             {editavel ? (
@@ -327,6 +359,17 @@ export function AvaliacaoBuilder({
           </Button>
         </div>
       ) : null}
+
+      <PerguntaFormDialog
+        open={editando !== null}
+        pergunta={editando?.pergunta ?? null}
+        isNew={editando?.isNew ?? false}
+        todasPerguntas={state.secoes.flatMap((s) => s.perguntas)}
+        onOpenChange={(o) => {
+          if (!o) setEditando(null);
+        }}
+        onSave={salvarPergunta}
+      />
     </div>
   );
 }
