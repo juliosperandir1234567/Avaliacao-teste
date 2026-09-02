@@ -1,14 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getAplicacaoRunnerData, getSignedUrl, getAuditLog } from "../../actions";
-import { getCurrentProfile } from "@/lib/auth";
+import { getAplicacaoRunnerData, getSignedUrl } from "../../actions";
 import { getConfiguracoesPublicas } from "@/lib/configuracoes";
 import { createClient } from "@/utils/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CorrecaoPanel } from "@/components/correcao-panel";
 import {
   APLICACAO_STATUS_LABELS,
   PARECER_LABELS,
@@ -22,9 +20,8 @@ export default async function RaioXPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, profile, config] = await Promise.all([
+  const [data, config] = await Promise.all([
     getAplicacaoRunnerData(id),
-    getCurrentProfile(),
     getConfiguracoesPublicas(),
   ]);
   if (!data) notFound();
@@ -62,8 +59,6 @@ export default async function RaioXPage({
     aplicacao.assinatura_avaliado_path ? getSignedUrl("assinaturas", aplicacao.assinatura_avaliado_path) : null,
     aplicacao.assinatura_avaliador_path ? getSignedUrl("assinaturas", aplicacao.assinatura_avaliador_path) : null,
   ]);
-
-  const auditLog = profile.role === "admin" ? await getAuditLog(id) : [];
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -235,19 +230,6 @@ export default async function RaioXPage({
             ) : null}
           </CardContent>
         </Card>
-      ) : null}
-
-      {profile.role === "admin" && aplicacao.status === "finalizada" ? (
-        <CorrecaoPanel
-          aplicacaoId={id}
-          secoes={data.secoes}
-          perguntas={perguntas}
-          alternativas={data.alternativas}
-          respostas={respostas}
-          auditLog={auditLog}
-          parecerFinal={(aplicacao.parecer_final ?? aplicacao.parecer_sugerido ?? "apto") as Parecer}
-          parecerJustificativa={aplicacao.parecer_justificativa ?? ""}
-        />
       ) : null}
     </div>
   );
