@@ -129,6 +129,30 @@ export function AvaliacaoBuilder({
     }));
   }
 
+  function moverPerguntaParaSecao(secaoOrigemId: string, perguntaId: string, secaoDestinoId: string) {
+    if (secaoOrigemId === secaoDestinoId) return;
+    setState((s) => {
+      const origem = s.secoes.find((sec) => sec.id === secaoOrigemId);
+      const pergunta = origem?.perguntas.find((p) => p.id === perguntaId);
+      if (!pergunta) return s;
+      return {
+        ...s,
+        secoes: s.secoes.map((sec) => {
+          if (sec.id === secaoOrigemId) {
+            return {
+              ...sec,
+              perguntas: sec.perguntas.filter((p) => p.id !== perguntaId).map((p, i) => ({ ...p, ordem: i })),
+            };
+          }
+          if (sec.id === secaoDestinoId) {
+            return { ...sec, perguntas: [...sec.perguntas, { ...pergunta, ordem: sec.perguntas.length }] };
+          }
+          return sec;
+        }),
+      };
+    });
+  }
+
   function save(publicar: boolean) {
     startTransition(async () => {
       const result = await saveAvaliacaoBuilder(avaliacaoId, state, publicar);
@@ -277,10 +301,14 @@ export function AvaliacaoBuilder({
                 editavel
                 podeSubir={idx > 0}
                 podeDescer={idx < secao.perguntas.length - 1}
+                outrasSecoes={state.secoes
+                  .map((s, i) => ({ id: s.id, nome: s.nome || `Seção ${i + 1}` }))
+                  .filter((s) => s.id !== secao.id)}
                 onEdit={() => abrirEdicao(secao.id, pergunta)}
                 onDelete={() => excluirPergunta(secao.id, pergunta.id)}
                 onMoveUp={() => moverPergunta(secao.id, pergunta.id, -1)}
                 onMoveDown={() => moverPergunta(secao.id, pergunta.id, 1)}
+                onMoverSecao={(destino) => moverPerguntaParaSecao(secao.id, pergunta.id, destino)}
               />
             ))}
             <Button type="button" onClick={() => abrirNovaPergunta(secao.id)} className="self-start">

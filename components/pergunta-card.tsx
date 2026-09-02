@@ -2,6 +2,13 @@
 
 import { ArrowUp, ArrowDown, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PERGUNTA_TIPO_LABELS } from "@/lib/types";
 import type { BuilderPergunta } from "@/app/(app)/avaliacoes/actions";
 
@@ -15,20 +22,24 @@ export function PerguntaCard({
   editavel,
   podeSubir,
   podeDescer,
+  outrasSecoes,
   onEdit,
   onDelete,
   onMoveUp,
   onMoveDown,
+  onMoverSecao,
 }: {
   pergunta: BuilderPergunta;
   numero: number;
   editavel: boolean;
   podeSubir: boolean;
   podeDescer: boolean;
+  outrasSecoes?: { id: string; nome: string }[];
   onEdit: () => void;
   onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onMoverSecao?: (secaoId: string) => void;
 }) {
   const gabaritoBool =
     pergunta.config.resposta_correta === undefined
@@ -95,13 +106,31 @@ export function PerguntaCard({
       ) : null}
 
       {editavel ? (
-        <div className="flex gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button variant="outline" size="sm" type="button" onClick={onEdit}>
             <Pencil className="size-3.5" /> Editar
           </Button>
           <Button variant="destructive" size="sm" type="button" onClick={onDelete}>
             <Trash2 className="size-3.5" /> Excluir
           </Button>
+          {outrasSecoes && outrasSecoes.length > 0 && onMoverSecao ? (
+            <Select
+              items={outrasSecoes.map((s) => ({ value: s.id, label: s.nome }))}
+              value=""
+              onValueChange={(v) => v && onMoverSecao(v)}
+            >
+              <SelectTrigger className="h-8 w-48">
+                <SelectValue placeholder="Mover para seção..." />
+              </SelectTrigger>
+              <SelectContent>
+                {outrasSecoes.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
         </div>
       ) : null}
     </div>
