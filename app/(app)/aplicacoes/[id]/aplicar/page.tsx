@@ -16,7 +16,11 @@ export default async function AplicarPage({
     redirect("/");
   }
 
-  if (data.aplicacao.status === "finalizada" || data.aplicacao.status === "cancelada") {
+  if (
+    data.aplicacao.status === "finalizada" ||
+    data.aplicacao.status === "cancelada" ||
+    data.aplicacao.status === "aguardando_parecer"
+  ) {
     redirect(`/aplicacoes/${id}/raiox`);
   }
 

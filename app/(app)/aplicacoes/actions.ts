@@ -199,10 +199,15 @@ export async function finalizarAplicacao(
     falhasCriticas,
   });
 
+  // Prova respondida por gestor precisa da aprovação de um avaliador (ou admin) antes de
+  // virar "Finalizada" de fato — fica "Aguardando parecer" até alguém aprovar (ver
+  // aprovarAplicacao). finalizada_em/finalizada_por só são gravados no momento da aprovação.
+  const precisaAprovacao = profile.role === "gestor";
+
   const { error } = await supabase
     .from("avaliacoes_aplicadas")
     .update({
-      status: "finalizada",
+      status: precisaAprovacao ? "aguardando_parecer" : "finalizada",
       nota_geral: notaGeral,
       notas_por_competencia: notasPorCompetencia,
       falhas_criticas_count: falhasCriticas.length,
@@ -211,8 +216,7 @@ export async function finalizarAplicacao(
       parecer_sugerido: parecerSugerido,
       parecer_final: parecerEscolhido ?? parecerSugerido,
       ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
-      finalizada_em: new Date().toISOString(),
-      finalizada_por: profile.id,
+      ...(precisaAprovacao ? {} : { finalizada_em: new Date().toISOString(), finalizada_por: profile.id }),
     })
     .eq("id", aplicacaoId);
 
@@ -220,6 +224,44 @@ export async function finalizarAplicacao(
 
   revalidatePath(`/aplicacoes/${aplicacaoId}/aplicar`);
   revalidatePath(`/aplicacoes/${aplicacaoId}/raiox`);
+  revalidatePath("/");
+  return { success: true, precisaAprovacao };
+}
+
+export async function aprovarAplicacao(aplicacaoId: string, parecerFinal?: Parecer, observacaoFinal?: string) {
+  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+
+  if (profile.role !== "avaliador" && profile.role !== "admin") {
+    return { error: "Só avaliadores ou administradores podem aprovar esta avaliação." };
+  }
+
+  const { data: aplicacao } = await supabase
+    .from("avaliacoes_aplicadas")
+    .select("status, parecer_sugerido, parecer_final")
+    .eq("id", aplicacaoId)
+    .single();
+
+  if (!aplicacao) return { error: "Avaliação não encontrada" };
+  if (aplicacao.status !== "aguardando_parecer") {
+    return { error: "Esta avaliação não está aguardando parecer." };
+  }
+
+  const { error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .update({
+      status: "finalizada",
+      parecer_final: parecerFinal ?? aplicacao.parecer_final ?? aplicacao.parecer_sugerido,
+      ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
+      finalizada_em: new Date().toISOString(),
+      finalizada_por: profile.id,
+    })
+    .eq("id", aplicacaoId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/aplicacoes/${aplicacaoId}/raiox`);
+  revalidatePath("/");
   return { success: true };
 }
 

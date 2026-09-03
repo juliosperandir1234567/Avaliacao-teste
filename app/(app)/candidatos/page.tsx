@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/auth";
 import { listCandidatos } from "./actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CandidatosTable } from "@/components/candidatos-table";
 
 export default async function CandidatosPage() {
+  const profile = await getCurrentProfile();
+  if (profile.role === "gestor") redirect("/");
+
   const candidatos = await listCandidatos();
 
   return (

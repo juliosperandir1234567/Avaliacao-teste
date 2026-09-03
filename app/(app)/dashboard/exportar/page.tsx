@@ -1,7 +1,12 @@
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/auth";
 import { listAvaliacoes } from "@/app/(app)/avaliacoes/actions";
 import { ExportarPainel } from "./exportar-painel";
 
 export default async function ExportarPage() {
+  const profile = await getCurrentProfile();
+  if (profile.role === "gestor") redirect("/");
+
   const avaliacoes = await listAvaliacoes();
 
   return (

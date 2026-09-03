@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CheckCircle2, Ban, ShieldAlert } from "lucide-react";
+import { getCurrentProfile } from "@/lib/auth";
 import { getDashboardData, listAvaliacoesParaFiltro, listFuncoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,9 @@ export default async function DashboardPage({
     funcao?: string;
   }>;
 }) {
+  const profile = await getCurrentProfile();
+  if (profile.role === "gestor") redirect("/");
+
   const params = await searchParams;
   const filtros = {
     dataInicio: params.dataInicio || undefined,

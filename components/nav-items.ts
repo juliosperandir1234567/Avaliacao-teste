@@ -22,7 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "avaliador", "gestor", "recrutamento"],
+    roles: ["admin", "avaliador", "recrutamento"],
   },
   {
     href: "/avaliacoes",
@@ -34,7 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/candidatos",
     label: "Candidato",
     icon: UserPlus2,
-    roles: ["admin", "avaliador", "gestor", "recrutamento"],
+    roles: ["admin", "avaliador", "recrutamento"],
   },
   {
     href: "/usuarios",
@@ -46,7 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/exportar",
     label: "Exportar",
     icon: FileDown,
-    roles: ["admin", "avaliador", "gestor", "recrutamento"],
+    roles: ["admin", "avaliador", "recrutamento"],
   },
   {
     href: "/configuracoes",

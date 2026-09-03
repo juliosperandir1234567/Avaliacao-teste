@@ -384,7 +384,11 @@ export function AplicacaoRunner({
                       toast.error(result.error);
                       return;
                     }
-                    window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
+                    if (result.precisaAprovacao) {
+                      toast.success("Avaliação enviada para aprovação de um avaliador.");
+                    } else {
+                      window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
+                    }
                     router.push(`/aplicacoes/${aplicacaoId}/raiox`);
                   })
                 }
@@ -451,7 +455,11 @@ export function AplicacaoRunner({
                       toast.error(result.error);
                       return;
                     }
-                    window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
+                    if (result.precisaAprovacao) {
+                      toast.success("Avaliação enviada para aprovação de um avaliador.");
+                    } else {
+                      window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
+                    }
                     router.push(`/aplicacoes/${aplicacaoId}/raiox`);
                   })
                 }

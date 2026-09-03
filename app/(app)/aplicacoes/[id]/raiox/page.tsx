@@ -2,11 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAplicacaoRunnerData, getSignedUrl } from "../../actions";
 import { getConfiguracoesPublicas } from "@/lib/configuracoes";
+import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AprovarParecerForm } from "@/components/aprovar-parecer-form";
 import {
   APLICACAO_STATUS_LABELS,
   PARECER_LABELS,
@@ -20,9 +22,10 @@ export default async function RaioXPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, config] = await Promise.all([
+  const [data, config, profile] = await Promise.all([
     getAplicacaoRunnerData(id),
     getConfiguracoesPublicas(),
+    getCurrentProfile(),
   ]);
   if (!data) notFound();
 
@@ -81,6 +84,10 @@ export default async function RaioXPage({
           <AlertTitle>Avaliação interrompida por segurança</AlertTitle>
           <AlertDescription>{aplicacao.motivo_interrupcao}</AlertDescription>
         </Alert>
+      ) : null}
+
+      {aplicacao.status === "aguardando_parecer" && (profile.role === "avaliador" || profile.role === "admin") ? (
+        <AprovarParecerForm aplicacaoId={id} parecerAtual={aplicacao.parecer_final} />
       ) : null}
 
       <Card className="relative border-primary/40">
