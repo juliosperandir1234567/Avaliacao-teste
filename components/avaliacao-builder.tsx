@@ -20,7 +20,8 @@ import {
 import { PerguntaCard } from "@/components/pergunta-card";
 import { PerguntaFormDialog } from "@/components/pergunta-form-dialog";
 import { ChecklistBulkAdd } from "@/components/checklist-bulk-add";
-import type { AvaliacaoStatus, EquipamentoTipo } from "@/lib/types";
+import { CHECKLIST_ESCALA_LABELS } from "@/lib/types";
+import type { AvaliacaoStatus, ChecklistEscala, EquipamentoTipo } from "@/lib/types";
 import {
   saveAvaliacaoBuilder,
   deleteAvaliacao,
@@ -54,6 +55,7 @@ function novaSecao(ordem: number): BuilderSecao {
     nome: "",
     ordem,
     peso: 0,
+    escala_checklist: "sim_nao",
     perguntas: [],
   };
 }
@@ -301,6 +303,31 @@ export function AvaliacaoBuilder({
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            <Field label="Escala do checklist (aplica-se a todas as perguntas checklist desta seção)">
+              <Select
+                items={CHECKLIST_ESCALA_LABELS}
+                value={secao.escala_checklist}
+                onValueChange={(v) =>
+                  setState((s) => ({
+                    ...s,
+                    secoes: s.secoes.map((x) =>
+                      x.id === secao.id ? { ...x, escala_checklist: v as ChecklistEscala } : x
+                    ),
+                  }))
+                }
+              >
+                <SelectTrigger className="h-9 w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CHECKLIST_ESCALA_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {secao.perguntas.map((pergunta, idx) => (
               <PerguntaCard
                 key={pergunta.id}
@@ -387,6 +414,9 @@ export function AvaliacaoBuilder({
         open={editando !== null}
         pergunta={editando?.pergunta ?? null}
         isNew={editando?.isNew ?? false}
+        escalaChecklist={
+          (editando && state.secoes.find((s) => s.id === editando.secaoId)?.escala_checklist) || "sim_nao"
+        }
         todasPerguntas={state.secoes.flatMap((s) => s.perguntas)}
         onOpenChange={(o) => {
           if (!o) setEditando(null);

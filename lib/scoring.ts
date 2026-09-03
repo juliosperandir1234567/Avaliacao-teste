@@ -19,13 +19,21 @@ export function precisaCorrecaoManual(p: AvaliacaoPergunta): boolean {
   return false;
 }
 
-/** Pontuação 0..10 de uma resposta de checklist (item "não avaliado" fica de fora do cálculo). */
-export function pontuacaoChecklist(status: ChecklistStatus): number | null {
+/**
+ * Pontuação 0..10 de uma resposta de checklist (item "não avaliado"/N.A. fica de fora do
+ * cálculo). `valorParcial` e `valorSim` só importam pra escala 0/5/10/N.A. da seção — nas
+ * demais escalas (Sim/Não, com ou sem N.A.) "sim" sempre vale o total (10) e "nao" sempre 0.
+ */
+export function pontuacaoChecklist(
+  status: ChecklistStatus,
+  valorParcial = 5,
+  valorSim = 10
+): number | null {
   switch (status) {
     case "sim":
-      return 10;
+      return valorSim;
     case "parcial":
-      return 5;
+      return valorParcial;
     case "nao":
       return 0;
     case "nao_avaliado":
@@ -49,7 +57,7 @@ export function calcularPontuacaoResposta(
   switch (pergunta.tipo) {
     case "checklist": {
       if (!("status" in valor)) return null;
-      return pontuacaoChecklist(valor.status);
+      return pontuacaoChecklist(valor.status, pergunta.config.valor_parcial, pergunta.config.valor_sim);
     }
     case "multipla_escolha": {
       if (!("alternativa_id" in valor) || !valor.alternativa_id) return null;

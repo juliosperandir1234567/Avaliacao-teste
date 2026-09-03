@@ -493,6 +493,7 @@ export function AplicacaoRunner({
         {cabecalho}
         <ChecklistTable
           perguntas={passoAtual.perguntas}
+          escala={secaoPorId.get(passoAtual.perguntas[0].secao_id)?.escala_checklist ?? "sim_nao"}
           respostaPorPergunta={respostaPorPergunta}
           onSetStatus={setChecklistStatus}
           onSetObservacao={setChecklistObservacao}

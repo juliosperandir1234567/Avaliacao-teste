@@ -17,10 +17,17 @@ import type {
   AvaliacaoCompetencia,
   AvaliacaoPergunta,
   AvaliacaoSecao,
+  ChecklistEscala,
   ChecklistStatus,
   Parecer,
   Resposta,
 } from "@/lib/types";
+
+const CHECKLIST_STATUS_LABELS: Record<ChecklistEscala, Record<ChecklistStatus, string>> = {
+  sim_nao: { sim: "Sim", nao: "Não", parcial: "Parcial", nao_avaliado: "Não avaliado" },
+  sim_nao_na: { sim: "Sim", nao: "Não", parcial: "Parcial", nao_avaliado: "N.A." },
+  zero_cinco_dez_na: { sim: "10", nao: "0", parcial: "5", nao_avaliado: "N.A." },
+};
 
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827" },
@@ -101,6 +108,7 @@ function respostaTexto(
   pergunta: AvaliacaoPergunta,
   resposta: Resposta | undefined,
   alternativasTexto: Map<string, string>,
+  escalaChecklist: ChecklistEscala = "sim_nao",
 ) {
   if (!resposta?.resposta) return "Não respondida";
   const v = resposta.resposta as Record<string, unknown>;
@@ -119,13 +127,7 @@ function respostaTexto(
         ? "Sim/Verdadeiro"
         : "Não/Falso";
   if ("status" in v) {
-    const labels: Record<ChecklistStatus, string> = {
-      sim: "Sim",
-      nao: "Não",
-      parcial: "Parcial",
-      nao_avaliado: "Não avaliado",
-    };
-    return labels[v.status as ChecklistStatus];
+    return CHECKLIST_STATUS_LABELS[escalaChecklist][v.status as ChecklistStatus];
   }
   if ("valor_numerico" in v)
     return v.valor_numerico === null
@@ -423,7 +425,7 @@ export function RelatorioDocument({
                     <View key={p.id} style={styles.pergunta}>
                       <Text style={styles.perguntaTitulo}>{p.enunciado}</Text>
                       <Text style={corStatus}>
-                        {respostaTexto(p, r, alternativasTexto)}
+                        {respostaTexto(p, r, alternativasTexto, secao.escala_checklist)}
                       </Text>
                       {r?.observacao ? (
                         <Text style={styles.perguntaMeta}>

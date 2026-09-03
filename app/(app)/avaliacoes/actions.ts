@@ -340,6 +340,7 @@ export async function saveAvaliacaoBuilder(
         nome: s.nome,
         ordem: s.ordem,
         peso: s.peso,
+        escala_checklist: s.escala_checklist,
       }))
     );
     if (error) return { error: error.message };
@@ -474,6 +475,7 @@ export async function duplicateAvaliacao(id: string, novoNome?: string) {
       nome: secao.nome,
       ordem: secao.ordem,
       peso: secao.peso,
+      escala_checklist: secao.escala_checklist,
     });
 
     for (const pergunta of secao.perguntas) {

@@ -108,13 +108,22 @@ export interface Avaliacao {
   published_at: string | null;
 }
 
+export type ChecklistEscala = "sim_nao" | "sim_nao_na" | "zero_cinco_dez_na";
+
 export interface AvaliacaoSecao {
   id: string;
   avaliacao_id: string;
   nome: string;
   ordem: number;
   peso: number;
+  escala_checklist: ChecklistEscala;
 }
+
+export const CHECKLIST_ESCALA_LABELS: Record<ChecklistEscala, string> = {
+  sim_nao: "Sim / Não",
+  sim_nao_na: "Sim / Não / N.A.",
+  zero_cinco_dez_na: "0 / 5 / 10 / N.A.",
+};
 
 export interface AvaliacaoCompetencia {
   id: string;
@@ -124,7 +133,9 @@ export interface AvaliacaoCompetencia {
 }
 
 export interface PerguntaConfigChecklist {
-  escala?: "sim_nao_na" | "sim_parcial_nao_na";
+  /** Só usados quando a seção usa a escala "zero_cinco_dez_na" (0 sempre vale 0). */
+  valor_parcial?: number;
+  valor_sim?: number;
 }
 export interface PerguntaConfigNumerica {
   unidade?: string;

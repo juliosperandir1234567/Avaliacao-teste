@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { createClient } from "@/utils/supabase/client";
 import { opcoesGatilho, podeSerPai } from "@/lib/conditional";
-import type { PerguntaTipo } from "@/lib/types";
+import type { ChecklistEscala, PerguntaTipo } from "@/lib/types";
 import { PERGUNTA_TIPO_LABELS, TIPOS_PERGUNTA_DISPONIVEIS } from "@/lib/types";
 import type { BuilderPergunta } from "@/app/(app)/avaliacoes/actions";
 
@@ -37,6 +37,7 @@ export function PerguntaFormDialog({
   open,
   pergunta,
   isNew,
+  escalaChecklist,
   todasPerguntas,
   onOpenChange,
   onSave,
@@ -44,6 +45,7 @@ export function PerguntaFormDialog({
   open: boolean;
   pergunta: BuilderPergunta | null;
   isNew: boolean;
+  escalaChecklist: ChecklistEscala;
   todasPerguntas: BuilderPergunta[];
   onOpenChange: (open: boolean) => void;
   onSave: (pergunta: BuilderPergunta) => void;
@@ -185,6 +187,7 @@ export function PerguntaFormDialog({
 
           <PerguntaConfigFields
             pergunta={draft}
+            escalaChecklist={escalaChecklist}
             onChange={update}
             onAddAlternativa={addAlternativa}
             updateAlternativa={updateAlternativa}
@@ -262,12 +265,14 @@ export function PerguntaFormDialog({
 
 function PerguntaConfigFields({
   pergunta,
+  escalaChecklist,
   onChange,
   onAddAlternativa,
   updateAlternativa,
   removeAlternativa,
 }: {
   pergunta: BuilderPergunta;
+  escalaChecklist: ChecklistEscala;
   onChange: (partial: Partial<BuilderPergunta>) => void;
   onAddAlternativa: () => void;
   updateAlternativa: (id: string, partial: Partial<BuilderPergunta["alternativas"][number]>) => void;
@@ -388,6 +393,46 @@ function PerguntaConfigFields({
             value={pergunta.config.criterios_esperados ?? ""}
             onChange={(e) => onChange({ config: { ...pergunta.config, criterios_esperados: e.target.value } })}
           />
+        </div>
+      );
+
+    case "checklist":
+      if (escalaChecklist !== "zero_cinco_dez_na") return null;
+      return (
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs">Pontuação desta pergunta (escala 0 / 5 / 10 / N.A. da seção)</Label>
+          <p className="text-xs text-muted-foreground">
+            0 sempre vale 0 e N.A. não entra na nota. Defina quanto vale marcar 5 e quanto vale marcar 10
+            (numa escala de 0 a 10) só pra esta pergunta.
+          </p>
+          <div className="flex gap-3">
+            <div className="flex flex-1 flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Valor do 5</Label>
+              <Input
+                type="number"
+                min={0}
+                max={10}
+                step={0.1}
+                className="h-9"
+                value={pergunta.config.valor_parcial ?? 5}
+                onChange={(e) =>
+                  onChange({ config: { ...pergunta.config, valor_parcial: Number(e.target.value) } })
+                }
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Valor do 10</Label>
+              <Input
+                type="number"
+                min={0}
+                max={10}
+                step={0.1}
+                className="h-9"
+                value={pergunta.config.valor_sim ?? 10}
+                onChange={(e) => onChange({ config: { ...pergunta.config, valor_sim: Number(e.target.value) } })}
+              />
+            </div>
+          </div>
         </div>
       );
 

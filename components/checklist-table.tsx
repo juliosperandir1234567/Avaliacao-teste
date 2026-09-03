@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { AvaliacaoPergunta, ChecklistStatus, RespostaValor } from "@/lib/types";
+import type { AvaliacaoPergunta, ChecklistEscala, ChecklistStatus, RespostaValor } from "@/lib/types";
 
 export interface RespostaLocalChecklist {
   valor: RespostaValor;
@@ -14,25 +14,41 @@ export interface RespostaLocalChecklist {
   evidencias: string[];
 }
 
-const COLUNAS: { status: ChecklistStatus; label: string }[] = [
-  { status: "sim", label: "Sim" },
-  { status: "nao", label: "Não" },
-];
+const COLUNAS_POR_ESCALA: Record<ChecklistEscala, { status: ChecklistStatus; label: string }[]> = {
+  sim_nao: [
+    { status: "sim", label: "Sim" },
+    { status: "nao", label: "Não" },
+  ],
+  sim_nao_na: [
+    { status: "sim", label: "Sim" },
+    { status: "nao", label: "Não" },
+    { status: "nao_avaliado", label: "N.A." },
+  ],
+  zero_cinco_dez_na: [
+    { status: "nao", label: "0" },
+    { status: "parcial", label: "5" },
+    { status: "sim", label: "10" },
+    { status: "nao_avaliado", label: "N.A." },
+  ],
+};
 
 export function ChecklistTable({
   perguntas,
+  escala,
   respostaPorPergunta,
   onSetStatus,
   onSetObservacao,
   onUploadEvidencia,
 }: {
   perguntas: AvaliacaoPergunta[];
+  escala: ChecklistEscala;
   respostaPorPergunta: Map<string, RespostaLocalChecklist | undefined>;
   onSetStatus: (perguntaId: string, status: ChecklistStatus) => void;
   onSetObservacao: (perguntaId: string, texto: string) => void;
   onUploadEvidencia: (perguntaId: string, file: File) => void;
 }) {
   const [expandido, setExpandido] = useState<string | null>(null);
+  const COLUNAS = COLUNAS_POR_ESCALA[escala];
   return (
     <div className="overflow-x-auto rounded-md border">
       <table className="w-full text-sm">
@@ -74,7 +90,9 @@ export function ChecklistTable({
                           statusAtual === c.status
                             ? c.status === "nao"
                               ? "border-destructive bg-destructive text-destructive-foreground"
-                              : "border-primary bg-primary text-primary-foreground"
+                              : c.status === "nao_avaliado"
+                                ? "border-muted-foreground bg-muted-foreground text-background"
+                                : "border-primary bg-primary text-primary-foreground"
                             : "border-input bg-background hover:bg-muted"
                         }`}
                         aria-label={c.label}

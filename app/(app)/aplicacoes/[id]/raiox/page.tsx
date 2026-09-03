@@ -210,6 +210,7 @@ export default async function RaioXPage({
           <Badge variant="default">Sim: {checklistStats.sim}</Badge>
           {checklistStats.parcial > 0 ? <Badge variant="secondary">Parcial: {checklistStats.parcial}</Badge> : null}
           <Badge variant="destructive">Não: {checklistStats.nao}</Badge>
+          {checklistStats.nao_avaliado > 0 ? <Badge variant="outline">N.A.: {checklistStats.nao_avaliado}</Badge> : null}
         </CardContent>
       </Card>
 
