@@ -196,9 +196,26 @@ export function calcularNotasPorCompetencia(
 }
 
 /**
- * Nota de uma seção: média simples (sem peso por pergunta) das perguntas dessa seção —
- * cada pergunta vale o mesmo dentro da seção, então "seção vale 3 pontos com 15 itens"
- * significa cada item vale 3/15 = 0,20 automaticamente.
+ * Pontuação máxima (na régua de 0 a 10) que uma pergunta pode valer. Pra quase todo tipo é
+ * sempre 10 (acerto total = 10, gabarito certo = 10, etc). Checklist é a exceção: o "máximo" é
+ * o que a própria pergunta configurou pro 10 (Valor do 10), porque essa escala pode usar
+ * qualquer número, não necessariamente 10 — sem isso, uma pergunta configurada com Valor do
+ * 10 = 0,5 (por exemplo) puxava a média da seção pra quase zero mesmo sendo respondida
+ * perfeitamente.
+ */
+function maximoPontuacaoPergunta(pergunta: AvaliacaoPergunta): number {
+  if (pergunta.tipo === "checklist") return pergunta.config.valor_sim ?? 10;
+  return 10;
+}
+
+/**
+ * Nota de uma seção: soma do que foi obtido dividido pela soma do que era possível obter
+ * (excluindo perguntas não respondidas/N.A.), na régua de 0 a 10 — não é mais uma média simples
+ * das pontuações, porque isso só funciona se toda pergunta valer 0 a 10; com o Valor do 5/10
+ * customizável do checklist, o "máximo" de cada pergunta pode ser outro número, então o
+ * aproveitamento tem que ser calculado contra o máximo real de cada uma.
+ * "seção vale 3 pontos com 15 itens de 0 a 10 cada" ainda dá cada item valendo 3/15 = 0,20,
+ * igual antes — a mudança só aparece quando o máximo de uma pergunta não é 10.
  */
 export function calcularNotaSecao(
   secaoId: string,
@@ -206,12 +223,17 @@ export function calcularNotaSecao(
   respostas: Resposta[]
 ): number | null {
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
-  const pontuacoes = perguntas
-    .filter((p) => p.secao_id === secaoId)
-    .map((p) => respostaPorPergunta.get(p.id)?.pontuacao ?? null)
-    .filter((p): p is number => p !== null);
-  if (pontuacoes.length === 0) return null;
-  return pontuacoes.reduce((acc, p) => acc + p, 0) / pontuacoes.length;
+  let somaObtida = 0;
+  let somaMaxima = 0;
+  for (const p of perguntas) {
+    if (p.secao_id !== secaoId) continue;
+    const pontuacao = respostaPorPergunta.get(p.id)?.pontuacao ?? null;
+    if (pontuacao === null) continue;
+    somaObtida += pontuacao;
+    somaMaxima += maximoPontuacaoPergunta(p);
+  }
+  if (somaMaxima === 0) return null;
+  return (somaObtida / somaMaxima) * 10;
 }
 
 /**
