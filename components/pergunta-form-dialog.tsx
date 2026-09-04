@@ -414,10 +414,12 @@ function PerguntaConfigFields({
                 max={10}
                 step={0.1}
                 className="h-9"
-                value={pergunta.config.valor_parcial ?? 5}
-                onChange={(e) =>
-                  onChange({ config: { ...pergunta.config, valor_parcial: Number(e.target.value) } })
-                }
+                placeholder="5"
+                value={pergunta.config.valor_parcial ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  onChange({ config: { ...pergunta.config, valor_parcial: raw === "" ? undefined : Number(raw) } });
+                }}
               />
             </div>
             <div className="flex flex-1 flex-col gap-1">
@@ -428,8 +430,12 @@ function PerguntaConfigFields({
                 max={10}
                 step={0.1}
                 className="h-9"
-                value={pergunta.config.valor_sim ?? 10}
-                onChange={(e) => onChange({ config: { ...pergunta.config, valor_sim: Number(e.target.value) } })}
+                placeholder="10"
+                value={pergunta.config.valor_sim ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  onChange({ config: { ...pergunta.config, valor_sim: raw === "" ? undefined : Number(raw) } });
+                }}
               />
             </div>
           </div>

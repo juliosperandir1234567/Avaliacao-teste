@@ -229,7 +229,11 @@ export function AvaliacaoBuilder({
               step={0.1}
               className="h-10"
               value={state.avaliacao.nota_minima}
-              onChange={(e) => setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, nota_minima: Number(e.target.value) } }))}
+              onChange={(e) => {
+                if (e.target.value === "") return;
+                const v = Number(e.target.value);
+                setState((s) => ({ ...s, avaliacao: { ...s.avaliacao, nota_minima: v } }));
+              }}
             />
           </Field>
           <Field label="Descrição" full>
@@ -286,12 +290,14 @@ export function AvaliacaoBuilder({
               className="h-9 w-28"
               placeholder="Pontos"
               value={secao.peso}
-              onChange={(e) =>
+              onChange={(e) => {
+                if (e.target.value === "") return;
+                const v = Number(e.target.value);
                 setState((s) => ({
                   ...s,
-                  secoes: s.secoes.map((x) => (x.id === secao.id ? { ...x, peso: Number(e.target.value) } : x)),
-                }))
-              }
+                  secoes: s.secoes.map((x) => (x.id === secao.id ? { ...x, peso: v } : x)),
+                }));
+              }}
             />
             <Button
               variant="ghost"
