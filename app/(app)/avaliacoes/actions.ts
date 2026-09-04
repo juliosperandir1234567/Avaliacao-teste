@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import type {
   Avaliacao,
@@ -217,6 +218,7 @@ export async function getAvaliacaoBuilderData(id: string) {
         .from("avaliacao_perguntas")
         .select("*, avaliacao_secoes!inner(avaliacao_id)")
         .eq("avaliacao_secoes.avaliacao_id", id)
+        .eq("arquivada", false)
         .order("ordem"),
       supabase
         .from("avaliacao_alternativas")
@@ -245,6 +247,43 @@ export async function getAvaliacaoBuilderData(id: string) {
     competencias: (competencias ?? []) as AvaliacaoCompetencia[],
     secoes: builderSecoes,
   };
+}
+
+/**
+ * Alternativa a excluir de verdade quando a pergunta já tem resposta de candidato registrada
+ * (a exclusão trava por causa da FK). A pergunta arquivada some do construtor e de provas
+ * novas, mas continua intacta pra quem já respondeu (Raio-X/PDF de provas antigas).
+ * Exige credenciais de admin, igual à exclusão de candidato.
+ */
+export async function arquivarPergunta(
+  perguntaId: string,
+  emailAdmin: string,
+  senha: string
+): Promise<{ error?: string }> {
+  if (!emailAdmin || !senha) return { error: "Digite o e-mail e a senha do administrador." };
+
+  const verifyClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  );
+  const { data: authData, error: authError } = await verifyClient.auth.signInWithPassword({
+    email: emailAdmin,
+    password: senha,
+  });
+  if (authError || !authData.user) return { error: "E-mail ou senha incorretos." };
+
+  const { data: perfilInformado } = await verifyClient
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .single();
+  if (perfilInformado?.role !== "admin") return { error: "Essas credenciais não pertencem a um administrador." };
+
+  const { error } = await verifyClient.from("avaliacao_perguntas").update({ arquivada: true }).eq("id", perguntaId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/avaliacoes");
+  return {};
 }
 
 export async function saveAvaliacaoBuilder(
@@ -288,11 +327,16 @@ export async function saveAvaliacaoBuilder(
     supabase
       .from("avaliacao_perguntas")
       .select("id, enunciado, avaliacao_secoes!inner(avaliacao_id)")
-      .eq("avaliacao_secoes.avaliacao_id", avaliacaoId),
+      .eq("avaliacao_secoes.avaliacao_id", avaliacaoId)
+      // Arquivadas nao entram no construtor de proposito (ver getAvaliacaoBuilderData) -- sem
+      // esse filtro elas sempre pareceriam "removidas pelo usuario" e o save tentaria excluir
+      // (e falhar) elas de novo a cada salvamento.
+      .eq("arquivada", false),
     supabase
       .from("avaliacao_alternativas")
-      .select("id, avaliacao_perguntas!inner(secao_id, avaliacao_secoes!inner(avaliacao_id))")
-      .eq("avaliacao_perguntas.avaliacao_secoes.avaliacao_id", avaliacaoId),
+      .select("id, avaliacao_perguntas!inner(secao_id, arquivada, avaliacao_secoes!inner(avaliacao_id))")
+      .eq("avaliacao_perguntas.avaliacao_secoes.avaliacao_id", avaliacaoId)
+      .eq("avaliacao_perguntas.arquivada", false),
   ]);
 
   const alternativasRemovidas = (alternativasAntigas ?? [])

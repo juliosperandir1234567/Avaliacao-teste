@@ -14,6 +14,9 @@ export function ConfirmarSenhaDialog({
   descricao,
   onConfirm,
   onSuccess,
+  labelAcao = "Excluir definitivamente",
+  labelPendente = "Excluindo...",
+  variant = "destructive",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,6 +24,9 @@ export function ConfirmarSenhaDialog({
   descricao: string;
   onConfirm: (emailAdmin: string, senha: string) => Promise<{ error?: string }>;
   onSuccess: () => void;
+  labelAcao?: string;
+  labelPendente?: string;
+  variant?: "destructive" | "default";
 }) {
   const [emailAdmin, setEmailAdmin] = useState("");
   const [senha, setSenha] = useState("");
@@ -75,8 +81,8 @@ export function ConfirmarSenhaDialog({
               }}
             />
           </div>
-          <Button variant="destructive" disabled={pending || !emailAdmin || !senha} onClick={confirmar}>
-            {pending ? "Excluindo..." : "Excluir definitivamente"}
+          <Button variant={variant} disabled={pending || !emailAdmin || !senha} onClick={confirmar}>
+            {pending ? labelPendente : labelAcao}
           </Button>
         </div>
       </DialogContent>

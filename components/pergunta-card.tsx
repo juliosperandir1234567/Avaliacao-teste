@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ArrowDown, Pencil, Trash2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Archive, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -25,6 +25,7 @@ export function PerguntaCard({
   outrasSecoes,
   onEdit,
   onDelete,
+  onArquivar,
   onMoveUp,
   onMoveDown,
   onMoverSecao,
@@ -37,6 +38,7 @@ export function PerguntaCard({
   outrasSecoes?: { id: string; nome: string }[];
   onEdit: () => void;
   onDelete: () => void;
+  onArquivar: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onMoverSecao?: (secaoId: string) => void;
@@ -112,6 +114,9 @@ export function PerguntaCard({
           </Button>
           <Button variant="destructive" size="sm" type="button" onClick={onDelete}>
             <Trash2 className="size-3.5" /> Excluir
+          </Button>
+          <Button variant="outline" size="sm" type="button" onClick={onArquivar}>
+            <Archive className="size-3.5" /> Arquivar
           </Button>
           {outrasSecoes && outrasSecoes.length > 0 && onMoverSecao ? (
             <Select

@@ -20,11 +20,13 @@ import {
 import { PerguntaCard } from "@/components/pergunta-card";
 import { PerguntaFormDialog } from "@/components/pergunta-form-dialog";
 import { ChecklistBulkAdd } from "@/components/checklist-bulk-add";
+import { ConfirmarSenhaDialog } from "@/components/confirmar-senha-dialog";
 import { CHECKLIST_ESCALA_LABELS } from "@/lib/types";
 import type { AvaliacaoStatus, ChecklistEscala, EquipamentoTipo } from "@/lib/types";
 import {
   saveAvaliacaoBuilder,
   deleteAvaliacao,
+  arquivarPergunta,
   type BuilderPergunta,
   type BuilderSecao,
   type BuilderState,
@@ -44,6 +46,7 @@ function novaPergunta(ordem: number): BuilderPergunta {
     config: {},
     evidencia_obrigatoria: false,
     observacao_obrigatoria_se_nao: false,
+    arquivada: false,
     alternativas: [],
   };
 }
@@ -78,6 +81,7 @@ export function AvaliacaoBuilder({
   const [editando, setEditando] = useState<{ secaoId: string; pergunta: BuilderPergunta; isNew: boolean } | null>(
     null
   );
+  const [arquivando, setArquivando] = useState<{ secaoId: string; perguntaId: string } | null>(null);
 
   const somaPontosSecoes = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
 
@@ -347,6 +351,7 @@ export function AvaliacaoBuilder({
                   .filter((s) => s.id !== secao.id)}
                 onEdit={() => abrirEdicao(secao.id, pergunta)}
                 onDelete={() => excluirPergunta(secao.id, pergunta.id)}
+                onArquivar={() => setArquivando({ secaoId: secao.id, perguntaId: pergunta.id })}
                 onMoveUp={() => moverPergunta(secao.id, pergunta.id, -1)}
                 onMoveDown={() => moverPergunta(secao.id, pergunta.id, 1)}
                 onMoverSecao={(destino) => moverPerguntaParaSecao(secao.id, pergunta.id, destino)}
@@ -428,6 +433,23 @@ export function AvaliacaoBuilder({
           if (!o) setEditando(null);
         }}
         onSave={salvarPergunta}
+      />
+
+      <ConfirmarSenhaDialog
+        open={arquivando !== null}
+        onOpenChange={(o) => {
+          if (!o) setArquivando(null);
+        }}
+        titulo="Arquivar pergunta"
+        descricao="A pergunta sai do construtor e não entra em novas provas, mas continua aparecendo certinha em provas antigas que já a usaram. Confirme e-mail e senha de um administrador para continuar."
+        labelAcao="Arquivar pergunta"
+        labelPendente="Arquivando..."
+        variant="default"
+        onConfirm={(emailAdmin, senha) => arquivarPergunta(arquivando!.perguntaId, emailAdmin, senha)}
+        onSuccess={() => {
+          if (arquivando) excluirPergunta(arquivando.secaoId, arquivando.perguntaId);
+          toast.success("Pergunta arquivada");
+        }}
       />
     </div>
   );

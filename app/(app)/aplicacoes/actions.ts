@@ -66,19 +66,24 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
     .eq("avaliacao_secoes.avaliacao_id", aplicacao.avaliacao_id)
     .order("ordem");
 
+  const { data: respostas } = await supabase
+    .from("respostas")
+    .select("*")
+    .eq("aplicacao_id", aplicacaoId);
+
+  // Pergunta arquivada some de provas novas, mas continua aparecendo pra quem já tem resposta
+  // registrada (provas antigas) -- ver arquivarPergunta em avaliacoes/actions.ts.
+  const perguntaIdsComResposta = new Set((respostas ?? []).map((r) => r.pergunta_id));
   const perguntas = (perguntasRaw ?? []).filter(
-    (p) => !p.equipamento_tipo_id || p.equipamento_tipo_id === aplicacao.avaliacoes.equipamento_tipo_id
+    (p) =>
+      (!p.equipamento_tipo_id || p.equipamento_tipo_id === aplicacao.avaliacoes.equipamento_tipo_id) &&
+      (!p.arquivada || perguntaIdsComResposta.has(p.id))
   );
 
   const perguntaIds = perguntas.map((p) => p.id);
   const { data: alternativas } = perguntaIds.length
     ? await supabase.from("avaliacao_alternativas").select("*").in("pergunta_id", perguntaIds)
     : { data: [] };
-
-  const { data: respostas } = await supabase
-    .from("respostas")
-    .select("*")
-    .eq("aplicacao_id", aplicacaoId);
 
   const { data: competencias } = await supabase
     .from("avaliacao_competencias")

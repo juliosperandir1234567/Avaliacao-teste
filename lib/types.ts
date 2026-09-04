@@ -186,6 +186,7 @@ export interface AvaliacaoPergunta {
   config: PerguntaConfig;
   evidencia_obrigatoria: boolean;
   observacao_obrigatoria_se_nao: boolean;
+  arquivada: boolean;
 }
 
 export interface AvaliacaoAlternativa {
