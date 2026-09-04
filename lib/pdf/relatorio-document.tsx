@@ -11,6 +11,7 @@ import {
   PARECER_LABELS,
   PERGUNTA_TIPO_LABELS,
 } from "@/lib/types";
+import { calcularNotaSecao } from "@/lib/scoring";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoAplicada,
@@ -85,6 +86,17 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     borderBottom: "0.5 solid #e5e7eb",
   },
+  secaoHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginTop: 14,
+    marginBottom: 6,
+    borderBottom: "1 solid #d1d5db",
+    paddingBottom: 3,
+  },
+  secaoNome: { fontSize: 11, fontWeight: 700 },
+  secaoNota: { fontSize: 10, fontWeight: 700, color: "#374151" },
   perguntaTitulo: { fontWeight: 600, marginBottom: 2 },
   perguntaMeta: { color: "#6b7280", fontSize: 8, marginBottom: 2 },
   critico: { color: "#b91c1c", fontWeight: 700 },
@@ -401,9 +413,18 @@ export function RelatorioDocument({
           </>
         ) : null}
 
-        {secoesOrdenadas.map((secao) => (
+        {secoesOrdenadas.map((secao) => {
+          const pesoSecao = Number(secao.peso || 0);
+          const notaSecao = calcularNotaSecao(secao.id, perguntas, respostas);
+          const pontosConquistados = notaSecao !== null ? (notaSecao * pesoSecao) / 10 : null;
+          return (
           <View key={secao.id}>
-            <Text style={styles.h2}>{secao.nome}</Text>
+            <View style={styles.secaoHeaderRow}>
+              <Text style={styles.secaoNome}>{secao.nome}</Text>
+              <Text style={styles.secaoNota}>
+                {pontosConquistados !== null ? pontosConquistados.toFixed(1) : "-"} / {pesoSecao.toFixed(1)} pts
+              </Text>
+            </View>
             {perguntas
               .filter((p) => p.secao_id === secao.id)
               .sort((a, b) => a.ordem - b.ordem)
@@ -539,7 +560,8 @@ export function RelatorioDocument({
                 );
               })}
           </View>
-        ))}
+          );
+        })}
 
         <Text style={styles.h2}>Assinaturas</Text>
         <View style={styles.assinaturas}>
