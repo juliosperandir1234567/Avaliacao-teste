@@ -94,7 +94,11 @@ export default async function RaioXPage({
       ) : null}
 
       {aplicacao.status === "aguardando_parecer" && (profile.role === "avaliador" || profile.role === "admin") ? (
-        <AprovarParecerForm aplicacaoId={id} parecerAtual={aplicacao.parecer_gestor} />
+        <AprovarParecerForm
+          aplicacaoId={id}
+          parecerAtual={aplicacao.parecer_gestor}
+          observacaoGestor={aplicacao.observacao_gestor}
+        />
       ) : null}
 
       <Card className="relative border-primary/40">
@@ -216,6 +220,30 @@ export default async function RaioXPage({
           </CardContent>
         ) : null}
       </Card>
+
+      {aplicacao.observacao_gestor || aplicacao.parecer_justificativa ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Observações</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            {aplicacao.observacao_gestor ? (
+              <p>
+                <span className="font-medium">Observação do gestor: </span>
+                {aplicacao.observacao_gestor}
+              </p>
+            ) : null}
+            {aplicacao.parecer_justificativa ? (
+              <p>
+                <span className="font-medium">
+                  {aplicacao.observacao_gestor ? "Observação do avaliador: " : "Observação: "}
+                </span>
+                {aplicacao.parecer_justificativa}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

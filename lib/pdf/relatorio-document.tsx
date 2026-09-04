@@ -418,10 +418,23 @@ export function RelatorioDocument({
           <Text>{aplicacao.motivo_interrupcao}</Text>
         ) : null}
 
-        {aplicacao.parecer_justificativa ? (
+        {aplicacao.observacao_gestor || aplicacao.parecer_justificativa ? (
           <>
-            <Text style={styles.h2}>Observação</Text>
-            <Text>{aplicacao.parecer_justificativa}</Text>
+            <Text style={styles.h2}>Observações</Text>
+            {aplicacao.observacao_gestor ? (
+              <Text>
+                <Text style={{ fontWeight: 700 }}>Observação do gestor: </Text>
+                {aplicacao.observacao_gestor}
+              </Text>
+            ) : null}
+            {aplicacao.parecer_justificativa ? (
+              <Text>
+                <Text style={{ fontWeight: 700 }}>
+                  {aplicacao.observacao_gestor ? "Observação do avaliador: " : "Observação: "}
+                </Text>
+                {aplicacao.parecer_justificativa}
+              </Text>
+            ) : null}
           </>
         ) : null}
 

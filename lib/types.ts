@@ -255,6 +255,7 @@ export interface AvaliacaoAplicada {
   parecer_gestor: Parecer | null;
   parecer_final: Parecer | null;
   parecer_justificativa: string | null;
+  observacao_gestor: string | null;
   finalizada_em: string | null;
   finalizada_por: string | null;
   assinatura_avaliado_path: string | null;

@@ -20,9 +20,11 @@ import { PARECER_LABELS, type Parecer } from "@/lib/types";
 export function AprovarParecerForm({
   aplicacaoId,
   parecerAtual,
+  observacaoGestor,
 }: {
   aplicacaoId: string;
   parecerAtual: Parecer | null;
+  observacaoGestor: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -45,6 +47,12 @@ export function AprovarParecerForm({
             <span className={`font-bold ${parecerAtual === "reprovado" ? "text-destructive" : "text-green-600"}`}>
               {PARECER_LABELS[parecerAtual]}
             </span>
+          </p>
+        ) : null}
+        {observacaoGestor ? (
+          <p className="text-sm">
+            <span className="text-muted-foreground">Observação do gestor: </span>
+            {observacaoGestor}
           </p>
         ) : null}
         <div className="flex flex-col gap-1.5">

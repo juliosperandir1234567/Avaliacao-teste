@@ -238,10 +238,12 @@ export async function finalizarAplicacao(
       // parecer_final só passa a existir quando a avaliação é finalizada de verdade (aqui, se
       // não precisa de aprovação, ou depois em aprovarAplicacao). O que o gestor escolheu fica
       // guardado à parte em parecer_gestor, pra não ser perdido/sobrescrito na aprovação.
+      // Mesma lógica pra observação: a do gestor fica em observacao_gestor, separada da
+      // observação que o avaliador/admin escrever (parecer_justificativa), pra nenhuma
+      // sobrescrever a outra na aprovação.
       ...(precisaAprovacao
-        ? { parecer_gestor: parecerEscolhido ?? parecerSugerido }
-        : { parecer_final: parecerEscolhido ?? parecerSugerido }),
-      ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
+        ? { parecer_gestor: parecerEscolhido ?? parecerSugerido, observacao_gestor: observacaoFinal || null }
+        : { parecer_final: parecerEscolhido ?? parecerSugerido, parecer_justificativa: observacaoFinal || null }),
       ...(precisaAprovacao ? {} : { finalizada_em: new Date().toISOString(), finalizada_por: profile.id }),
     })
     .eq("id", aplicacaoId)
