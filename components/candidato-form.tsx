@@ -29,10 +29,10 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
   const [pending, startTransition] = useTransition();
 
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
   const [telefone, setTelefone] = useState("");
   const [possuiCnh, setPossuiCnh] = useState(false);
   const [categoriaCnh, setCategoriaCnh] = useState("");
-  const [ultimoEmprego, setUltimoEmprego] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   const [matricula, setMatricula] = useState("");
@@ -48,11 +48,11 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
           ? {
               tipoPessoa: "externo" as const,
               nome,
+              cpf,
               telefone,
               possuiCnh,
               categoriaCnh,
               avaliacaoId,
-              ultimoEmprego,
               observacoes,
             }
           : {
@@ -118,6 +118,9 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
             <Field label="Nome">
               <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value)} />
             </Field>
+            <Field label="CPF">
+              <Input className="h-11" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+            </Field>
             <Field label="Telefone">
               <Input className="h-11" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
             </Field>
@@ -139,12 +142,6 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
             />
           </Field>
         </div>
-
-        {tipoPessoa === "externo" ? (
-          <Field label="Último emprego">
-            <Input className="h-11" value={ultimoEmprego} onChange={(e) => setUltimoEmprego(e.target.value)} />
-          </Field>
-        ) : null}
 
         <Field label="Observações">
           <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />

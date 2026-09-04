@@ -10,11 +10,11 @@ import { getCurrentProfile } from "@/lib/auth";
 const externoSchema = z.object({
   tipoPessoa: z.literal("externo"),
   nome: z.string().trim().min(1, "Nome é obrigatório"),
+  cpf: z.string().trim().optional(),
   telefone: z.string().trim().optional(),
   possuiCnh: z.boolean().optional(),
   categoriaCnh: z.string().trim().optional(),
   avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
-  ultimoEmprego: z.string().trim().optional(),
   observacoes: z.string().trim().optional(),
 });
 
@@ -58,11 +58,11 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
       .from("candidatos_externos")
       .insert({
         nome: data.nome,
+        cpf: data.cpf || null,
         telefone: data.telefone || null,
         possui_cnh: data.possuiCnh ?? null,
         categoria_cnh: data.categoriaCnh || null,
         funcao_pretendida: avaliacao.funcao,
-        empresas_anteriores: data.ultimoEmprego || null,
         observacoes: data.observacoes || null,
         created_by: profile.id,
       })

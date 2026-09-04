@@ -51,6 +51,8 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
   const [dataFim, setDataFim] = useState("");
   const [avaliacaoId, setAvaliacaoId] = useState("");
   const [resultado, setResultado] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [cpfOuNome, setCpfOuNome] = useState("");
   const [incluirJaExportadas, setIncluirJaExportadas] = useState(false);
 
   const [previa, setPrevia] = useState<LinhaAplicacao[] | null>(null);
@@ -66,6 +68,8 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
       dataFim: dataFim || undefined,
       avaliacaoId: avaliacaoId || undefined,
       resultado: (resultado as Parecer) || undefined,
+      codigo: codigo || undefined,
+      cpfOuNome: cpfOuNome || undefined,
       incluirJaExportadas,
     };
   }
@@ -166,6 +170,12 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
                 ))}
               </SelectContent>
             </Select>
+          </Field>
+          <Field label="Código">
+            <Input className="h-10" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Matrícula" />
+          </Field>
+          <Field label="CPF ou Nome">
+            <Input className="h-10" value={cpfOuNome} onChange={(e) => setCpfOuNome(e.target.value)} />
           </Field>
           <div className="col-span-full flex items-end gap-2">
             <label className="flex items-center gap-2 text-sm">

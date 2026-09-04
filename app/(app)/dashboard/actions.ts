@@ -10,6 +10,8 @@ export interface DashboardFiltros {
   avaliacaoId?: string;
   resultado?: Parecer;
   funcao?: string;
+  codigo?: string;
+  cpfOuNome?: string;
 }
 
 interface AplicacaoRow {
@@ -21,9 +23,23 @@ interface AplicacaoRow {
   parecer_final: Parecer | null;
   data: string;
   funcao_avaliada: string | null;
-  colaborador_snapshot: { nome: string } | null;
-  candidatos_externos: { nome: string } | null;
+  colaborador_snapshot: { nome: string; matricula: string } | null;
+  candidatos_externos: { nome: string; cpf: string | null } | null;
   avaliacoes: { nome: string; equipamentos_tipos: { familia: string } | null } | null;
+}
+
+function bateFiltroIdentidade(a: AplicacaoRow, codigo?: string, cpfOuNome?: string) {
+  if (codigo) {
+    const matricula = a.colaborador_snapshot?.matricula ?? "";
+    if (!matricula.toLowerCase().includes(codigo.trim().toLowerCase())) return false;
+  }
+  if (cpfOuNome) {
+    const alvo = cpfOuNome.trim().toLowerCase();
+    const nome = (a.tipo_pessoa === "interno" ? a.colaborador_snapshot?.nome : a.candidatos_externos?.nome) ?? "";
+    const cpf = a.candidatos_externos?.cpf ?? "";
+    if (!nome.toLowerCase().includes(alvo) && !cpf.toLowerCase().includes(alvo)) return false;
+  }
+  return true;
 }
 
 const NOTA_BUCKETS = [
@@ -41,7 +57,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
   let query = supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, data, funcao_avaliada, colaborador_snapshot, candidatos_externos(nome), avaliacoes(nome, equipamentos_tipos(familia))"
+      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, data, funcao_avaliada, colaborador_snapshot, candidatos_externos(nome, cpf), avaliacoes(nome, equipamentos_tipos(familia))"
     )
     .eq("status", "finalizada")
     .order("data", { ascending: true })
@@ -56,7 +72,11 @@ export async function getDashboardData(filtros: DashboardFiltros) {
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  const aplicacoes = (data ?? []) as unknown as AplicacaoRow[];
+  // Código (matrícula) e CPF/nome vivem em colaborador_snapshot (jsonb) e candidatos_externos
+  // (tabela relacionada) — mais simples filtrar em memória do que montar filtro de jsonb/join.
+  const aplicacoes = ((data ?? []) as unknown as AplicacaoRow[]).filter((a) =>
+    bateFiltroIdentidade(a, filtros.codigo, filtros.cpfOuNome)
+  );
 
   const hoje = new Date().toISOString().slice(0, 10);
   const inicioMes = new Date().toISOString().slice(0, 7) + "-01";

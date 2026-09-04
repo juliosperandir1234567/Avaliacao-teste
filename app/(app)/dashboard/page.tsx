@@ -30,6 +30,8 @@ export default async function DashboardPage({
     avaliacaoId?: string;
     resultado?: string;
     funcao?: string;
+    codigo?: string;
+    cpfOuNome?: string;
   }>;
 }) {
   const profile = await getCurrentProfile();
@@ -43,6 +45,8 @@ export default async function DashboardPage({
     avaliacaoId: params.avaliacaoId || undefined,
     resultado: (params.resultado as Parecer) || undefined,
     funcao: params.funcao || undefined,
+    codigo: params.codigo || undefined,
+    cpfOuNome: params.cpfOuNome || undefined,
   };
   const temFiltroAtivo = Object.values(filtros).some(Boolean);
 
@@ -105,6 +109,12 @@ export default async function DashboardPage({
               ))}
             </SelectContent>
           </Select>
+        </FilterField>
+        <FilterField label="Código">
+          <Input name="codigo" defaultValue={params.codigo} placeholder="Matrícula" className="h-9 w-32" />
+        </FilterField>
+        <FilterField label="CPF ou Nome">
+          <Input name="cpfOuNome" defaultValue={params.cpfOuNome} className="h-9 w-40" />
         </FilterField>
         <Button type="submit" size="sm" variant="secondary" className="h-9">
           Filtrar
