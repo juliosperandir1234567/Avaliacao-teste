@@ -83,3 +83,51 @@ export async function atualizarUsuario(
   revalidatePath("/usuarios");
   return { success: true };
 }
+
+export async function excluirUsuario(id: string) {
+  const profile = await exigirAdmin();
+  if (id === profile.id) return { error: "Você não pode excluir seu próprio usuário." };
+  if (!isAdminClientDisponivel()) {
+    return { error: "Exclusão de login não está disponível (Secret Key não configurada)." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) {
+    // avaliacoes_aplicadas.avaliador_id/finalizada_por referenciam profiles sem cascade —
+    // usuario que ja aplicou/aprovou alguma prova nao pode ser excluido de verdade.
+    if (error.message.toLowerCase().includes("foreign key") || error.code === "23503") {
+      return {
+        error:
+          "Este usuário já tem provas aplicadas/aprovadas registradas e não pode ser excluído. Use o interruptor \"Ativo\" pra desativar o acesso dele.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/usuarios");
+  return { success: true };
+}
+
+function gerarSenhaAleatoria(): string {
+  const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let senha = "";
+  for (let i = 0; i < 10; i++) senha += alfabeto[Math.floor(Math.random() * alfabeto.length)];
+  return senha;
+}
+
+/** Só o admin pode gerar uma nova senha pra outro usuário (não é um fluxo de "esqueci minha
+ * senha" por e-mail — o admin gera na hora e repassa pro usuário por fora do sistema). */
+export async function gerarNovaSenha(id: string): Promise<{ error?: string; senha?: string }> {
+  await exigirAdmin();
+  if (!isAdminClientDisponivel()) {
+    return { error: "Recurso não disponível (Secret Key não configurada)." };
+  }
+
+  const novaSenha = gerarSenhaAleatoria();
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { password: novaSenha });
+  if (error) return { error: error.message };
+
+  return { senha: novaSenha };
+}
