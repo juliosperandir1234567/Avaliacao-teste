@@ -30,9 +30,12 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
 
   const { data: avaliadorProfile } = await supabase
     .from("profiles")
-    .select("nome")
+    .select("nome, role")
     .eq("id", data.aplicacao.avaliador_id)
     .single();
+  // "Avaliador" no relatório é quem de fato conduziu a prova (coluna avaliador_id) -- mostra o
+  // papel certo (Gestor x Avaliador) em vez de sempre chamar de "Avaliador".
+  const avaliadorLabel = avaliadorProfile?.role === "gestor" ? "Gestor" : "Avaliador";
 
   const pessoaNome =
     data.aplicacao.tipo_pessoa === "externo"
@@ -66,6 +69,7 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       observacoesInterno: data.aplicacao.colaborador_snapshot?.observacoes ?? null,
       candidatoExterno: data.aplicacao.candidatos_externos ?? null,
       avaliadorNome: avaliadorProfile?.nome ?? "-",
+      avaliadorLabel,
       secoes: data.secoes,
       perguntas: data.perguntas,
       respostas: data.respostas,
