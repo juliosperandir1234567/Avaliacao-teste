@@ -178,7 +178,14 @@ export function calcularNotaCompetencia(
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const itens = perguntas
     .filter((p) => p.competencia_id === competenciaId)
-    .map((p) => ({ peso: p.peso, pontuacao: respostaPorPergunta.get(p.id)?.pontuacao ?? null }));
+    .map((p) => {
+      const pontuacaoBruta = respostaPorPergunta.get(p.id)?.pontuacao ?? null;
+      const maximo = maximoPontuacaoPergunta(p);
+      // Normaliza pra régua de 0 a 10 antes de ponderar por peso — mesmo motivo da nota de
+      // seção: o "máximo" de uma pergunta checklist pode não ser 10 (Valor do 10 customizado).
+      const pontuacao = pontuacaoBruta === null || maximo === 0 ? null : (pontuacaoBruta / maximo) * 10;
+      return { peso: p.peso, pontuacao };
+    });
   return mediaPonderada(itens);
 }
 
