@@ -452,7 +452,7 @@ export function RelatorioDocument({
             <View style={styles.secaoHeaderRow}>
               <Text style={styles.secaoNome}>{secao.nome}</Text>
               <Text style={styles.secaoNota}>
-                {pontosConquistados !== null ? pontosConquistados.toFixed(1) : "-"} / {pesoSecao.toFixed(1)} pts
+                {pontosConquistados !== null ? pontosConquistados.toFixed(2) : "-"} / {pesoSecao.toFixed(2)} pts
               </Text>
             </View>
             {perguntas
