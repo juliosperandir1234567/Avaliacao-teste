@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { claimPendenciaSeNecessario, getAplicacaoRunnerData } from "../../actions";
 import { AplicacaoRunner } from "@/components/aplicacao-runner";
+import { getCurrentProfile } from "@/lib/auth";
 
 export default async function AplicarPage({
   params,
@@ -9,7 +10,7 @@ export default async function AplicarPage({
 }) {
   const { id } = await params;
   await claimPendenciaSeNecessario(id);
-  const data = await getAplicacaoRunnerData(id);
+  const [data, profile] = await Promise.all([getAplicacaoRunnerData(id), getCurrentProfile()]);
   if (!data) notFound();
 
   if (data.aplicacao.status === "pendente") {
@@ -29,6 +30,10 @@ export default async function AplicarPage({
 
   const pessoaNome = colaborador?.nome ?? candidatoExterno?.nome ?? "Candidato externo";
 
+  // Gestor não vê as observações prévias do candidato/colaborador enquanto aplica a prova
+  // (evita influenciar a avaliação com informação de fora do teste).
+  const podeVerObservacoes = profile.role !== "gestor";
+
   const pessoaDetalhes: { label: string; value: string }[] =
     data.aplicacao.tipo_pessoa === "interno"
       ? [
@@ -43,7 +48,7 @@ export default async function AplicarPage({
                 ? "Não"
                 : "-",
           },
-          ...(colaborador?.observacoes
+          ...(podeVerObservacoes && colaborador?.observacoes
             ? [{ label: "Observações", value: colaborador.observacoes }]
             : []),
         ]
@@ -58,7 +63,7 @@ export default async function AplicarPage({
                 : "-",
           },
           { label: "Último emprego", value: candidatoExterno?.empresas_anteriores ?? "-" },
-          ...(candidatoExterno?.observacoes
+          ...(podeVerObservacoes && candidatoExterno?.observacoes
             ? [{ label: "Observações", value: candidatoExterno.observacoes }]
             : []),
         ];
