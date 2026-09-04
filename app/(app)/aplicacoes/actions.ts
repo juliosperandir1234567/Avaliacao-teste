@@ -220,7 +220,7 @@ export async function finalizarAplicacao(
   // aprovarAplicacao). finalizada_em/finalizada_por só são gravados no momento da aprovação.
   const precisaAprovacao = profile.role === "gestor";
 
-  const { error } = await supabase
+  const { data: atualizada, error } = await supabase
     .from("avaliacoes_aplicadas")
     .update({
       status: precisaAprovacao ? "aguardando_parecer" : "finalizada",
@@ -234,9 +234,14 @@ export async function finalizarAplicacao(
       ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
       ...(precisaAprovacao ? {} : { finalizada_em: new Date().toISOString(), finalizada_por: profile.id }),
     })
-    .eq("id", aplicacaoId);
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: error.message };
+  // Sem permissão (RLS) o update "passa" sem erro mas não afeta nenhuma linha — sem essa
+  // checagem o usuário via mensagem de sucesso mesmo a aplicação continuando como estava.
+  if (!atualizada) return { error: "Não foi possível finalizar: você não tem permissão para atualizar esta avaliação." };
 
   revalidatePath(`/aplicacoes/${aplicacaoId}/aplicar`);
   revalidatePath(`/aplicacoes/${aplicacaoId}/raiox`);
@@ -263,7 +268,7 @@ export async function aprovarAplicacao(aplicacaoId: string, parecerFinal?: Parec
     return { error: "Esta avaliação não está aguardando parecer." };
   }
 
-  const { error } = await supabase
+  const { data: atualizada, error } = await supabase
     .from("avaliacoes_aplicadas")
     .update({
       status: "finalizada",
@@ -272,9 +277,12 @@ export async function aprovarAplicacao(aplicacaoId: string, parecerFinal?: Parec
       finalizada_em: new Date().toISOString(),
       finalizada_por: profile.id,
     })
-    .eq("id", aplicacaoId);
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: error.message };
+  if (!atualizada) return { error: "Não foi possível aprovar: você não tem permissão para atualizar esta avaliação." };
 
   revalidatePath(`/aplicacoes/${aplicacaoId}/raiox`);
   revalidatePath("/");
