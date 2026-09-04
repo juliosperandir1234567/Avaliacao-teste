@@ -9,8 +9,10 @@ import {
   calcularNotasPorCompetencia,
   calcularPontuacaoResposta,
   gerarParecerSugerido,
+  recalcularPontuacaoRespostas,
 } from "@/lib/scoring";
 import type {
+  AvaliacaoAlternativa,
   AvaliacaoAplicada,
   AvaliacaoCompetencia,
   AvaliacaoPergunta,
@@ -83,6 +85,20 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
     .select("*")
     .eq("avaliacao_id", aplicacao.avaliacao_id);
 
+  const alternativasPorPergunta = new Map<string, AvaliacaoAlternativa[]>();
+  for (const a of (alternativas ?? []) as AvaliacaoAlternativa[]) {
+    const lista = alternativasPorPergunta.get(a.pergunta_id) ?? [];
+    lista.push(a);
+    alternativasPorPergunta.set(a.pergunta_id, lista);
+  }
+  // Corrige pontuação desatualizada de respostas cuja pergunta foi editada (gabarito, tipo,
+  // valores de checklist) depois que a prova já tinha sido respondida — ver recalcularPontuacaoRespostas.
+  const respostasCorrigidas = recalcularPontuacaoRespostas(
+    perguntas as AvaliacaoPergunta[],
+    (respostas ?? []) as Resposta[],
+    alternativasPorPergunta
+  );
+
   return {
     aplicacao: aplicacao as AvaliacaoAplicada & {
       avaliacoes: {
@@ -103,7 +119,7 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
     secoes: (secoes ?? []) as AvaliacaoSecao[],
     perguntas: perguntas as AvaliacaoPergunta[],
     alternativas: alternativas ?? [],
-    respostas: (respostas ?? []) as Resposta[],
+    respostas: respostasCorrigidas,
     competencias: (competencias ?? []) as AvaliacaoCompetencia[],
   };
 }

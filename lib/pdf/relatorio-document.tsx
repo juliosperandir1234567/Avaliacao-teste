@@ -11,7 +11,7 @@ import {
   PARECER_LABELS,
   PERGUNTA_TIPO_LABELS,
 } from "@/lib/types";
-import { calcularNotaSecao } from "@/lib/scoring";
+import { avaliarItensCriticos, calcularNotaGeral, calcularNotaSecao, calcularNotasPorCompetencia } from "@/lib/scoring";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoAplicada,
@@ -264,6 +264,13 @@ export function RelatorioDocument({
     alternativasPorPergunta.set(a.pergunta_id, lista);
   }
 
+  // Recalculadas na hora a partir das respostas (já corrigidas por getAplicacaoRunnerData) em
+  // vez de usar aplicacao.nota_geral/notas_por_competencia direto — evita mostrar um total
+  // desatualizado quando uma pergunta foi editada depois que a prova já tinha sido respondida.
+  const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
+  const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
+  const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -358,9 +365,7 @@ export function RelatorioDocument({
           <View style={styles.notaBox}>
             <Text style={styles.label}>NOTA GERAL</Text>
             <Text style={styles.notaValor}>
-              {aplicacao.nota_geral !== null
-                ? aplicacao.nota_geral.toFixed(1)
-                : "-"}{" "}
+              {notaGeral !== null ? notaGeral.toFixed(1) : "-"}{" "}
               / 10
             </Text>
           </View>
@@ -387,8 +392,7 @@ export function RelatorioDocument({
                 <View key={c.id} style={styles.compItem}>
                   <Text style={styles.label}>{c.nome}</Text>
                   <Text style={styles.value}>
-                    {aplicacao.notas_por_competencia?.[c.nome]?.toFixed(1) ??
-                      "-"}
+                    {notasPorCompetencia[c.nome]?.toFixed(1) ?? "-"}
                   </Text>
                 </View>
               ))}
@@ -397,7 +401,7 @@ export function RelatorioDocument({
         ) : null}
 
         <Text style={styles.h2}>
-          Falhas críticas: {aplicacao.falhas_criticas_count}
+          Falhas críticas: {falhasCriticas.length}
           {aplicacao.interrompida_seguranca
             ? " — INTERROMPIDA POR SEGURANÇA"
             : ""}

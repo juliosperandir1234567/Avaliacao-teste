@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AprovarParecerForm } from "@/components/aprovar-parecer-form";
+import { calcularNotaGeral, calcularNotasPorCompetencia } from "@/lib/scoring";
 import {
   APLICACAO_STATUS_LABELS,
   PARECER_LABELS,
@@ -29,7 +30,13 @@ export default async function RaioXPage({
   ]);
   if (!data) notFound();
 
-  const { aplicacao, perguntas, respostas, competencias } = data;
+  const { aplicacao, secoes, perguntas, respostas, competencias } = data;
+
+  // Recalculadas na hora a partir das respostas (já corrigidas em getAplicacaoRunnerData) em vez
+  // de usar aplicacao.nota_geral/notas_por_competencia direto — evita mostrar um total
+  // desatualizado quando uma pergunta foi editada depois que a prova já tinha sido respondida.
+  const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
+  const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
 
   const supabase = await createClient();
   const { data: avaliadorProfile } = aplicacao.avaliador_id
@@ -169,7 +176,7 @@ export default async function RaioXPage({
           <div>
             <CardTitle className="text-sm font-normal text-muted-foreground">Nota Geral</CardTitle>
             <p className="text-4xl font-bold">
-              {aplicacao.nota_geral !== null ? aplicacao.nota_geral.toFixed(1) : "-"}
+              {notaGeral !== null ? notaGeral.toFixed(1) : "-"}
               <span className="text-lg text-muted-foreground"> / 10</span>
             </p>
           </div>
@@ -193,7 +200,7 @@ export default async function RaioXPage({
         {competencias.length > 0 ? (
           <CardContent className="grid grid-cols-2 gap-2 border-t pt-3 text-sm sm:grid-cols-3">
             {competencias.map((c) => {
-              const nota = aplicacao.notas_por_competencia?.[c.nome];
+              const nota = notasPorCompetencia[c.nome];
               const abaixo = c.nota_minima !== null && nota !== undefined && nota < c.nota_minima;
               return (
                 <div key={c.id} className="flex items-center justify-between rounded-md border px-3 py-2">

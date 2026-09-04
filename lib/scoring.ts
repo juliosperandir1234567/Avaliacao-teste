@@ -1,4 +1,5 @@
 import type {
+  AvaliacaoAlternativa,
   AvaliacaoCompetencia,
   AvaliacaoPergunta,
   AvaliacaoSecao,
@@ -102,6 +103,37 @@ export function calcularPontuacaoResposta(
       // Sempre corrigida manualmente pelo avaliador.
       return pontuacaoManual ?? null;
   }
+}
+
+/**
+ * Recalcula a pontuação de cada resposta com a configuração ATUAL da pergunta (gabarito, tipo,
+ * valores de checklist etc.) em vez de confiar no valor gravado no momento em que foi
+ * respondida. Sem isso, editar uma pergunta (corrigir gabarito, trocar tipo, ajustar valor do
+ * 5/10 do checklist) depois que já existem respostas deixa a nota antiga "presa" — o Raio-X e o
+ * PDF continuam mostrando o número de antes da edição.
+ *
+ * Perguntas de correção manual (sem gabarito automático) mantêm o valor gravado: ali a nota é o
+ * julgamento do avaliador, não tem como recalcular sozinho.
+ */
+export function recalcularPontuacaoRespostas(
+  perguntas: AvaliacaoPergunta[],
+  respostas: Resposta[],
+  alternativasPorPergunta: Map<string, AvaliacaoAlternativa[]>
+): Resposta[] {
+  const perguntaPorId = new Map(perguntas.map((p) => [p.id, p]));
+  return respostas.map((r) => {
+    const pergunta = perguntaPorId.get(r.pergunta_id);
+    if (!pergunta || precisaCorrecaoManual(pergunta)) return r;
+
+    const alternativas = alternativasPorPergunta.get(r.pergunta_id);
+    const alternativasCorretas = alternativas
+      ? new Set(alternativas.filter((a) => a.correta).map((a) => a.id))
+      : undefined;
+    const pontuacao = calcularPontuacaoResposta(pergunta, r.resposta, alternativasCorretas, r.pontuacao);
+    if (pontuacao === r.pontuacao) return r;
+
+    return { ...r, pontuacao, item_critico_falhou: Boolean(pergunta.item_critico) && pontuacao === 0 };
+  });
 }
 
 export interface FalhaCritica {
