@@ -39,8 +39,16 @@ export function AprovarParecerForm({
           Esta avaliação foi respondida por um gestor e precisa da confirmação de um avaliador (ou
           administrador) antes de virar oficial.
         </p>
+        {parecerAtual ? (
+          <p className="text-sm">
+            <span className="text-muted-foreground">Parecer sugerido pelo gestor: </span>
+            <span className={`font-bold ${parecerAtual === "reprovado" ? "text-destructive" : "text-green-600"}`}>
+              {PARECER_LABELS[parecerAtual]}
+            </span>
+          </p>
+        ) : null}
         <div className="flex flex-col gap-1.5">
-          <Label>Parecer final</Label>
+          <Label>Parecer final (avaliador)</Label>
           <Select
             items={{ apto: PARECER_LABELS.apto, reprovado: PARECER_LABELS.reprovado }}
             value={parecer}

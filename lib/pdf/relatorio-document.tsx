@@ -369,8 +369,16 @@ export function RelatorioDocument({
               / 10
             </Text>
           </View>
+          {aplicacao.parecer_gestor ? (
+            <View style={styles.notaBox}>
+              <Text style={styles.label}>PARECER DO GESTOR</Text>
+              <Text style={[styles.statusValor, corStatusParecer(aplicacao.parecer_gestor)]}>
+                {PARECER_LABELS[aplicacao.parecer_gestor]}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.notaBox}>
-            <Text style={styles.label}>STATUS</Text>
+            <Text style={styles.label}>{aplicacao.parecer_gestor ? "PARECER DO AVALIADOR" : "STATUS"}</Text>
             <Text
               style={[
                 styles.statusValor,

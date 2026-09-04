@@ -251,6 +251,7 @@ export interface AvaliacaoAplicada {
   notas_por_competencia: Record<string, number> | null;
   falhas_criticas_count: number;
   parecer_sugerido: Parecer | null;
+  parecer_gestor: Parecer | null;
   parecer_final: Parecer | null;
   parecer_justificativa: string | null;
   finalizada_em: string | null;

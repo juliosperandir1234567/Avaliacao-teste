@@ -94,7 +94,7 @@ export default async function RaioXPage({
       ) : null}
 
       {aplicacao.status === "aguardando_parecer" && (profile.role === "avaliador" || profile.role === "admin") ? (
-        <AprovarParecerForm aplicacaoId={id} parecerAtual={aplicacao.parecer_final} />
+        <AprovarParecerForm aplicacaoId={id} parecerAtual={aplicacao.parecer_gestor} />
       ) : null}
 
       <Card className="relative border-primary/40">
@@ -172,7 +172,7 @@ export default async function RaioXPage({
       </Card>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-center gap-8 text-center">
+        <CardHeader className="flex-row flex-wrap items-center justify-center gap-8 text-center">
           <div>
             <CardTitle className="text-sm font-normal text-muted-foreground">Nota Geral</CardTitle>
             <p className="text-4xl font-bold">
@@ -180,18 +180,20 @@ export default async function RaioXPage({
               <span className="text-lg text-muted-foreground"> / 10</span>
             </p>
           </div>
+          {aplicacao.parecer_gestor ? (
+            <div>
+              <CardTitle className="text-sm font-normal text-muted-foreground">Parecer do gestor</CardTitle>
+              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_gestor)}`}>
+                {PARECER_LABELS[aplicacao.parecer_gestor]}
+              </p>
+            </div>
+          ) : null}
           {aplicacao.parecer_final ? (
             <div>
-              <CardTitle className="text-sm font-normal text-muted-foreground">Status</CardTitle>
-              <p
-                className={`text-xl font-bold ${
-                  aplicacao.parecer_final === "apto"
-                    ? "text-green-600"
-                    : aplicacao.parecer_final === "reprovado" || aplicacao.parecer_final === "nao_recomendado"
-                      ? "text-destructive"
-                      : ""
-                }`}
-              >
+              <CardTitle className="text-sm font-normal text-muted-foreground">
+                {aplicacao.parecer_gestor ? "Parecer do avaliador" : "Status"}
+              </CardTitle>
+              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_final)}`}>
                 {PARECER_LABELS[aplicacao.parecer_final as Parecer]}
               </p>
             </div>
@@ -253,6 +255,12 @@ export default async function RaioXPage({
       ) : null}
     </div>
   );
+}
+
+function corParecer(parecer: Parecer) {
+  if (parecer === "apto") return "text-green-600";
+  if (parecer === "reprovado" || parecer === "nao_recomendado") return "text-destructive";
+  return "";
 }
 
 function FieldLine({ label, value }: { label: string; value: string }) {

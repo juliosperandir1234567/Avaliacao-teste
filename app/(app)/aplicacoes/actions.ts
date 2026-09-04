@@ -230,7 +230,12 @@ export async function finalizarAplicacao(
       ...(assinaturas?.avaliadoPath ? { assinatura_avaliado_path: assinaturas.avaliadoPath } : {}),
       ...(assinaturas?.avaliadorPath ? { assinatura_avaliador_path: assinaturas.avaliadorPath } : {}),
       parecer_sugerido: parecerSugerido,
-      parecer_final: parecerEscolhido ?? parecerSugerido,
+      // parecer_final só passa a existir quando a avaliação é finalizada de verdade (aqui, se
+      // não precisa de aprovação, ou depois em aprovarAplicacao). O que o gestor escolheu fica
+      // guardado à parte em parecer_gestor, pra não ser perdido/sobrescrito na aprovação.
+      ...(precisaAprovacao
+        ? { parecer_gestor: parecerEscolhido ?? parecerSugerido }
+        : { parecer_final: parecerEscolhido ?? parecerSugerido }),
       ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
       ...(precisaAprovacao ? {} : { finalizada_em: new Date().toISOString(), finalizada_por: profile.id }),
     })
@@ -259,7 +264,7 @@ export async function aprovarAplicacao(aplicacaoId: string, parecerFinal?: Parec
 
   const { data: aplicacao } = await supabase
     .from("avaliacoes_aplicadas")
-    .select("status, parecer_sugerido, parecer_final")
+    .select("status, parecer_sugerido, parecer_gestor")
     .eq("id", aplicacaoId)
     .single();
 
@@ -272,7 +277,7 @@ export async function aprovarAplicacao(aplicacaoId: string, parecerFinal?: Parec
     .from("avaliacoes_aplicadas")
     .update({
       status: "finalizada",
-      parecer_final: parecerFinal ?? aplicacao.parecer_final ?? aplicacao.parecer_sugerido,
+      parecer_final: parecerFinal ?? aplicacao.parecer_gestor ?? aplicacao.parecer_sugerido,
       ...(observacaoFinal ? { parecer_justificativa: observacaoFinal } : {}),
       finalizada_em: new Date().toISOString(),
       finalizada_por: profile.id,
