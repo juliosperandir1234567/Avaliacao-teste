@@ -36,6 +36,12 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
   // "Avaliador" no relatório é quem de fato conduziu a prova (coluna avaliador_id) -- mostra o
   // papel certo (Gestor x Avaliador) em vez de sempre chamar de "Avaliador".
   const avaliadorLabel = avaliadorProfile?.role === "gestor" ? "Gestor" : "Avaliador";
+  // Quando quem conduziu foi um gestor, mostra também quem aprovou (finalizada_por) como
+  // "Avaliador" — os dois nomes ficam visíveis, igual parecer/observação do gestor x avaliador.
+  const { data: aprovadorProfile } =
+    avaliadorLabel === "Gestor" && data.aplicacao.finalizada_por
+      ? await supabase.from("profiles").select("nome").eq("id", data.aplicacao.finalizada_por).single()
+      : { data: null };
 
   const pessoaNome =
     data.aplicacao.tipo_pessoa === "externo"
@@ -70,6 +76,7 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       candidatoExterno: data.aplicacao.candidatos_externos ?? null,
       avaliadorNome: avaliadorProfile?.nome ?? "-",
       avaliadorLabel,
+      aprovadorNome: aprovadorProfile?.nome ?? null,
       secoes: data.secoes,
       perguntas: data.perguntas,
       respostas: data.respostas,

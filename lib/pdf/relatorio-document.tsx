@@ -216,6 +216,7 @@ export function RelatorioDocument({
   candidatoExterno,
   avaliadorNome,
   avaliadorLabel,
+  aprovadorNome,
   secoes,
   perguntas,
   respostas,
@@ -246,6 +247,7 @@ export function RelatorioDocument({
   } | null;
   avaliadorNome: string;
   avaliadorLabel: string;
+  aprovadorNome: string | null;
   secoes: AvaliacaoSecao[];
   perguntas: AvaliacaoPergunta[];
   respostas: Resposta[];
@@ -351,6 +353,7 @@ export function RelatorioDocument({
           <View style={styles.headerDivisor} />
 
           <FieldLine label={avaliadorLabel} value={avaliadorNome} />
+          {aprovadorNome ? <FieldLine label="Avaliador" value={aprovadorNome} /> : null}
           <FieldLine
             label="Data/Hora"
             value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}

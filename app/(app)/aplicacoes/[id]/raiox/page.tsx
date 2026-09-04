@@ -45,6 +45,12 @@ export default async function RaioXPage({
   // "Avaliador" aqui é quem de fato conduziu a prova (avaliador_id) -- mostra o papel certo
   // (Gestor x Avaliador) em vez de sempre chamar de "Avaliador".
   const avaliadorLabel = avaliadorProfile?.role === "gestor" ? "Gestor" : "Avaliador";
+  // Quando quem conduziu foi um gestor, mostra também quem aprovou (finalizada_por) como
+  // "Avaliador" — os dois nomes ficam visíveis, igual parecer/observação do gestor x avaliador.
+  const { data: aprovadorProfile } =
+    avaliadorLabel === "Gestor" && aplicacao.finalizada_por
+      ? await supabase.from("profiles").select("nome").eq("id", aplicacao.finalizada_por).single()
+      : { data: null };
 
   const candidatoExterno = aplicacao.candidatos_externos;
   const pessoa =
@@ -169,6 +175,7 @@ export default async function RaioXPage({
 
           <div className="flex flex-col gap-1 border-t pt-3">
             <FieldLine label={avaliadorLabel} value={avaliadorProfile?.nome ?? "-"} />
+            {aprovadorProfile ? <FieldLine label="Avaliador" value={aprovadorProfile.nome} /> : null}
             <FieldLine
               label="Data/Hora"
               value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
