@@ -46,7 +46,7 @@ async function upsertColaborador(
 /** Upsert por matrícula -- mesmo motivo do upsertColaborador acima. */
 async function upsertCandidatoExterno(
   supabase: SupabaseClient,
-  input: { matricula: string; nome: string; cpf?: string | null; categoriaCnh?: string | null; observacoes?: string | null },
+  input: { matricula: string | null; nome: string; cpf?: string | null; categoriaCnh?: string | null; observacoes?: string | null },
   funcaoPretendida: string,
   createdBy: string
 ) {
@@ -70,23 +70,33 @@ async function upsertCandidatoExterno(
   return { ok: true as const, id: data.id as string };
 }
 
+// Matrícula, nome e outros campos de identificação sempre gravados em maiúsculo -- observações
+// fica de fora (texto livre, maiúsculo prejudicaria a leitura).
+const maiusc = (msg: string) => z.string().trim().min(1, msg).transform((v) => v.toUpperCase());
+const maiuscOpcional = () =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : v));
+
 const externoSchema = z.object({
   tipoPessoa: z.literal("externo"),
-  matricula: z.string().trim().min(1, "Matrícula é obrigatória"),
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-  cpf: z.string().trim().optional(),
-  categoriaCnh: z.string().trim().optional(),
+  matricula: maiusc("Matrícula é obrigatória"),
+  nome: maiusc("Nome é obrigatório"),
+  cpf: maiuscOpcional(),
+  categoriaCnh: maiuscOpcional(),
   avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
   observacoes: z.string().trim().optional(),
 });
 
 const internoSchema = z.object({
   tipoPessoa: z.literal("interno"),
-  matricula: z.string().trim().min(1, "Código é obrigatório"),
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-  cargo: z.string().trim().min(1, "Função é obrigatória"),
-  estrutura: z.string().trim().min(1, "Estrutura é obrigatória"),
-  categoriaCnh: z.string().trim().optional(),
+  matricula: maiusc("Código é obrigatório"),
+  nome: maiusc("Nome é obrigatório"),
+  cargo: maiusc("Função é obrigatória"),
+  estrutura: maiusc("Estrutura é obrigatória"),
+  categoriaCnh: maiuscOpcional(),
   observacoes: z.string().trim().optional(),
   avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
 });
@@ -140,17 +150,24 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   redirect("/");
 }
 
-const acessoRapidoSchema = z.object({
-  tipoPessoa: z.enum(["interno", "externo"]),
-  matricula: z.string().trim().min(1, "Matrícula é obrigatória"),
-  avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
-});
+const acessoRapidoSchema = z
+  .object({
+    tipoPessoa: z.enum(["interno", "externo"]),
+    nome: maiusc("Nome é obrigatório"),
+    matricula: maiuscOpcional(),
+    avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
+  })
+  .refine((d) => d.tipoPessoa === "externo" || (d.matricula && d.matricula.length > 0), {
+    message: "Matrícula é obrigatória para teste interno",
+    path: ["matricula"],
+  });
 export type AcessoRapidoInput = z.infer<typeof acessoRapidoSchema>;
 
-/** Prova sem cadastro completo: só matrícula + tipo de teste. Se a matrícula já existir
- * (cadastrada na mão ou importada em massa), reaproveita os dados reais dela -- só cria um
- * registro mínimo (nome = a própria matrícula, como placeholder) quando ela ainda não existe.
- * Cai direto na prova (claimPendenciaSeNecessario assume a pendência ao abrir /aplicar). */
+/** Prova sem cadastro completo. Externo: só nome (sempre cria um candidato novo, sem tentar
+ * casar com um já existente -- nome sozinho não é uma chave confiável). Interno: nome +
+ * matrícula -- se a matrícula já existir (cadastrada na mão ou importada em massa), reaproveita
+ * os dados reais dela (ignora o nome digitado aqui); senão cria um colaborador novo com o nome
+ * digitado. Cai direto na prova (claimPendenciaSeNecessario assume a pendência ao abrir /aplicar). */
 export async function criarAcessoRapido(input: AcessoRapidoInput): Promise<{ error?: string }> {
   const parsed = acessoRapidoSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -173,28 +190,20 @@ export async function criarAcessoRapido(input: AcessoRapidoInput): Promise<{ err
   let aplicacaoId: string;
 
   if (data.tipoPessoa === "externo") {
-    const { data: existente } = await supabase
-      .from("candidatos_externos")
-      .select("id")
-      .eq("matricula", data.matricula)
-      .maybeSingle();
-    if (existente) {
-      candidatoExternoId = existente.id as string;
-    } else {
-      const resultado = await upsertCandidatoExterno(
-        supabase,
-        { matricula: data.matricula, nome: data.matricula },
-        avaliacao.funcao,
-        profile.id
-      );
-      if (!resultado.ok) return { error: resultado.error };
-      candidatoExternoId = resultado.id;
-    }
+    const resultado = await upsertCandidatoExterno(
+      supabase,
+      { matricula: null, nome: data.nome },
+      avaliacao.funcao,
+      profile.id
+    );
+    if (!resultado.ok) return { error: resultado.error };
+    candidatoExternoId = resultado.id;
   } else {
+    const matricula = data.matricula!;
     const { data: existente } = await supabase
       .from("colaboradores")
       .select("id, matricula, nome, cargo, estrutura, categoria_cnh, observacoes")
-      .eq("matricula", data.matricula)
+      .eq("matricula", matricula)
       .maybeSingle();
     if (existente) {
       colaboradorId = existente.id as string;
@@ -208,8 +217,8 @@ export async function criarAcessoRapido(input: AcessoRapidoInput): Promise<{ err
       };
     } else {
       const resultado = await upsertColaborador(supabase, {
-        matricula: data.matricula,
-        nome: data.matricula,
+        matricula,
+        nome: data.nome,
         cargo: avaliacao.funcao,
         estrutura: "-",
       });
@@ -241,12 +250,12 @@ export async function criarAcessoRapido(input: AcessoRapidoInput): Promise<{ err
 
 const linhaImportacaoSchema = z.object({
   tipoPessoa: z.enum(["interno", "externo"]),
-  matricula: z.string().trim().min(1, "Matrícula é obrigatória"),
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-  cargo: z.string().trim().optional(),
-  estrutura: z.string().trim().optional(),
-  cpf: z.string().trim().optional(),
-  categoriaCnh: z.string().trim().optional(),
+  matricula: maiusc("Matrícula é obrigatória"),
+  nome: maiusc("Nome é obrigatório"),
+  cargo: maiuscOpcional(),
+  estrutura: maiuscOpcional(),
+  cpf: maiuscOpcional(),
+  categoriaCnh: maiuscOpcional(),
   observacoes: z.string().trim().optional(),
   avaliacaoNome: z.string().trim().min(1, "Tipo de teste é obrigatório"),
 });

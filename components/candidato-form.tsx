@@ -96,28 +96,28 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
         {tipoPessoa === "interno" ? (
           <>
             <Field label="Código (matrícula)">
-              <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value)} />
+              <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value.toUpperCase())} />
             </Field>
             <Field label="Nome">
-              <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value.toUpperCase())} />
             </Field>
             <Field label="Função">
-              <Input className="h-11" value={cargo} onChange={(e) => setCargo(e.target.value)} />
+              <Input className="h-11" value={cargo} onChange={(e) => setCargo(e.target.value.toUpperCase())} />
             </Field>
             <Field label="Estrutura">
-              <Input className="h-11" value={estrutura} onChange={(e) => setEstrutura(e.target.value)} />
+              <Input className="h-11" value={estrutura} onChange={(e) => setEstrutura(e.target.value.toUpperCase())} />
             </Field>
           </>
         ) : (
           <>
             <Field label="Matrícula">
-              <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value)} />
+              <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value.toUpperCase())} />
             </Field>
             <Field label="Nome">
-              <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value.toUpperCase())} />
             </Field>
             <Field label="CPF">
-              <Input className="h-11" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+              <Input className="h-11" value={cpf} onChange={(e) => setCpf(e.target.value.toUpperCase())} placeholder="000.000.000-00" />
             </Field>
           </>
         )}
@@ -126,7 +126,7 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
           <Input
             className="h-11"
             value={categoriaCnh}
-            onChange={(e) => setCategoriaCnh(e.target.value)}
+            onChange={(e) => setCategoriaCnh(e.target.value.toUpperCase())}
             placeholder="Ex: B, C, D"
           />
         </Field>

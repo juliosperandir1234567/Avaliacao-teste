@@ -24,25 +24,28 @@ interface AvaliacaoOpcao {
 
 export function AcessoRapidoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) {
   const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>("externo");
+  const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
   const [avaliacaoId, setAvaliacaoId] = useState("");
   const [pending, startTransition] = useTransition();
 
   function submit() {
     startTransition(async () => {
-      const result = await criarAcessoRapido({ tipoPessoa, matricula, avaliacaoId });
+      const result = await criarAcessoRapido({ tipoPessoa, nome, matricula, avaliacaoId });
       if (result?.error) toast.error(result.error);
     });
   }
+
+  const podeEnviar = Boolean(nome.trim() && (tipoPessoa === "externo" || matricula.trim()) && avaliacaoId);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Acesso rápido</CardTitle>
         <CardDescription>
-          Só matrícula e tipo de teste -- já cai direto na prova. Se a matrícula já estiver
-          cadastrada (na mão ou por importação em massa), reaproveita os dados dela; senão cria um
-          registro mínimo que pode ser completado depois em &quot;Novo Candidato&quot; com a mesma matrícula.
+          {tipoPessoa === "interno"
+            ? "Nome, matrícula e tipo de teste -- já cai direto na prova. Se a matrícula já estiver cadastrada (na mão ou por importação em massa), reaproveita os dados dela; senão cria um colaborador novo com esse nome."
+            : "Nome e tipo de teste -- já cai direto na prova, sem precisar do cadastro completo."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -66,9 +69,24 @@ export function AcessoRapidoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] 
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label>Matrícula</Label>
-          <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value)} />
+          <Label>Nome</Label>
+          <Input
+            className="h-11"
+            value={nome}
+            onChange={(e) => setNome(e.target.value.toUpperCase())}
+          />
         </div>
+
+        {tipoPessoa === "interno" ? (
+          <div className="flex flex-col gap-1.5">
+            <Label>Matrícula</Label>
+            <Input
+              className="h-11"
+              value={matricula}
+              onChange={(e) => setMatricula(e.target.value.toUpperCase())}
+            />
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-1.5">
           <Label>Tipo de teste / Avaliação</Label>
@@ -96,7 +114,7 @@ export function AcessoRapidoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] 
           )}
         </div>
 
-        <Button onClick={submit} disabled={pending || !matricula.trim() || !avaliacaoId} className="h-11">
+        <Button onClick={submit} disabled={pending || !podeEnviar} className="h-11">
           {pending ? "Abrindo prova..." : "Aplicar prova"}
         </Button>
       </CardContent>
