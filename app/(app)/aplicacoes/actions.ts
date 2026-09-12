@@ -200,11 +200,17 @@ export async function salvarAssinatura(
 ) {
   const supabase = await createClient();
   const coluna = quem === "avaliado" ? "assinatura_avaliado_path" : "assinatura_avaliador_path";
-  const { error } = await supabase
+  const { data: atualizada, error } = await supabase
     .from("avaliacoes_aplicadas")
     .update({ [coluna]: path })
-    .eq("id", aplicacaoId);
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: error.message };
+  // Sem permissão (RLS) o update "passa" sem erro mas não afeta nenhuma linha -- sem essa
+  // checagem a assinatura parecia salva na tela mas nunca ia pro banco (ver mesmo padrão em
+  // finalizarAplicacao), e sumia ao sair e voltar pra tela de aplicação.
+  if (!atualizada) return { error: "Não foi possível gravar a assinatura: você não tem permissão para atualizar esta avaliação." };
   revalidatePath(`/aplicacoes/${aplicacaoId}/aplicar`);
   return { success: true };
 }
