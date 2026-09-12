@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getAplicacaoRunnerData } from "@/app/(app)/aplicacoes/actions";
 import { RelatorioDocument } from "./relatorio-document";
 import { getConfiguracoesPublicas } from "@/lib/configuracoes";
-import { calcularNotaGeral, calcularResultadoOficina } from "@/lib/scoring";
+import { calcularNotaGeral } from "@/lib/scoring";
 import { PARECER_LABELS, type Parecer } from "@/lib/types";
 
 /** Baixa a imagem e converte pra data URI: o Image do @react-pdf/renderer as vezes falha a
@@ -63,8 +63,6 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
   ]);
 
   const alternativasTexto = new Map(data.alternativas.map((a) => [a.id, a.texto]));
-  // TESTE — Família Oficina usa Nota Teórica + Nota Técnica + Média Final em vez do cálculo padrão.
-  const isFamiliaOficina = data.aplicacao.avaliacoes.equipamentos_tipos?.familia === "Oficina";
 
   const buffer = await renderToBuffer(
     RelatorioDocument({
@@ -81,7 +79,6 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       avaliadorNome: avaliadorProfile?.nome ?? "-",
       avaliadorLabel,
       aprovadorNome: aprovadorProfile?.nome ?? null,
-      isFamiliaOficina,
       secoes: data.secoes,
       perguntas: data.perguntas,
       respostas: data.respostas,
@@ -95,15 +92,10 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
     })
   );
 
-  // Nome do arquivo inclui parecer e nota geral -- recalculados aqui (mesma lógica do corpo do
+  // Nome do arquivo inclui parecer e nota geral -- recalculada aqui (mesma lógica do corpo do
   // PDF em RelatorioDocument) em vez de usar aplicacao.nota_geral direto, pelo mesmo motivo:
   // evitar mostrar um total desatualizado quando uma pergunta foi editada após a prova respondida.
-  const resultadoOficina = isFamiliaOficina
-    ? calcularResultadoOficina(data.secoes, data.perguntas, data.respostas)
-    : null;
-  const notaGeral = resultadoOficina
-    ? resultadoOficina.mediaFinal
-    : calcularNotaGeral(data.secoes, data.perguntas, data.respostas);
+  const notaGeral = calcularNotaGeral(data.secoes, data.perguntas, data.respostas);
   const parecerLabel = data.aplicacao.parecer_final
     ? PARECER_LABELS[data.aplicacao.parecer_final as Parecer]
     : "Sem parecer";
