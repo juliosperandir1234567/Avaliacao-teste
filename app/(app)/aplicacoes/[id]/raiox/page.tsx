@@ -136,16 +136,7 @@ export default async function RaioXPage({
                 <FieldLine label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
                 <FieldLine label="Cargo" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
                 <FieldLine label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
-                <FieldLine
-                  label="CNH"
-                  value={
-                    aplicacao.colaborador_snapshot?.possui_cnh
-                      ? aplicacao.colaborador_snapshot.categoria_cnh || "Sim"
-                      : aplicacao.colaborador_snapshot?.possui_cnh === false
-                        ? "Não"
-                        : "-"
-                  }
-                />
+                <FieldLine label="Letra da CNH" value={aplicacao.colaborador_snapshot?.categoria_cnh || "-"} />
                 <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
                 {aplicacao.colaborador_snapshot?.observacoes ? (
                   <FieldLine label="Observações" value={aplicacao.colaborador_snapshot.observacoes} />
@@ -153,19 +144,10 @@ export default async function RaioXPage({
               </>
             ) : (
               <>
-                <FieldLine label="Telefone" value={candidatoExterno?.telefone ?? "-"} />
-                <FieldLine
-                  label="CNH"
-                  value={
-                    candidatoExterno?.possui_cnh
-                      ? candidatoExterno.categoria_cnh || "Sim"
-                      : candidatoExterno?.possui_cnh === false
-                        ? "Não"
-                        : "-"
-                  }
-                />
+                <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
+                <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
+                <FieldLine label="Letra da CNH" value={candidatoExterno?.categoria_cnh || "-"} />
                 <FieldLine label="Tipo de teste / Função pretendida" value={candidatoExterno?.funcao_pretendida ?? "-"} />
-                <FieldLine label="Último emprego" value={candidatoExterno?.empresas_anteriores ?? "-"} />
                 {candidatoExterno?.observacoes ? (
                   <FieldLine label="Observações" value={candidatoExterno.observacoes} />
                 ) : null}

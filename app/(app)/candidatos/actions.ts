@@ -3,16 +3,78 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 
+/** Upsert por matrícula (mesma pessoa reaplicando/sendo reimportada não duplica) -- usado pelo
+ * cadastro individual, acesso rápido e importação em massa. */
+async function upsertColaborador(
+  supabase: SupabaseClient,
+  input: { matricula: string; nome: string; cargo: string; estrutura: string; categoriaCnh?: string | null; observacoes?: string | null }
+) {
+  const { data, error } = await supabase
+    .from("colaboradores")
+    .upsert(
+      {
+        matricula: input.matricula,
+        nome: input.nome,
+        cargo: input.cargo,
+        estrutura: input.estrutura,
+        categoria_cnh: input.categoriaCnh || null,
+        observacoes: input.observacoes || null,
+      },
+      { onConflict: "matricula" }
+    )
+    .select("id, matricula, nome, cargo, estrutura, categoria_cnh, observacoes")
+    .single();
+  if (error) return { ok: false as const, error: error.message };
+  return {
+    ok: true as const,
+    id: data.id as string,
+    snapshot: {
+      matricula: data.matricula as string,
+      nome: data.nome as string,
+      cargo: data.cargo as string,
+      estrutura: data.estrutura as string,
+      categoria_cnh: data.categoria_cnh as string | null,
+      observacoes: data.observacoes as string | null,
+    },
+  };
+}
+
+/** Upsert por matrícula -- mesmo motivo do upsertColaborador acima. */
+async function upsertCandidatoExterno(
+  supabase: SupabaseClient,
+  input: { matricula: string; nome: string; cpf?: string | null; categoriaCnh?: string | null; observacoes?: string | null },
+  funcaoPretendida: string,
+  createdBy: string
+) {
+  const { data, error } = await supabase
+    .from("candidatos_externos")
+    .upsert(
+      {
+        matricula: input.matricula,
+        nome: input.nome,
+        cpf: input.cpf || null,
+        categoria_cnh: input.categoriaCnh || null,
+        funcao_pretendida: funcaoPretendida,
+        observacoes: input.observacoes || null,
+        created_by: createdBy,
+      },
+      { onConflict: "matricula" }
+    )
+    .select("id")
+    .single();
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const, id: data.id as string };
+}
+
 const externoSchema = z.object({
   tipoPessoa: z.literal("externo"),
+  matricula: z.string().trim().min(1, "Matrícula é obrigatória"),
   nome: z.string().trim().min(1, "Nome é obrigatório"),
   cpf: z.string().trim().optional(),
-  telefone: z.string().trim().optional(),
-  possuiCnh: z.boolean().optional(),
   categoriaCnh: z.string().trim().optional(),
   avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
   observacoes: z.string().trim().optional(),
@@ -24,7 +86,6 @@ const internoSchema = z.object({
   nome: z.string().trim().min(1, "Nome é obrigatório"),
   cargo: z.string().trim().min(1, "Função é obrigatória"),
   estrutura: z.string().trim().min(1, "Estrutura é obrigatória"),
-  possuiCnh: z.boolean().optional(),
   categoriaCnh: z.string().trim().optional(),
   observacoes: z.string().trim().optional(),
   avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
@@ -54,50 +115,14 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   let colaboradorSnapshot = null;
 
   if (data.tipoPessoa === "externo") {
-    const { data: candidato, error } = await supabase
-      .from("candidatos_externos")
-      .insert({
-        nome: data.nome,
-        cpf: data.cpf || null,
-        telefone: data.telefone || null,
-        possui_cnh: data.possuiCnh ?? null,
-        categoria_cnh: data.categoriaCnh || null,
-        funcao_pretendida: avaliacao.funcao,
-        observacoes: data.observacoes || null,
-        created_by: profile.id,
-      })
-      .select("id")
-      .single();
-    if (error) return { error: error.message };
-    candidatoExternoId = candidato.id as string;
+    const resultado = await upsertCandidatoExterno(supabase, data, avaliacao.funcao, profile.id);
+    if (!resultado.ok) return { error: resultado.error };
+    candidatoExternoId = resultado.id;
   } else {
-    const { data: colaborador, error } = await supabase
-      .from("colaboradores")
-      .upsert(
-        {
-          matricula: data.matricula,
-          nome: data.nome,
-          cargo: data.cargo,
-          estrutura: data.estrutura,
-          possui_cnh: data.possuiCnh ?? null,
-          categoria_cnh: data.categoriaCnh || null,
-          observacoes: data.observacoes || null,
-        },
-        { onConflict: "matricula" }
-      )
-      .select("id, matricula, nome, cargo, estrutura, possui_cnh, categoria_cnh, observacoes")
-      .single();
-    if (error) return { error: error.message };
-    colaboradorId = colaborador.id as string;
-    colaboradorSnapshot = {
-      matricula: colaborador.matricula,
-      nome: colaborador.nome,
-      cargo: colaborador.cargo,
-      estrutura: colaborador.estrutura,
-      possui_cnh: colaborador.possui_cnh,
-      categoria_cnh: colaborador.categoria_cnh,
-      observacoes: colaborador.observacoes,
-    };
+    const resultado = await upsertColaborador(supabase, data);
+    if (!resultado.ok) return { error: resultado.error };
+    colaboradorId = resultado.id;
+    colaboradorSnapshot = resultado.snapshot;
   }
 
   const { error } = await supabase.from("avaliacoes_aplicadas").insert({
@@ -113,6 +138,235 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   if (error) return { error: error.message };
 
   redirect("/");
+}
+
+const acessoRapidoSchema = z.object({
+  tipoPessoa: z.enum(["interno", "externo"]),
+  matricula: z.string().trim().min(1, "Matrícula é obrigatória"),
+  avaliacaoId: z.string().trim().min(1, "Selecione a avaliação"),
+});
+export type AcessoRapidoInput = z.infer<typeof acessoRapidoSchema>;
+
+/** Prova sem cadastro completo: só matrícula + tipo de teste. Se a matrícula já existir
+ * (cadastrada na mão ou importada em massa), reaproveita os dados reais dela -- só cria um
+ * registro mínimo (nome = a própria matrícula, como placeholder) quando ela ainda não existe.
+ * Cai direto na prova (claimPendenciaSeNecessario assume a pendência ao abrir /aplicar). */
+export async function criarAcessoRapido(input: AcessoRapidoInput): Promise<{ error?: string }> {
+  const parsed = acessoRapidoSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const data = parsed.data;
+
+  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+
+  const { data: avaliacao, error: avError } = await supabase
+    .from("avaliacoes")
+    .select("versao, funcao")
+    .eq("id", data.avaliacaoId)
+    .eq("status", "publicada")
+    .single();
+  if (avError || !avaliacao) return { error: "Avaliação inválida." };
+
+  let candidatoExternoId: string | null = null;
+  let colaboradorId: string | null = null;
+  let colaboradorSnapshot = null;
+  let aplicacaoId: string;
+
+  if (data.tipoPessoa === "externo") {
+    const { data: existente } = await supabase
+      .from("candidatos_externos")
+      .select("id")
+      .eq("matricula", data.matricula)
+      .maybeSingle();
+    if (existente) {
+      candidatoExternoId = existente.id as string;
+    } else {
+      const resultado = await upsertCandidatoExterno(
+        supabase,
+        { matricula: data.matricula, nome: data.matricula },
+        avaliacao.funcao,
+        profile.id
+      );
+      if (!resultado.ok) return { error: resultado.error };
+      candidatoExternoId = resultado.id;
+    }
+  } else {
+    const { data: existente } = await supabase
+      .from("colaboradores")
+      .select("id, matricula, nome, cargo, estrutura, categoria_cnh, observacoes")
+      .eq("matricula", data.matricula)
+      .maybeSingle();
+    if (existente) {
+      colaboradorId = existente.id as string;
+      colaboradorSnapshot = {
+        matricula: existente.matricula,
+        nome: existente.nome,
+        cargo: existente.cargo,
+        estrutura: existente.estrutura,
+        categoria_cnh: existente.categoria_cnh,
+        observacoes: existente.observacoes,
+      };
+    } else {
+      const resultado = await upsertColaborador(supabase, {
+        matricula: data.matricula,
+        nome: data.matricula,
+        cargo: avaliacao.funcao,
+        estrutura: "-",
+      });
+      if (!resultado.ok) return { error: resultado.error };
+      colaboradorId = resultado.id;
+      colaboradorSnapshot = resultado.snapshot;
+    }
+  }
+
+  const { data: aplicacaoCriada, error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .insert({
+      avaliacao_id: data.avaliacaoId,
+      avaliacao_versao: avaliacao.versao,
+      tipo_pessoa: data.tipoPessoa,
+      colaborador_id: colaboradorId,
+      colaborador_snapshot: colaboradorSnapshot,
+      candidato_externo_id: candidatoExternoId,
+      funcao_avaliada: avaliacao.funcao,
+      criado_por: profile.id,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+  aplicacaoId = aplicacaoCriada.id as string;
+
+  redirect(`/aplicacoes/${aplicacaoId}/aplicar`);
+}
+
+const linhaImportacaoSchema = z.object({
+  tipoPessoa: z.enum(["interno", "externo"]),
+  matricula: z.string().trim().min(1, "Matrícula é obrigatória"),
+  nome: z.string().trim().min(1, "Nome é obrigatório"),
+  cargo: z.string().trim().optional(),
+  estrutura: z.string().trim().optional(),
+  cpf: z.string().trim().optional(),
+  categoriaCnh: z.string().trim().optional(),
+  observacoes: z.string().trim().optional(),
+  avaliacaoNome: z.string().trim().min(1, "Tipo de teste é obrigatório"),
+});
+export type LinhaImportacao = z.infer<typeof linhaImportacaoSchema>;
+
+/** Importa candidatos em massa (linhas já validadas no cliente -- ver ImportarCandidatosForm).
+ * Cada linha resolve o "tipo de teste" (nome da avaliação) pra uma avaliação publicada e faz o
+ * mesmo upsert por matrícula do cadastro individual, uma aplicação por linha. Loga o resultado em
+ * import_batches (tabela já existia no schema, sem nada que a usasse até agora). */
+export async function importarCandidatosLote(
+  linhas: LinhaImportacao[]
+): Promise<{ error?: string; novos: number; existentes: number; erros: { linha: number; motivo: string }[] }> {
+  if (linhas.length === 0) return { error: "Nenhuma linha pra importar.", novos: 0, existentes: 0, erros: [] };
+
+  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+
+  const { data: avaliacoesPublicadas } = await supabase
+    .from("avaliacoes")
+    .select("id, nome, versao, funcao")
+    .eq("status", "publicada");
+  const avaliacaoPorNome = new Map(
+    (avaliacoesPublicadas ?? []).map((a) => [a.nome.trim().toLowerCase(), a])
+  );
+
+  let novos = 0;
+  let existentes = 0;
+  const erros: { linha: number; motivo: string }[] = [];
+
+  for (let i = 0; i < linhas.length; i++) {
+    const numeroLinha = i + 2; // +1 (0-index) +1 (cabeçalho)
+    const parsed = linhaImportacaoSchema.safeParse(linhas[i]);
+    if (!parsed.success) {
+      erros.push({ linha: numeroLinha, motivo: parsed.error.issues[0].message });
+      continue;
+    }
+    const linha = parsed.data;
+    const avaliacao = avaliacaoPorNome.get(linha.avaliacaoNome.trim().toLowerCase());
+    if (!avaliacao) {
+      erros.push({ linha: numeroLinha, motivo: `Tipo de teste "${linha.avaliacaoNome}" não encontrado (verifique o nome exato de uma avaliação publicada).` });
+      continue;
+    }
+
+    let candidatoExternoId: string | null = null;
+    let colaboradorId: string | null = null;
+    let colaboradorSnapshot = null;
+    let jaExistia = false;
+
+    if (linha.tipoPessoa === "externo") {
+      const { data: existente } = await supabase
+        .from("candidatos_externos")
+        .select("id")
+        .eq("matricula", linha.matricula)
+        .maybeSingle();
+      jaExistia = Boolean(existente);
+      const resultado = await upsertCandidatoExterno(supabase, linha, avaliacao.funcao, profile.id);
+      if (!resultado.ok) {
+        erros.push({ linha: numeroLinha, motivo: resultado.error });
+        continue;
+      }
+      candidatoExternoId = resultado.id;
+    } else {
+      if (!linha.cargo || !linha.estrutura) {
+        erros.push({ linha: numeroLinha, motivo: "Função e Estrutura são obrigatórios pra teste interno." });
+        continue;
+      }
+      const { data: existente } = await supabase
+        .from("colaboradores")
+        .select("id")
+        .eq("matricula", linha.matricula)
+        .maybeSingle();
+      jaExistia = Boolean(existente);
+      const resultado = await upsertColaborador(supabase, {
+        matricula: linha.matricula,
+        nome: linha.nome,
+        cargo: linha.cargo,
+        estrutura: linha.estrutura,
+        categoriaCnh: linha.categoriaCnh,
+        observacoes: linha.observacoes,
+      });
+      if (!resultado.ok) {
+        erros.push({ linha: numeroLinha, motivo: resultado.error });
+        continue;
+      }
+      colaboradorId = resultado.id;
+      colaboradorSnapshot = resultado.snapshot;
+    }
+
+    const { error } = await supabase.from("avaliacoes_aplicadas").insert({
+      avaliacao_id: avaliacao.id,
+      avaliacao_versao: avaliacao.versao,
+      tipo_pessoa: linha.tipoPessoa,
+      colaborador_id: colaboradorId,
+      colaborador_snapshot: colaboradorSnapshot,
+      candidato_externo_id: candidatoExternoId,
+      funcao_avaliada: avaliacao.funcao,
+      criado_por: profile.id,
+    });
+    if (error) {
+      erros.push({ linha: numeroLinha, motivo: error.message });
+      continue;
+    }
+
+    if (jaExistia) existentes++;
+    else novos++;
+  }
+
+  await supabase.from("import_batches").insert({
+    tipo: "candidatos",
+    total: linhas.length,
+    novos,
+    existentes,
+    alterados: existentes,
+    erros: erros.length,
+    created_by: profile.id,
+  });
+
+  revalidatePath("/candidatos");
+  revalidatePath("/");
+  return { novos, existentes, erros };
 }
 
 export async function excluirCandidatos(

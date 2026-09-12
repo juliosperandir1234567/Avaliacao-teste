@@ -210,7 +210,6 @@ export function RelatorioDocument({
   matricula,
   cargo,
   estrutura,
-  possuiCnhInterno,
   categoriaCnhInterno,
   observacoesInterno,
   candidatoExterno,
@@ -234,15 +233,13 @@ export function RelatorioDocument({
   matricula: string;
   cargo: string;
   estrutura: string;
-  possuiCnhInterno: boolean | null;
   categoriaCnhInterno: string | null;
   observacoesInterno: string | null;
   candidatoExterno: {
-    telefone: string | null;
-    possui_cnh: boolean | null;
+    matricula: string | null;
+    cpf: string | null;
     categoria_cnh: string | null;
     funcao_pretendida: string | null;
-    empresas_anteriores: string | null;
     observacoes: string | null;
   } | null;
   avaliadorNome: string;
@@ -305,41 +302,17 @@ export function RelatorioDocument({
               <FieldLine label="Colaborador" value={pessoaNome} />
               <FieldLine label="Cargo" value={cargo} />
               <FieldLine label="Estrutura" value={estrutura} />
-              <FieldLine
-                label="CNH"
-                value={
-                  possuiCnhInterno
-                    ? categoriaCnhInterno || "Sim"
-                    : possuiCnhInterno === false
-                      ? "Não"
-                      : "-"
-                }
-              />
+              <FieldLine label="Letra da CNH" value={categoriaCnhInterno || "-"} />
               {observacoesInterno ? (
                 <FieldLine label="Observações" value={observacoesInterno} />
               ) : null}
             </>
           ) : (
             <>
+              <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
               <FieldLine label="Candidato" value={pessoaNome} />
-              <FieldLine
-                label="Telefone"
-                value={candidatoExterno?.telefone ?? "-"}
-              />
-              <FieldLine
-                label="CNH"
-                value={
-                  candidatoExterno?.possui_cnh
-                    ? candidatoExterno.categoria_cnh || "Sim"
-                    : candidatoExterno?.possui_cnh === false
-                      ? "Não"
-                      : "-"
-                }
-              />
-              <FieldLine
-                label="Último emprego"
-                value={candidatoExterno?.empresas_anteriores ?? "-"}
-              />
+              <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
+              <FieldLine label="Letra da CNH" value={candidatoExterno?.categoria_cnh || "-"} />
               {candidatoExterno?.observacoes ? (
                 <FieldLine
                   label="Observações"

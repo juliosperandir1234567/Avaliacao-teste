@@ -14,9 +14,13 @@ export default async function CandidatosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Candidatos</h1>
-        <Button render={<Link href="/candidatos/novo">+ Novo Candidato</Link>} />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" render={<Link href="/candidatos/importar">Importar em massa</Link>} />
+          <Button variant="outline" render={<Link href="/candidatos/rapido">Acesso rápido</Link>} />
+          <Button render={<Link href="/candidatos/novo">+ Novo Candidato</Link>} />
+        </div>
       </div>
 
       <Card>

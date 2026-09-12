@@ -40,29 +40,15 @@ export default async function AplicarPage({
           { label: "Matrícula", value: colaborador?.matricula ?? "-" },
           { label: "Função", value: colaborador?.cargo ?? "-" },
           { label: "Estrutura", value: colaborador?.estrutura ?? "-" },
-          {
-            label: "CNH",
-            value: colaborador?.possui_cnh
-              ? colaborador.categoria_cnh || "Sim"
-              : colaborador?.possui_cnh === false
-                ? "Não"
-                : "-",
-          },
+          { label: "Letra da CNH", value: colaborador?.categoria_cnh || "-" },
           ...(podeVerObservacoes && colaborador?.observacoes
             ? [{ label: "Observações", value: colaborador.observacoes }]
             : []),
         ]
       : [
-          { label: "Telefone", value: candidatoExterno?.telefone ?? "-" },
-          {
-            label: "CNH",
-            value: candidatoExterno?.possui_cnh
-              ? candidatoExterno.categoria_cnh || "Sim"
-              : candidatoExterno?.possui_cnh === false
-                ? "Não"
-                : "-",
-          },
-          { label: "Último emprego", value: candidatoExterno?.empresas_anteriores ?? "-" },
+          { label: "Matrícula", value: candidatoExterno?.matricula ?? "-" },
+          { label: "CPF", value: candidatoExterno?.cpf ?? "-" },
+          { label: "Letra da CNH", value: candidatoExterno?.categoria_cnh || "-" },
           ...(podeVerObservacoes && candidatoExterno?.observacoes
             ? [{ label: "Observações", value: candidatoExterno.observacoes }]
             : []),

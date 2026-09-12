@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -30,8 +29,6 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
 
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [possuiCnh, setPossuiCnh] = useState(false);
   const [categoriaCnh, setCategoriaCnh] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
@@ -47,10 +44,9 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
         tipoPessoa === "externo"
           ? {
               tipoPessoa: "externo" as const,
+              matricula,
               nome,
               cpf,
-              telefone,
-              possuiCnh,
               categoriaCnh,
               avaliacaoId,
               observacoes,
@@ -61,7 +57,6 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
               nome,
               cargo,
               estrutura,
-              possuiCnh,
               categoriaCnh,
               observacoes,
               avaliacaoId,
@@ -115,33 +110,26 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
           </>
         ) : (
           <>
+            <Field label="Matrícula">
+              <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value)} />
+            </Field>
             <Field label="Nome">
               <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value)} />
             </Field>
             <Field label="CPF">
               <Input className="h-11" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
             </Field>
-            <Field label="Telefone">
-              <Input className="h-11" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-            </Field>
           </>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <Label htmlFor="possui_cnh">Possui CNH?</Label>
-            <Switch id="possui_cnh" checked={possuiCnh} onCheckedChange={setPossuiCnh} />
-          </div>
-          <Field label="Letra da CNH">
-            <Input
-              className="h-11"
-              value={categoriaCnh}
-              onChange={(e) => setCategoriaCnh(e.target.value)}
-              placeholder="Ex: B, C, D"
-              disabled={!possuiCnh}
-            />
-          </Field>
-        </div>
+        <Field label="Letra da CNH">
+          <Input
+            className="h-11"
+            value={categoriaCnh}
+            onChange={(e) => setCategoriaCnh(e.target.value)}
+            placeholder="Ex: B, C, D"
+          />
+        </Field>
 
         <Field label="Observações">
           <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />

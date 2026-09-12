@@ -26,6 +26,7 @@ export interface Colaborador {
 
 export interface CandidatoExterno {
   id: string;
+  matricula: string | null;
   nome: string;
   cpf: string | null;
   data_nascimento: string | null;

@@ -47,7 +47,7 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
   const { data: aplicacao } = await supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "*, avaliacoes(nome, nota_minima, equipamento_tipo_id), candidatos_externos(nome, telefone, possui_cnh, categoria_cnh, funcao_pretendida, empresas_anteriores, observacoes)"
+      "*, avaliacoes(nome, nota_minima, equipamento_tipo_id), candidatos_externos(nome, matricula, cpf, categoria_cnh, funcao_pretendida, observacoes)"
     )
     .eq("id", aplicacaoId)
     .single();
@@ -113,11 +113,10 @@ export async function getAplicacaoRunnerData(aplicacaoId: string) {
       };
       candidatos_externos: {
         nome: string;
-        telefone: string | null;
-        possui_cnh: boolean | null;
+        matricula: string | null;
+        cpf: string | null;
         categoria_cnh: string | null;
         funcao_pretendida: string | null;
-        empresas_anteriores: string | null;
         observacoes: string | null;
       } | null;
     },
