@@ -205,6 +205,7 @@ export async function salvarAssinatura(
     .update({ [coluna]: path })
     .eq("id", aplicacaoId);
   if (error) return { error: error.message };
+  revalidatePath(`/aplicacoes/${aplicacaoId}/aplicar`);
   return { success: true };
 }
 
