@@ -32,6 +32,7 @@ interface LinhaAplicacao {
   colaborador_snapshot: { matricula: string; nome: string } | null;
   parecer_final: Parecer | null;
   exportado_em: string | null;
+  nota_geral: number | null;
   avaliacoes: { nome: string } | { nome: string }[] | null;
   candidatos_externos: { nome: string } | { nome: string }[] | null;
 }
@@ -285,6 +286,7 @@ function TabelaAplicacoes({
             <th className="px-2 py-2 font-medium">Matrícula</th>
             <th className="px-2 py-2 font-medium">Colaborador</th>
             <th className="px-2 py-2 font-medium">Prova</th>
+            <th className="px-2 py-2 font-medium">Nota</th>
             <th className="px-2 py-2 font-medium">Resultado</th>
             {mostrarExportadoEm ? <th className="px-2 py-2 font-medium">Exportado em</th> : null}
             <th className="px-2 py-2 font-medium">Ações</th>
@@ -293,7 +295,7 @@ function TabelaAplicacoes({
         <tbody className="divide-y">
           {linhas.length === 0 ? (
             <tr>
-              <td colSpan={mostrarExportadoEm ? 7 : 6} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={mostrarExportadoEm ? 8 : 7} className="px-4 py-6 text-center text-muted-foreground">
                 Nenhuma avaliação encontrada.
               </td>
             </tr>
@@ -306,6 +308,7 @@ function TabelaAplicacoes({
                 <td className="px-2 py-2">{l.colaborador_snapshot?.matricula ?? "-"}</td>
                 <td className="px-2 py-2 font-medium">{nomeDaLinha(l)}</td>
                 <td className="px-2 py-2">{nomeAvaliacao(l)}</td>
+                <td className="px-2 py-2 font-medium">{l.nota_geral !== null ? l.nota_geral.toFixed(1) : "-"}</td>
                 <td className="px-2 py-2">
                   {l.parecer_final ? <Badge variant="secondary">{PARECER_LABELS[l.parecer_final]}</Badge> : "-"}
                 </td>

@@ -139,6 +139,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
 
   const resultadosIndividuais = aplicacoes
     .map((a) => ({
+      id: a.id,
       nome: (a.tipo_pessoa === "interno" ? a.colaborador_snapshot?.nome : a.candidatos_externos?.nome) ?? "-",
       tipoPessoa: a.tipo_pessoa,
       data: a.data,

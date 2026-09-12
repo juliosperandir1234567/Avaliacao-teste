@@ -166,7 +166,11 @@ export default async function DashboardPage({
                 <tbody>
                   {dados.resultadosIndividuais.map((r, i) => (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="py-1.5 pr-3">{r.nome}</td>
+                      <td className="py-1.5 pr-3">
+                        <Link href={`/aplicacoes/${r.id}/raiox`} className="font-medium text-primary hover:underline">
+                          {r.nome}
+                        </Link>
+                      </td>
                       <td className="py-1.5 pr-3 capitalize">{r.tipoPessoa}</td>
                       <td className="py-1.5 pr-3">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="py-1.5 pr-3 font-medium">
