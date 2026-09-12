@@ -26,6 +26,7 @@ import { createClient } from "@/utils/supabase/client";
 import {
   finalizarAplicacao,
   interromperPorSeguranca,
+  salvarAssinatura,
   salvarResposta,
 } from "@/app/(app)/aplicacoes/actions";
 import {
@@ -93,6 +94,8 @@ export function AplicacaoRunner({
   respostasIniciais,
   notaMinima,
   competencias,
+  assinaturaAvaliadoPathInicial = null,
+  assinaturaAvaliadorPathInicial = null,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -104,6 +107,8 @@ export function AplicacaoRunner({
   respostasIniciais: Resposta[];
   notaMinima: number;
   competencias: AvaliacaoCompetencia[];
+  assinaturaAvaliadoPathInicial?: string | null;
+  assinaturaAvaliadorPathInicial?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -153,8 +158,12 @@ export function AplicacaoRunner({
   const [mostrarResumo, setMostrarResumo] = useState(false);
   const [mostrarInterromper, setMostrarInterromper] = useState(false);
   const [motivoInterrupcao, setMotivoInterrupcao] = useState("");
-  const [assinaturaAvaliadoPath, setAssinaturaAvaliadoPath] = useState<string | null>(null);
-  const [assinaturaAvaliadorPath, setAssinaturaAvaliadorPath] = useState<string | null>(null);
+  const [assinaturaAvaliadoPath, setAssinaturaAvaliadoPath] = useState<string | null>(
+    assinaturaAvaliadoPathInicial
+  );
+  const [assinaturaAvaliadorPath, setAssinaturaAvaliadorPath] = useState<string | null>(
+    assinaturaAvaliadorPathInicial
+  );
   const [observacaoFinal, setObservacaoFinal] = useState("");
   const [parecerEscolhido, setParecerEscolhido] = useState<Parecer | null>(null);
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
@@ -174,6 +183,11 @@ export function AplicacaoRunner({
     }
     if (quem === "avaliado") setAssinaturaAvaliadoPath(path);
     else setAssinaturaAvaliadorPath(path);
+
+    // Grava na aplicação imediatamente (não só no estado local) pra sobreviver se o avaliador
+    // sair da tela de resumo antes de finalizar.
+    const salvo = await salvarAssinatura(aplicacaoId, quem, path);
+    if (salvo.error) toast.error("Falha ao gravar assinatura: " + salvo.error);
   }
 
   const respostaValorPorPergunta = useMemo(() => {

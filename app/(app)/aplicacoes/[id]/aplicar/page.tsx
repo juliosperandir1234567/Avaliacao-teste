@@ -80,6 +80,8 @@ export default async function AplicarPage({
       respostasIniciais={data.respostas}
       notaMinima={data.aplicacao.avaliacoes.nota_minima}
       competencias={data.competencias}
+      assinaturaAvaliadoPathInicial={data.aplicacao.assinatura_avaliado_path}
+      assinaturaAvaliadorPathInicial={data.aplicacao.assinatura_avaliador_path}
     />
   );
 }

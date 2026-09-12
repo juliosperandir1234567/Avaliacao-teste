@@ -190,6 +190,24 @@ export interface AssinaturasInput {
   avaliadorPath?: string;
 }
 
+/** Grava a assinatura assim que capturada (antes de finalizar) -- sem isso, ela só existia no
+ * estado local do runner e sumia se o avaliador saísse da tela de resumo (ex: pra revisar
+ * respostas em outra aba/página) antes de clicar em "Finalizar Avaliação". */
+export async function salvarAssinatura(
+  aplicacaoId: string,
+  quem: "avaliado" | "avaliador",
+  path: string
+) {
+  const supabase = await createClient();
+  const coluna = quem === "avaliado" ? "assinatura_avaliado_path" : "assinatura_avaliador_path";
+  const { error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .update({ [coluna]: path })
+    .eq("id", aplicacaoId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 export async function finalizarAplicacao(
   aplicacaoId: string,
   assinaturas?: AssinaturasInput,
