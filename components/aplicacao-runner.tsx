@@ -327,9 +327,14 @@ export function AplicacaoRunner({
           <CardContent className="flex flex-col gap-3 text-sm">
             <Row label="Itens" value={String(totalItens)} />
             <Row label="Respondidos" value={String(respondidas)} />
-            <Row label="Não avaliados" value={String(naoAvaliados)} />
+            <Row label="Não avaliados" value={String(naoAvaliados)} highlight={naoAvaliados > 0} />
             <Row label="Falhas críticas" value={String(falhasCriticas.length)} highlight={falhasCriticas.length > 0} />
             <Row label="Nota preliminar" value={notaPreliminar !== null ? notaPreliminar.toFixed(1) : "-"} />
+            {naoAvaliados > 0 ? (
+              <p className="-mt-1.5 text-xs text-destructive">
+                Volte e responda todos os itens antes de finalizar.
+              </p>
+            ) : null}
 
             <div className="flex flex-col gap-1.5 border-t pt-3">
               <Label>Parecer final</Label>
@@ -380,7 +385,8 @@ export function AplicacaoRunner({
                   pending ||
                   enviandoAssinatura ||
                   !assinaturaAvaliadoPath ||
-                  !assinaturaAvaliadorPath
+                  !assinaturaAvaliadorPath ||
+                  naoAvaliados > 0
                 }
                 onClick={() =>
                   startTransition(async () => {
@@ -487,16 +493,32 @@ export function AplicacaoRunner({
     </>
   );
 
+  const itensPendentesNoPasso =
+    passoAtual.tipo === "checklist" ? passoAtual.perguntas.filter((p) => !respostas[p.id]).length : 0;
+  const passoIncompleto = itensPendentesNoPasso > 0;
+
   const navegacao = (
-    <div className="flex justify-between gap-2 pb-4">
-      <Button variant="outline" disabled={indiceSeguro === 0} onClick={() => setIndex(Math.max(0, indiceSeguro - 1))}>
-        Anterior
-      </Button>
-      {indiceSeguro === totalPassos - 1 ? (
-        <Button onClick={() => setMostrarResumo(true)}>Revisar e Finalizar</Button>
-      ) : (
-        <Button onClick={() => setIndex(Math.min(totalPassos - 1, indiceSeguro + 1))}>Próxima</Button>
-      )}
+    <div className="flex flex-col gap-1.5 pb-4">
+      {passoIncompleto ? (
+        <p className="text-right text-xs text-destructive">
+          Responda todos os itens do checklist ({itensPendentesNoPasso} pendente
+          {itensPendentesNoPasso > 1 ? "s" : ""}) para continuar.
+        </p>
+      ) : null}
+      <div className="flex justify-between gap-2">
+        <Button variant="outline" disabled={indiceSeguro === 0} onClick={() => setIndex(Math.max(0, indiceSeguro - 1))}>
+          Anterior
+        </Button>
+        {indiceSeguro === totalPassos - 1 ? (
+          <Button disabled={passoIncompleto} onClick={() => setMostrarResumo(true)}>
+            Revisar e Finalizar
+          </Button>
+        ) : (
+          <Button disabled={passoIncompleto} onClick={() => setIndex(Math.min(totalPassos - 1, indiceSeguro + 1))}>
+            Próxima
+          </Button>
+        )}
+      </div>
     </div>
   );
 
