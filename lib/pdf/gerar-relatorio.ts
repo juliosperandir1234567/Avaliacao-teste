@@ -62,6 +62,21 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
     logoComoDataUri(config.logoUrl),
   ]);
 
+  // Troca os paths de evidência (bucket "evidencias") por URLs assinadas -- o PDF é gerado sob
+  // demanda e as URLs só precisam viver o suficiente pro download, igual assinatura.
+  const respostasComEvidencias = await Promise.all(
+    data.respostas.map(async (r) => {
+      if (r.evidencias.length === 0) return r;
+      const urls = await Promise.all(
+        r.evidencias.map(async (path) => {
+          const { data: signed } = await supabase.storage.from("evidencias").createSignedUrl(path, 60 * 5);
+          return signed?.signedUrl ?? null;
+        })
+      );
+      return { ...r, evidencias: urls.filter((u): u is string => u !== null) };
+    })
+  );
+
   const alternativasTexto = new Map(data.alternativas.map((a) => [a.id, a.texto]));
 
   const buffer = await renderToBuffer(
@@ -80,7 +95,7 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       aprovadorNome: aprovadorProfile?.nome ?? null,
       secoes: data.secoes,
       perguntas: data.perguntas,
-      respostas: data.respostas,
+      respostas: respostasComEvidencias,
       alternativas: data.alternativas,
       alternativasTexto,
       competencias: data.competencias,

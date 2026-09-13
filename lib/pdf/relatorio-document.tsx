@@ -114,6 +114,14 @@ const styles = StyleSheet.create({
     objectFit: "contain",
     border: "1 solid #e5e7eb",
   },
+  evidenciasRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 3 },
+  evidenciaImg: {
+    width: 90,
+    height: 70,
+    objectFit: "cover",
+    border: "1 solid #e5e7eb",
+    borderRadius: 2,
+  },
 });
 
 function respostaTexto(
@@ -147,6 +155,18 @@ function respostaTexto(
       : `${v.valor_numerico} ${pergunta.config.unidade ?? ""}`;
   if ("texto" in v) return String(v.texto || "-");
   return "-";
+}
+
+function Evidencias({ urls }: { urls: string[] | undefined }) {
+  if (!urls || urls.length === 0) return null;
+  return (
+    <View style={styles.evidenciasRow}>
+      {urls.map((url, i) => (
+        // eslint-disable-next-line jsx-a11y/alt-text
+        <Image key={i} src={url} style={styles.evidenciaImg} />
+      ))}
+    </View>
+  );
 }
 
 function FieldLine({ label, value }: { label: string; value: string }) {
@@ -456,6 +476,7 @@ export function RelatorioDocument({
                           Obs: {r.observacao}
                         </Text>
                       ) : null}
+                      <Evidencias urls={r?.evidencias} />
                       {r?.item_critico_falhou ? (
                         <Text style={styles.critico}>FALHA CRÍTICA</Text>
                       ) : null}
@@ -511,6 +532,7 @@ export function RelatorioDocument({
                           Obs: {r.observacao}
                         </Text>
                       ) : null}
+                      <Evidencias urls={r?.evidencias} />
                       {r?.item_critico_falhou ? (
                         <Text style={styles.critico}>FALHA CRÍTICA</Text>
                       ) : null}
@@ -556,6 +578,7 @@ export function RelatorioDocument({
                         Obs: {r.observacao}
                       </Text>
                     ) : null}
+                    <Evidencias urls={r?.evidencias} />
                     {r?.item_critico_falhou ? (
                       <Text style={styles.critico}>FALHA CRÍTICA</Text>
                     ) : null}
