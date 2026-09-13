@@ -404,7 +404,7 @@ export function AplicacaoRunner({
                       toast.error(result.error);
                       return;
                     }
-                    if (result.precisaAprovacao) {
+                    if (result && "precisaAprovacao" in result && result.precisaAprovacao) {
                       toast.success("Avaliação enviada para aprovação de um avaliador.");
                     } else {
                       window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
@@ -475,7 +475,7 @@ export function AplicacaoRunner({
                       toast.error(result.error);
                       return;
                     }
-                    if (result.precisaAprovacao) {
+                    if (result && "precisaAprovacao" in result && result.precisaAprovacao) {
                       toast.success("Avaliação enviada para aprovação de um avaliador.");
                     } else {
                       window.open(`/aplicacoes/${aplicacaoId}/relatorio`, "_blank");
