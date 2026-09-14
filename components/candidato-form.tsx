@@ -110,9 +110,6 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
           </>
         ) : (
           <>
-            <Field label="Matrícula">
-              <Input className="h-11" value={matricula} onChange={(e) => setMatricula(e.target.value.toUpperCase())} />
-            </Field>
             <Field label="Nome">
               <Input className="h-11" value={nome} onChange={(e) => setNome(e.target.value.toUpperCase())} />
             </Field>

@@ -82,7 +82,7 @@ const maiuscOpcional = () =>
 
 const externoSchema = z.object({
   tipoPessoa: z.literal("externo"),
-  matricula: maiusc("Matrícula é obrigatória"),
+  matricula: maiuscOpcional(),
   nome: maiusc("Nome é obrigatório"),
   cpf: maiuscOpcional(),
   categoriaCnh: maiuscOpcional(),
@@ -125,7 +125,12 @@ export async function criarCandidatoEPendencia(input: CandidatoInput): Promise<{
   let colaboradorSnapshot = null;
 
   if (data.tipoPessoa === "externo") {
-    const resultado = await upsertCandidatoExterno(supabase, data, avaliacao.funcao, profile.id);
+    const resultado = await upsertCandidatoExterno(
+      supabase,
+      { ...data, matricula: data.matricula || null },
+      avaliacao.funcao,
+      profile.id
+    );
     if (!resultado.ok) return { error: resultado.error };
     candidatoExternoId = resultado.id;
   } else {
