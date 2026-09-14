@@ -214,6 +214,28 @@ export async function salvarAssinatura(
   return { success: true };
 }
 
+/** Grava a observação final conforme o avaliador digita (debounced no cliente) -- antes disso
+ * ela só existia no estado local do runner e sumia se a pessoa saísse da tela de resumo (ex:
+ * pra revisar respostas) antes de clicar em "Finalizar Avaliação". Guardada na mesma coluna
+ * que finalizarAplicacao usa (observacao_gestor pro gestor, parecer_justificativa pros demais),
+ * pra já estar lá quando a avaliação for de fato finalizada. */
+export async function salvarObservacaoFinal(aplicacaoId: string, texto: string) {
+  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+  const coluna = profile.role === "gestor" ? "observacao_gestor" : "parecer_justificativa";
+
+  const { data: atualizada, error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .update({ [coluna]: texto || null })
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!atualizada) return { error: "Não foi possível salvar a observação: você não tem permissão para atualizar esta avaliação." };
+  return { success: true };
+}
+
 export async function finalizarAplicacao(
   aplicacaoId: string,
   assinaturas?: AssinaturasInput,

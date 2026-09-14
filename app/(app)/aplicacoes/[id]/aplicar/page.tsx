@@ -34,6 +34,11 @@ export default async function AplicarPage({
   // (evita influenciar a avaliação com informação de fora do teste).
   const podeVerObservacoes = profile.role !== "gestor";
 
+  // Mesma coluna que salvarObservacaoFinal/finalizarAplicacao usa pra essa role -- ver
+  // salvarObservacaoFinal em aplicacoes/actions.ts.
+  const observacaoFinalInicial =
+    profile.role === "gestor" ? data.aplicacao.observacao_gestor : data.aplicacao.parecer_justificativa;
+
   const pessoaDetalhes: { label: string; value: string }[] =
     data.aplicacao.tipo_pessoa === "interno"
       ? [
@@ -68,6 +73,7 @@ export default async function AplicarPage({
       competencias={data.competencias}
       assinaturaAvaliadoPathInicial={data.aplicacao.assinatura_avaliado_path}
       assinaturaAvaliadorPathInicial={data.aplicacao.assinatura_avaliador_path}
+      observacaoFinalInicial={observacaoFinalInicial}
     />
   );
 }

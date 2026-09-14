@@ -27,6 +27,7 @@ import {
   finalizarAplicacao,
   interromperPorSeguranca,
   salvarAssinatura,
+  salvarObservacaoFinal,
   salvarResposta,
 } from "@/app/(app)/aplicacoes/actions";
 import {
@@ -96,6 +97,7 @@ export function AplicacaoRunner({
   competencias,
   assinaturaAvaliadoPathInicial = null,
   assinaturaAvaliadorPathInicial = null,
+  observacaoFinalInicial = null,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -109,6 +111,7 @@ export function AplicacaoRunner({
   competencias: AvaliacaoCompetencia[];
   assinaturaAvaliadoPathInicial?: string | null;
   assinaturaAvaliadorPathInicial?: string | null;
+  observacaoFinalInicial?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -164,10 +167,20 @@ export function AplicacaoRunner({
   const [assinaturaAvaliadorPath, setAssinaturaAvaliadorPath] = useState<string | null>(
     assinaturaAvaliadorPathInicial
   );
-  const [observacaoFinal, setObservacaoFinal] = useState("");
+  const [observacaoFinal, setObservacaoFinal] = useState(observacaoFinalInicial ?? "");
   const [parecerEscolhido, setParecerEscolhido] = useState<Parecer | null>(null);
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const observacaoFinalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleObservacaoFinalChange(texto: string) {
+    setObservacaoFinal(texto);
+    if (observacaoFinalTimer.current) clearTimeout(observacaoFinalTimer.current);
+    observacaoFinalTimer.current = setTimeout(async () => {
+      const result = await salvarObservacaoFinal(aplicacaoId, texto);
+      if (result?.error) toast.error(result.error);
+    }, 500);
+  }
 
   async function capturarAssinatura(quem: "avaliado" | "avaliador", blob: Blob) {
     setEnviandoAssinatura(true);
@@ -325,6 +338,10 @@ export function AplicacaoRunner({
             <CardTitle>Resumo</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+              <Camera className="mr-1 inline size-3.5" />
+              Lembrete: antes de finalizar, tire uma foto da CNH do candidato.
+            </p>
             <Row label="Itens" value={String(totalItens)} />
             <Row label="Respondidos" value={String(respondidas)} />
             <Row label="Não avaliados" value={String(naoAvaliados)} highlight={naoAvaliados > 0} />
@@ -358,7 +375,7 @@ export function AplicacaoRunner({
               <Textarea
                 id="observacaoFinal"
                 value={observacaoFinal}
-                onChange={(e) => setObservacaoFinal(e.target.value)}
+                onChange={(e) => handleObservacaoFinalChange(e.target.value)}
                 placeholder="Justificativa/observações para o parecer final"
               />
             </div>

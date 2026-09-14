@@ -307,7 +307,7 @@ export function RelatorioDocument({
               {nomeEmpresa ? (
                 <Text style={styles.headerEmpresa}>{nomeEmpresa}</Text>
               ) : null}
-              <Text style={styles.headerTitulo}>RELATÓRIO DE AVALIAÇÃO</Text>
+              <Text style={styles.headerTitulo}>AVALIAÇÃO</Text>
               <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
             </View>
             <View style={styles.headerLogoCol} />
