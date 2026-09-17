@@ -50,15 +50,16 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       ? (data.aplicacao.candidatos_externos?.nome ?? "Candidato externo")
       : (data.aplicacao.colaborador_snapshot?.nome ?? "-");
 
-  async function signedUrl(path: string | null) {
+  async function signedUrl(bucket: string, path: string | null) {
     if (!path) return null;
-    const { data: signed } = await supabase.storage.from("assinaturas").createSignedUrl(path, 60 * 5);
+    const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 5);
     return signed?.signedUrl ?? null;
   }
 
-  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, logoDataUri] = await Promise.all([
-    signedUrl(data.aplicacao.assinatura_avaliado_path),
-    signedUrl(data.aplicacao.assinatura_avaliador_path),
+  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, fotoCnhUrl, logoDataUri] = await Promise.all([
+    signedUrl("assinaturas", data.aplicacao.assinatura_avaliado_path),
+    signedUrl("assinaturas", data.aplicacao.assinatura_avaliador_path),
+    signedUrl("evidencias", data.aplicacao.foto_cnh_path),
     logoComoDataUri(config.logoUrl),
   ]);
 
@@ -101,6 +102,7 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
       competencias: data.competencias,
       assinaturaAvaliadoUrl,
       assinaturaAvaliadorUrl,
+      fotoCnhUrl,
       logoUrl: logoDataUri,
       nomeEmpresa: config.nomeEmpresa,
     })

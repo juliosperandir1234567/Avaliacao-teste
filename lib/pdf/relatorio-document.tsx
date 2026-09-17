@@ -41,6 +41,15 @@ const styles = StyleSheet.create({
   headerLinha: { flexDirection: "row", alignItems: "center" },
   headerLogoCol: { width: 90, alignItems: "flex-start" },
   headerLogo: { width: 90, height: 90, objectFit: "contain" },
+  headerFotoCnhCol: { width: 90, alignItems: "flex-end" },
+  headerFotoCnh: {
+    width: 90,
+    height: 60,
+    objectFit: "cover",
+    border: "1 solid #e5e7eb",
+    borderRadius: 2,
+  },
+  headerFotoCnhLabel: { fontSize: 6, color: "#6b7280", marginTop: 2 },
   headerTopo: { flexGrow: 1, alignItems: "center", textAlign: "center", gap: 4 },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
   headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
@@ -244,6 +253,7 @@ export function RelatorioDocument({
   competencias,
   assinaturaAvaliadoUrl,
   assinaturaAvaliadorUrl,
+  fotoCnhUrl,
   logoUrl,
   nomeEmpresa,
 }: {
@@ -273,6 +283,7 @@ export function RelatorioDocument({
   competencias: AvaliacaoCompetencia[];
   assinaturaAvaliadoUrl: string | null;
   assinaturaAvaliadorUrl: string | null;
+  fotoCnhUrl: string | null;
   logoUrl: string | null;
   nomeEmpresa: string | null;
 }) {
@@ -310,7 +321,15 @@ export function RelatorioDocument({
               <Text style={styles.headerTitulo}>AVALIAÇÃO</Text>
               <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
             </View>
-            <View style={styles.headerLogoCol} />
+            <View style={styles.headerFotoCnhCol}>
+              {fotoCnhUrl ? (
+                <>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image src={fotoCnhUrl} style={styles.headerFotoCnh} />
+                  <Text style={styles.headerFotoCnhLabel}>Foto da CNH</Text>
+                </>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.headerDivisor} />
