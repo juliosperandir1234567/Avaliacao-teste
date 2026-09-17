@@ -29,12 +29,10 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
 
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
-  const [categoriaCnh, setCategoriaCnh] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   const [matricula, setMatricula] = useState("");
   const [cargo, setCargo] = useState("");
-  const [estrutura, setEstrutura] = useState("");
 
   const [avaliacaoId, setAvaliacaoId] = useState("");
 
@@ -47,7 +45,7 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
               matricula,
               nome,
               cpf,
-              categoriaCnh,
+              categoriaCnh: undefined,
               avaliacaoId,
               observacoes,
             }
@@ -56,8 +54,8 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
               matricula,
               nome,
               cargo,
-              estrutura,
-              categoriaCnh,
+              estrutura: "-",
+              categoriaCnh: undefined,
               observacoes,
               avaliacaoId,
             };
@@ -104,9 +102,6 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
             <Field label="Função">
               <Input className="h-11" value={cargo} onChange={(e) => setCargo(e.target.value.toUpperCase())} />
             </Field>
-            <Field label="Estrutura">
-              <Input className="h-11" value={estrutura} onChange={(e) => setEstrutura(e.target.value.toUpperCase())} />
-            </Field>
           </>
         ) : (
           <>
@@ -118,15 +113,6 @@ export function CandidatoForm({ avaliacoes }: { avaliacoes: AvaliacaoOpcao[] }) 
             </Field>
           </>
         )}
-
-        <Field label="Letra da CNH">
-          <Input
-            className="h-11"
-            value={categoriaCnh}
-            onChange={(e) => setCategoriaCnh(e.target.value.toUpperCase())}
-            placeholder="Ex: B, C, D"
-          />
-        </Field>
 
         <Field label="Observações">
           <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
