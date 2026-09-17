@@ -35,12 +35,12 @@ const styles = StyleSheet.create({
   headerCard: {
     border: "1 solid #86b58c",
     borderRadius: 8,
-    padding: 14,
+    padding: 10,
     marginBottom: 12,
   },
   headerLinha: { flexDirection: "row", alignItems: "center" },
-  headerLogoCol: { width: 90, alignItems: "flex-start" },
-  headerLogo: { width: 90, height: 90, objectFit: "contain" },
+  headerLogoCol: { width: 70, alignItems: "flex-start" },
+  headerLogo: { width: 70, height: 70, objectFit: "contain" },
   headerInfoRow: { flexDirection: "row", gap: 12 },
   headerInfoCol: { flexGrow: 1 },
   headerFotoCnhCol: { width: 150, alignItems: "center" },
@@ -52,13 +52,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   headerFotoCnhLabel: { fontSize: 7, color: "#6b7280", marginTop: 3 },
-  headerTopo: { alignItems: "flex-start", textAlign: "left", gap: 4, marginLeft: 16 },
+  headerTopo: { flexGrow: 1, alignItems: "center", textAlign: "center", gap: 3 },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
   headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
   headerSubtitulo: { fontSize: 12, fontWeight: 700, marginTop: 1 },
   headerDivisor: {
     borderBottom: "1 solid #e5e7eb",
-    marginVertical: 8,
+    marginVertical: 6,
   },
   linhaCampo: { marginBottom: 3 },
   h1: { fontSize: 16, fontWeight: 700, marginBottom: 2 },
@@ -323,6 +323,7 @@ export function RelatorioDocument({
               <Text style={styles.headerTitulo}>AVALIAÇÃO</Text>
               <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
             </View>
+            <View style={styles.headerLogoCol} />
           </View>
 
           <View style={styles.headerDivisor} />
