@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   headerFotoCnhLabel: { fontSize: 7, color: "#6b7280", marginTop: 3 },
-  headerTopo: { flexGrow: 1, alignItems: "center", textAlign: "center", gap: 4 },
+  headerTopo: { alignItems: "flex-start", textAlign: "left", gap: 4, marginLeft: 16 },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
   headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
   headerSubtitulo: { fontSize: 12, fontWeight: 700, marginTop: 1 },
@@ -323,7 +323,6 @@ export function RelatorioDocument({
               <Text style={styles.headerTitulo}>AVALIAÇÃO</Text>
               <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
             </View>
-            <View style={styles.headerLogoCol} />
           </View>
 
           <View style={styles.headerDivisor} />
