@@ -51,6 +51,25 @@ export function UsuariosTable({ usuarios, meuId }: { usuarios: Profile[]; meuId:
 function UsuarioRow({ usuario, isSelf }: { usuario: Profile; isSelf: boolean }) {
   const [pending, startTransition] = useTransition();
   const [senhaGerada, setSenhaGerada] = useState<string | null>(null);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [novoNome, setNovoNome] = useState(usuario.nome);
+
+  function salvarNome() {
+    const nome = novoNome.trim();
+    if (!nome) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    startTransition(async () => {
+      const result = await atualizarUsuario(usuario.id, { nome });
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Nome atualizado");
+      setEditandoNome(false);
+    });
+  }
 
   function mudarRole(role: UserRole) {
     startTransition(async () => {
@@ -122,6 +141,17 @@ function UsuarioRow({ usuario, isSelf }: { usuario: Profile; isSelf: boolean }) 
       </td>
       <td className="px-4 py-2">
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() => {
+              setNovoNome(usuario.nome);
+              setEditandoNome(true);
+            }}
+          >
+            Editar cadastro
+          </Button>
           <Button variant="outline" size="sm" disabled={pending} onClick={gerarSenha}>
             Gerar nova senha
           </Button>
@@ -136,6 +166,27 @@ function UsuarioRow({ usuario, isSelf }: { usuario: Profile; isSelf: boolean }) 
           </Button>
         </div>
       </td>
+
+      <Dialog open={editandoNome} onOpenChange={setEditandoNome}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar cadastro</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Nome</Label>
+              <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} disabled={pending} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">E-mail</Label>
+              <Input readOnly disabled value={usuario.email} />
+            </div>
+            <Button onClick={salvarNome} disabled={pending}>
+              {pending ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={senhaGerada !== null} onOpenChange={(o) => !o && setSenhaGerada(null)}>
         <DialogContent className="sm:max-w-sm">
