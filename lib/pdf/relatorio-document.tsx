@@ -41,15 +41,17 @@ const styles = StyleSheet.create({
   headerLinha: { flexDirection: "row", alignItems: "center" },
   headerLogoCol: { width: 90, alignItems: "flex-start" },
   headerLogo: { width: 90, height: 90, objectFit: "contain" },
-  headerFotoCnhCol: { width: 90, alignItems: "flex-end" },
+  headerInfoRow: { flexDirection: "row", gap: 12 },
+  headerInfoCol: { flexGrow: 1 },
+  headerFotoCnhCol: { width: 150, alignItems: "center" },
   headerFotoCnh: {
-    width: 90,
-    height: 60,
+    width: 150,
+    height: 150,
     objectFit: "cover",
     border: "1 solid #e5e7eb",
-    borderRadius: 2,
+    borderRadius: 4,
   },
-  headerFotoCnhLabel: { fontSize: 6, color: "#6b7280", marginTop: 2 },
+  headerFotoCnhLabel: { fontSize: 7, color: "#6b7280", marginTop: 3 },
   headerTopo: { flexGrow: 1, alignItems: "center", textAlign: "center", gap: 4 },
   headerEmpresa: { fontSize: 10, fontWeight: 700, color: "#6b7280" },
   headerTitulo: { fontSize: 13, fontWeight: 700, marginTop: 1 },
@@ -321,61 +323,65 @@ export function RelatorioDocument({
               <Text style={styles.headerTitulo}>AVALIAÇÃO</Text>
               <Text style={styles.headerSubtitulo}>{avaliacaoNome}</Text>
             </View>
-            <View style={styles.headerFotoCnhCol}>
-              {fotoCnhUrl ? (
-                <>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <Image src={fotoCnhUrl} style={styles.headerFotoCnh} />
-                  <Text style={styles.headerFotoCnhLabel}>Foto da CNH</Text>
-                </>
-              ) : null}
-            </View>
+            <View style={styles.headerLogoCol} />
           </View>
 
           <View style={styles.headerDivisor} />
 
-          <FieldLine label="Teste" value={aplicacao.tipo_pessoa === "interno" ? "Interno" : "Externo"} />
-          {aplicacao.tipo_pessoa === "interno" ? (
-            <>
-              <FieldLine label="Matrícula" value={matricula} />
-              <FieldLine label="Colaborador" value={pessoaNome} />
-              <FieldLine label="Cargo" value={cargo} />
-              <FieldLine label="Estrutura" value={estrutura} />
-              <FieldLine label="Letra da CNH" value={categoriaCnhInterno || "-"} />
-              {observacoesInterno ? (
-                <FieldLine label="Observações" value={observacoesInterno} />
-              ) : null}
-            </>
-          ) : (
-            <>
-              <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
-              <FieldLine label="Candidato" value={pessoaNome} />
-              <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
-              <FieldLine label="Letra da CNH" value={candidatoExterno?.categoria_cnh || "-"} />
-              {candidatoExterno?.observacoes ? (
-                <FieldLine
-                  label="Observações"
-                  value={candidatoExterno.observacoes}
-                />
-              ) : null}
-            </>
-          )}
-          <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
+          <View style={styles.headerInfoRow}>
+            <View style={styles.headerInfoCol}>
+              <FieldLine label="Teste" value={aplicacao.tipo_pessoa === "interno" ? "Interno" : "Externo"} />
+              {aplicacao.tipo_pessoa === "interno" ? (
+                <>
+                  <FieldLine label="Matrícula" value={matricula} />
+                  <FieldLine label="Colaborador" value={pessoaNome} />
+                  <FieldLine label="Cargo" value={cargo} />
+                  <FieldLine label="Estrutura" value={estrutura} />
+                  <FieldLine label="Letra da CNH" value={categoriaCnhInterno || "-"} />
+                  {observacoesInterno ? (
+                    <FieldLine label="Observações" value={observacoesInterno} />
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
+                  <FieldLine label="Candidato" value={pessoaNome} />
+                  <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
+                  <FieldLine label="Letra da CNH" value={candidatoExterno?.categoria_cnh || "-"} />
+                  {candidatoExterno?.observacoes ? (
+                    <FieldLine
+                      label="Observações"
+                      value={candidatoExterno.observacoes}
+                    />
+                  ) : null}
+                </>
+              )}
+              <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
 
-          <View style={styles.headerDivisor} />
+              <View style={styles.headerDivisor} />
 
-          <FieldLine label={avaliadorLabel} value={avaliadorNome} />
-          {aprovadorNome ? <FieldLine label="Avaliador" value={aprovadorNome} /> : null}
-          <FieldLine
-            label="Data/Hora"
-            value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
-          />
-          <Text style={styles.linhaCampo}>
-            <Text style={styles.label}>Situação: </Text>
-            <Text style={styles.value}>
-              {APLICACAO_STATUS_LABELS[aplicacao.status]}
-            </Text>
-          </Text>
+              <FieldLine label={avaliadorLabel} value={avaliadorNome} />
+              {aprovadorNome ? <FieldLine label="Avaliador" value={aprovadorNome} /> : null}
+              <FieldLine
+                label="Data/Hora"
+                value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
+              />
+              <Text style={styles.linhaCampo}>
+                <Text style={styles.label}>Situação: </Text>
+                <Text style={styles.value}>
+                  {APLICACAO_STATUS_LABELS[aplicacao.status]}
+                </Text>
+              </Text>
+            </View>
+
+            {fotoCnhUrl ? (
+              <View style={styles.headerFotoCnhCol}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image src={fotoCnhUrl} style={styles.headerFotoCnh} />
+                <Text style={styles.headerFotoCnhLabel}>Foto da CNH</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
 
         <View style={styles.notaRow}>

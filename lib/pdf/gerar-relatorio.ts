@@ -8,8 +8,9 @@ import { PARECER_LABELS, type Parecer } from "@/lib/types";
 
 /** Baixa a imagem e converte pra data URI: o Image do @react-pdf/renderer as vezes falha a
  * buscar uma URL remota do storage direto (fetch no runtime do servidor), entao embutir os
- * bytes já resolvidos evita depender disso. */
-async function logoComoDataUri(url: string | null): Promise<string | null> {
+ * bytes já resolvidos evita depender disso. Usado pra logo e foto da CNH -- essa última ficava
+ * em branco no PDF vindo direto da URL assinada. */
+async function imagemComoDataUri(url: string | null): Promise<string | null> {
   if (!url) return null;
   try {
     const res = await fetch(url);
@@ -56,12 +57,13 @@ export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
     return signed?.signedUrl ?? null;
   }
 
-  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, fotoCnhUrl, logoDataUri] = await Promise.all([
+  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, fotoCnhSignedUrl, logoDataUri] = await Promise.all([
     signedUrl("assinaturas", data.aplicacao.assinatura_avaliado_path),
     signedUrl("assinaturas", data.aplicacao.assinatura_avaliador_path),
     signedUrl("evidencias", data.aplicacao.foto_cnh_path),
-    logoComoDataUri(config.logoUrl),
+    imagemComoDataUri(config.logoUrl),
   ]);
+  const fotoCnhUrl = await imagemComoDataUri(fotoCnhSignedUrl);
 
   // Troca os paths de evidência (bucket "evidencias") por URLs assinadas -- o PDF é gerado sob
   // demanda e as URLs só precisam viver o suficiente pro download, igual assinatura.
