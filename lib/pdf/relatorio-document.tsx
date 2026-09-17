@@ -240,8 +240,6 @@ export function RelatorioDocument({
   pessoaNome,
   matricula,
   cargo,
-  estrutura,
-  categoriaCnhInterno,
   observacoesInterno,
   candidatoExterno,
   avaliadorNome,
@@ -264,8 +262,6 @@ export function RelatorioDocument({
   pessoaNome: string;
   matricula: string;
   cargo: string;
-  estrutura: string;
-  categoriaCnhInterno: string | null;
   observacoesInterno: string | null;
   candidatoExterno: {
     matricula: string | null;
@@ -336,8 +332,6 @@ export function RelatorioDocument({
                   <FieldLine label="Matrícula" value={matricula} />
                   <FieldLine label="Colaborador" value={pessoaNome} />
                   <FieldLine label="Cargo" value={cargo} />
-                  <FieldLine label="Estrutura" value={estrutura} />
-                  <FieldLine label="Letra da CNH" value={categoriaCnhInterno || "-"} />
                   {observacoesInterno ? (
                     <FieldLine label="Observações" value={observacoesInterno} />
                   ) : null}
@@ -347,7 +341,6 @@ export function RelatorioDocument({
                   <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
                   <FieldLine label="Candidato" value={pessoaNome} />
                   <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
-                  <FieldLine label="Letra da CNH" value={candidatoExterno?.categoria_cnh || "-"} />
                   {candidatoExterno?.observacoes ? (
                     <FieldLine
                       label="Observações"
