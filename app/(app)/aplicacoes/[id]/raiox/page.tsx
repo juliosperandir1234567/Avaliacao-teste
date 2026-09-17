@@ -160,7 +160,7 @@ export default async function RaioXPage({
             {aprovadorProfile ? <FieldLine label="Avaliador" value={aprovadorProfile.nome} /> : null}
             <FieldLine
               label="Data/Hora"
-              value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
+              value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario.slice(0, 5)}`}
             />
             <FieldLine label="Situação" value={APLICACAO_STATUS_LABELS[aplicacao.status]} />
           </div>

@@ -364,7 +364,7 @@ export function RelatorioDocument({
               {aprovadorNome ? <FieldLine label="Avaliador" value={aprovadorNome} /> : null}
               <FieldLine
                 label="Data/Hora"
-                value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario}`}
+                value={`${new Date(aplicacao.data).toLocaleDateString("pt-BR")}, ${aplicacao.horario.slice(0, 5)}`}
               />
               <Text style={styles.linhaCampo}>
                 <Text style={styles.label}>Situação: </Text>
