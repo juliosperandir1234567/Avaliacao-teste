@@ -490,25 +490,23 @@ export function AplicacaoRunner({
         </p>
       </div>
 
-      {indiceSeguro === 0 ? (
-        <div className="flex flex-col gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2.5">
-          <Label htmlFor="fotoCnh" className="flex items-center gap-1 text-xs text-amber-800">
-            <Camera className="size-3.5" /> Foto da CNH do candidato
-          </Label>
-          <Input
-            id="fotoCnh"
-            type="file"
-            accept="image/*"
-            className="h-10 bg-background"
-            disabled={enviandoFotoCnh}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFotoCnh(file);
-            }}
-          />
-          {fotoCnhPath ? <p className="text-xs text-amber-800">Foto anexada.</p> : null}
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2.5">
+        <Label htmlFor="fotoCnh" className="flex items-center gap-1 text-xs text-amber-800">
+          <Camera className="size-3.5" /> Foto da CNH do candidato
+        </Label>
+        <Input
+          id="fotoCnh"
+          type="file"
+          accept="image/*"
+          className="h-10 bg-background"
+          disabled={enviandoFotoCnh}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFotoCnh(file);
+          }}
+        />
+        {fotoCnhPath ? <p className="text-xs text-amber-800">Foto anexada.</p> : null}
+      </div>
 
       {mostrarInterromper ? (
         <Card className="border-destructive">
