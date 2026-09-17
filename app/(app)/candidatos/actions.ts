@@ -258,9 +258,7 @@ const linhaImportacaoSchema = z.object({
   matricula: maiusc("Matrícula é obrigatória"),
   nome: maiusc("Nome é obrigatório"),
   cargo: maiuscOpcional(),
-  estrutura: maiuscOpcional(),
   cpf: maiuscOpcional(),
-  categoriaCnh: maiuscOpcional(),
   observacoes: z.string().trim().optional(),
   avaliacaoNome: z.string().trim().min(1, "Tipo de teste é obrigatório"),
 });
@@ -323,8 +321,8 @@ export async function importarCandidatosLote(
       }
       candidatoExternoId = resultado.id;
     } else {
-      if (!linha.cargo || !linha.estrutura) {
-        erros.push({ linha: numeroLinha, motivo: "Função e Estrutura são obrigatórios pra teste interno." });
+      if (!linha.cargo) {
+        erros.push({ linha: numeroLinha, motivo: "Função é obrigatória pra teste interno." });
         continue;
       }
       const { data: existente } = await supabase
@@ -337,8 +335,7 @@ export async function importarCandidatosLote(
         matricula: linha.matricula,
         nome: linha.nome,
         cargo: linha.cargo,
-        estrutura: linha.estrutura,
-        categoriaCnh: linha.categoriaCnh,
+        estrutura: "-",
         observacoes: linha.observacoes,
       });
       if (!resultado.ok) {
