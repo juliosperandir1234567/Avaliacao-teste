@@ -74,6 +74,7 @@ export default async function AplicarPage({
       assinaturaAvaliadoPathInicial={data.aplicacao.assinatura_avaliado_path}
       assinaturaAvaliadorPathInicial={data.aplicacao.assinatura_avaliador_path}
       observacaoFinalInicial={observacaoFinalInicial}
+      fotoCnhPathInicial={data.aplicacao.foto_cnh_path}
     />
   );
 }

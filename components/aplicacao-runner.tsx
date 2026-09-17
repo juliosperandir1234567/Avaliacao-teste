@@ -27,6 +27,7 @@ import {
   finalizarAplicacao,
   interromperPorSeguranca,
   salvarAssinatura,
+  salvarFotoCnh,
   salvarObservacaoFinal,
   salvarResposta,
 } from "@/app/(app)/aplicacoes/actions";
@@ -98,6 +99,7 @@ export function AplicacaoRunner({
   assinaturaAvaliadoPathInicial = null,
   assinaturaAvaliadorPathInicial = null,
   observacaoFinalInicial = null,
+  fotoCnhPathInicial = null,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -112,6 +114,7 @@ export function AplicacaoRunner({
   assinaturaAvaliadoPathInicial?: string | null;
   assinaturaAvaliadorPathInicial?: string | null;
   observacaoFinalInicial?: string | null;
+  fotoCnhPathInicial?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -170,8 +173,26 @@ export function AplicacaoRunner({
   const [observacaoFinal, setObservacaoFinal] = useState(observacaoFinalInicial ?? "");
   const [parecerEscolhido, setParecerEscolhido] = useState<Parecer | null>(null);
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
+  const [fotoCnhPath, setFotoCnhPath] = useState<string | null>(fotoCnhPathInicial);
+  const [enviandoFotoCnh, setEnviandoFotoCnh] = useState(false);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const observacaoFinalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function handleFotoCnh(file: File) {
+    setEnviandoFotoCnh(true);
+    const supabase = createClient();
+    const path = `${aplicacaoId}/cnh-${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from("evidencias").upload(path, file);
+    setEnviandoFotoCnh(false);
+    if (error) {
+      toast.error("Falha ao enviar foto da CNH: " + error.message);
+      return;
+    }
+    setFotoCnhPath(path);
+    const salvo = await salvarFotoCnh(aplicacaoId, path);
+    if (salvo.error) toast.error("Falha ao gravar foto da CNH: " + salvo.error);
+    else toast.success("Foto da CNH anexada");
+  }
 
   function handleObservacaoFinalChange(texto: string) {
     setObservacaoFinal(texto);
@@ -338,10 +359,23 @@ export function AplicacaoRunner({
             <CardTitle>Resumo</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
-            <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-              <Camera className="mr-1 inline size-3.5" />
-              Lembrete: antes de finalizar, tire uma foto da CNH do candidato.
-            </p>
+            <div className="flex flex-col gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2">
+              <Label htmlFor="fotoCnh" className="flex items-center gap-1 text-xs text-amber-800">
+                <Camera className="size-3.5" /> Foto da CNH do candidato
+              </Label>
+              <Input
+                id="fotoCnh"
+                type="file"
+                accept="image/*"
+                className="h-10 bg-background"
+                disabled={enviandoFotoCnh}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFotoCnh(file);
+                }}
+              />
+              {fotoCnhPath ? <p className="text-xs text-amber-800">Foto anexada.</p> : null}
+            </div>
             <Row label="Itens" value={String(totalItens)} />
             <Row label="Respondidos" value={String(respondidas)} />
             <Row label="Não avaliados" value={String(naoAvaliados)} highlight={naoAvaliados > 0} />

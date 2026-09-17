@@ -236,6 +236,23 @@ export async function salvarObservacaoFinal(aplicacaoId: string, texto: string) 
   return { success: true };
 }
 
+/** Grava a foto da CNH assim que enviada (antes de finalizar) -- mesmo motivo de salvarAssinatura:
+ * sem isso ela só existia no estado local do runner e sumia se o avaliador saísse da tela de
+ * resumo antes de finalizar. */
+export async function salvarFotoCnh(aplicacaoId: string, path: string) {
+  const supabase = await createClient();
+  const { data: atualizada, error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .update({ foto_cnh_path: path })
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!atualizada) return { error: "Não foi possível gravar a foto da CNH: você não tem permissão para atualizar esta avaliação." };
+  revalidatePath(`/aplicacoes/${aplicacaoId}/aplicar`);
+  return { success: true };
+}
+
 export async function finalizarAplicacao(
   aplicacaoId: string,
   assinaturas?: AssinaturasInput,
