@@ -146,11 +146,19 @@ export function gerarAnaliseAvaliacao(
     secoes: analiseSecoes,
     pontosFortes,
     pontosMelhorar,
-    parecer: montarParecer(notaGeral, analiseSecoes, falhasCriticas.length),
+    parecer: montarParecer(notaGeral, analiseSecoes, falhasCriticas.length, parecer),
   };
 }
 
-function montarParecer(notaGeral: number | null, secoes: AnaliseSecao[], qtdFalhasCriticas: number): string {
+/** Pareceres em que a pessoa não segue na função: aí não cabe recomendar treinamento. */
+const PARECERES_SEM_RECOMENDACAO: Parecer[] = ["reprovado", "nao_recomendado", "nova_avaliacao"];
+
+function montarParecer(
+  notaGeral: number | null,
+  secoes: AnaliseSecao[],
+  qtdFalhasCriticas: number,
+  parecer: Parecer | null
+): string {
   if (notaGeral === null || secoes.length === 0) return "Sem respostas suficientes para gerar a análise.";
 
   const fortes = secoes.filter((s) => s.nivel === "forte").map((s) => s.nome);
@@ -175,6 +183,8 @@ function montarParecer(notaGeral: number | null, secoes: AnaliseSecao[], qtdFalh
       `Registrou ${qtdFalhasCriticas} falha${qtdFalhasCriticas > 1 ? "s" : ""} crítica${qtdFalhasCriticas > 1 ? "s" : ""}, que exige${qtdFalhasCriticas > 1 ? "m" : ""} atenção imediata.`
     );
   }
+
+  if (parecer && PARECERES_SEM_RECOMENDACAO.includes(parecer)) return frases.join(" ");
 
   const reciclagem = [...atencao, ...adequadas];
   if (reciclagem.length > 0) {
