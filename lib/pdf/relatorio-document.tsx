@@ -12,6 +12,7 @@ import {
   PERGUNTA_TIPO_LABELS,
 } from "@/lib/types";
 import { avaliarItensCriticos, calcularNotaGeral, calcularNotaSecao, calcularNotasPorCompetencia } from "@/lib/scoring";
+import { gerarAnaliseAvaliacao, NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao } from "@/lib/analise";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoAplicada,
@@ -125,6 +126,24 @@ const styles = StyleSheet.create({
     objectFit: "contain",
     border: "1 solid #e5e7eb",
   },
+  analiseBarraRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  analiseBarraNome: { width: 120 },
+  analiseBarraFundo: {
+    flexGrow: 1,
+    height: 7,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 3,
+    marginHorizontal: 8,
+  },
+  analiseBarraValor: { height: 7, borderRadius: 3 },
+  analiseBarraLabel: { width: 95, textAlign: "right", fontWeight: 700, fontSize: 8.5 },
+  analiseTituloLista: { fontWeight: 700, marginTop: 8, marginBottom: 2 },
+  analiseItem: { marginLeft: 8, marginBottom: 1.5 },
+  analiseParecer: {
+    marginTop: 8,
+    paddingTop: 5,
+    borderTop: "0.5 solid #e5e7eb",
+  },
   evidenciasRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 3 },
   evidenciaImg: {
     width: 90,
@@ -186,6 +205,56 @@ function FieldLine({ label, value }: { label: string; value: string }) {
       <Text style={styles.label}>{label}: </Text>
       <Text style={styles.value}>{value}</Text>
     </Text>
+  );
+}
+
+function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
+  if (analise.secoes.length === 0) return null;
+  return (
+    <View wrap={false}>
+      <View style={styles.secaoHeaderRow}>
+        <Text style={styles.secaoNome}>Análise da avaliação</Text>
+        {analise.status ? (
+          <Text style={[styles.secaoNota, { color: analise.status.cor }]}>{analise.status.label}</Text>
+        ) : null}
+      </View>
+      {analise.secoes.map((s) => (
+        <View key={s.nome} style={styles.analiseBarraRow}>
+          <Text style={styles.analiseBarraNome}>{s.nome}</Text>
+          <View style={styles.analiseBarraFundo}>
+            <View
+              style={[
+                styles.analiseBarraValor,
+                { width: `${s.percentual}%`, backgroundColor: NIVEL_CORES[s.nivel] },
+              ]}
+            />
+          </View>
+          <Text style={[styles.analiseBarraLabel, { color: NIVEL_CORES[s.nivel] }]}>
+            {s.percentual}% · {NIVEL_LABELS[s.nivel]}
+          </Text>
+        </View>
+      ))}
+      {analise.pontosFortes.length > 0 ? (
+        <>
+          <Text style={[styles.analiseTituloLista, { color: NIVEL_CORES.forte }]}>Pontos fortes</Text>
+          {analise.pontosFortes.map((t) => (
+            <Text key={t} style={styles.analiseItem}>• {t}</Text>
+          ))}
+        </>
+      ) : null}
+      {analise.pontosMelhorar.length > 0 ? (
+        <>
+          <Text style={[styles.analiseTituloLista, { color: NIVEL_CORES.atencao }]}>Pontos a melhorar</Text>
+          {analise.pontosMelhorar.map((t) => (
+            <Text key={t} style={styles.analiseItem}>• {t}</Text>
+          ))}
+        </>
+      ) : null}
+      <View style={styles.analiseParecer}>
+        <Text style={{ fontWeight: 700, marginBottom: 2 }}>Parecer</Text>
+        <Text>{analise.parecer}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -300,6 +369,7 @@ export function RelatorioDocument({
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
   const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
+  const analise = gerarAnaliseAvaliacao(secoes, perguntas, respostas, (aplicacao.parecer_final as Parecer | null) ?? null);
 
   return (
     <Document>
@@ -453,6 +523,8 @@ export function RelatorioDocument({
             ) : null}
           </>
         ) : null}
+
+        <AnaliseSecao analise={analise} />
 
         {secoesOrdenadas.map((secao) => {
           const pesoSecao = Number(secao.peso || 0);

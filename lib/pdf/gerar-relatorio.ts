@@ -24,10 +24,17 @@ async function imagemComoDataUri(url: string | null): Promise<string | null> {
 }
 
 /** Gera o buffer do PDF de relatório de uma aplicação. Reaproveitado pela rota de
- * download individual e pela exportação em lote (ZIP). */
-export async function gerarRelatorioPdfBuffer(aplicacaoId: string) {
+ * download individual e pela exportação em lote (ZIP). `parecerPrevia` só vale enquanto a
+ * aplicação ainda não tem parecer gravado (prévia antes de finalizar). */
+export async function gerarRelatorioPdfBuffer(
+  aplicacaoId: string,
+  { parecerPrevia }: { parecerPrevia?: Parecer } = {}
+) {
   const [data, config] = await Promise.all([getAplicacaoRunnerData(aplicacaoId), getConfiguracoesPublicas()]);
   if (!data) return null;
+  if (parecerPrevia && !data.aplicacao.parecer_final) {
+    data.aplicacao = { ...data.aplicacao, parecer_final: parecerPrevia };
+  }
 
   const supabase = await createClient();
 

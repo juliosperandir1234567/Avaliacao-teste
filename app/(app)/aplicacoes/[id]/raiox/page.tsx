@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AprovarParecerForm } from "@/components/aprovar-parecer-form";
 import { calcularNotaGeral, calcularNotasPorCompetencia } from "@/lib/scoring";
+import { gerarAnaliseAvaliacao } from "@/lib/analise";
+import { AnaliseCard } from "@/components/analise-card";
 import {
   APLICACAO_STATUS_LABELS,
   PARECER_LABELS,
@@ -37,6 +39,7 @@ export default async function RaioXPage({
   // desatualizado quando uma pergunta foi editada depois que a prova já tinha sido respondida.
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
+  const analise = gerarAnaliseAvaliacao(secoes, perguntas, respostas, (aplicacao.parecer_final as Parecer | null) ?? null);
 
   const supabase = await createClient();
   const { data: avaliadorProfile } = aplicacao.avaliador_id
@@ -236,6 +239,8 @@ export default async function RaioXPage({
           </CardContent>
         </Card>
       ) : null}
+
+      <AnaliseCard analise={analise} />
 
       <Card>
         <CardHeader>

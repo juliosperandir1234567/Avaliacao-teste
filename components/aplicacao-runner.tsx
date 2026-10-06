@@ -21,6 +21,8 @@ import {
 import { QuestionInput } from "@/components/question-input";
 import { PerguntaImagem } from "@/components/pergunta-imagem";
 import { SignaturePad } from "@/components/signature-pad";
+import { AnaliseCard } from "@/components/analise-card";
+import { gerarAnaliseAvaliacao } from "@/lib/analise";
 import { ChecklistTable } from "@/components/checklist-table";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -397,18 +399,51 @@ export function AplicacaoRunner({
               />
             </div>
 
-            <div className="flex flex-col gap-4 border-t pt-3 sm:flex-row">
+            <div className="border-t pt-3">
               <SignaturePad
                 label="Assinatura do avaliado"
                 captured={Boolean(assinaturaAvaliadoPath)}
                 onCapture={(blob) => capturarAssinatura("avaliado", blob)}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* A análise e a assinatura do avaliador só aparecem depois que o avaliado assina: o
+            avaliador confere o relatório e, estando tudo certo, assina e finaliza. */}
+        {assinaturaAvaliadoPath ? (
+          <>
+            <AnaliseCard
+              analise={gerarAnaliseAvaliacao(secoes, perguntasVisiveis, respostasComoResposta, parecerFinal)}
+            />
+            <Button
+              variant="outline"
+              render={
+                <a
+                  href={`/aplicacoes/${aplicacaoId}/relatorio${parecerFinal ? `?parecer=${parecerFinal}` : ""}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver prévia do relatório (PDF)
+                </a>
+              }
+            />
+          </>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground">
+            Após a assinatura do avaliado, a análise do relatório aparece aqui para conferência.
+          </p>
+        )}
+
+        <Card>
+          <CardContent className="flex flex-col gap-3 pt-4 text-sm">
+            {assinaturaAvaliadoPath ? (
               <SignaturePad
                 label="Assinatura do avaliador"
                 captured={Boolean(assinaturaAvaliadorPath)}
                 onCapture={(blob) => capturarAssinatura("avaliador", blob)}
               />
-            </div>
+            ) : null}
 
             <div className="flex justify-between gap-2 pt-2">
               <Button variant="outline" onClick={() => setMostrarResumo(false)}>
