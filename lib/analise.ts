@@ -38,8 +38,19 @@ export interface AnaliseAvaliacao {
   status: { label: string; cor: string } | null;
   secoes: AnaliseSecao[];
   pontosFortes: string[];
-  pontosMelhorar: string[];
+  pontosMelhorar: GrupoMelhorar[];
   parecer: string;
+}
+
+/** Item a melhorar: `destaque` ("Não", "Parcial", "Errou"...) aparece em negrito/vermelho. */
+export interface ItemMelhorar {
+  destaque: string;
+  texto: string;
+}
+
+export interface GrupoMelhorar {
+  titulo: string;
+  itens: ItemMelhorar[];
 }
 
 function nivelDoPercentual(percentual: number): NivelSecao {
@@ -55,6 +66,69 @@ function juntarLista(itens: string[]): string {
 
 function minusculaInicial(texto: string): string {
   return texto.charAt(0).toLowerCase() + texto.slice(1);
+}
+
+/** Pretérito perfeito irregular (3ª pessoa) dos verbos que costumam abrir item de checklist. */
+const PRETERITO_IRREGULAR: Record<string, string> = {
+  manter: "manteve",
+  fazer: "fez",
+  dar: "deu",
+  ter: "teve",
+  ver: "viu",
+  ir: "foi",
+  ser: "foi",
+  estar: "esteve",
+  saber: "soube",
+  trazer: "trouxe",
+  dizer: "disse",
+  por: "pôs",
+  pôr: "pôs",
+  poder: "pôde",
+  obter: "obteve",
+  conter: "conteve",
+  deter: "deteve",
+};
+
+/** Palavras que terminam em -ar/-er/-ir/-eu mas não são verbo. */
+const NAO_VERBOS = new Set(["ar", "mar", "lugar", "par", "colar", "cooler", "pneu", "filtro"]);
+
+/** Verbos no presente que podem abrir um item ("Sabe ativar...", "Conhece..."). */
+const VERBOS_PRESENTE = new Set([
+  "sabe", "conhece", "possui", "tem", "faz", "usa", "utiliza", "verifica", "realiza", "mantém",
+  "executa", "identifica", "opera", "respeita", "aplica", "domina", "consegue",
+]);
+
+/**
+ * Transforma o nome de um item de checklist que falhou numa frase negativa: "Usou o cinto" ->
+ * "Não usou o cinto", "Utilizar a embreagem" -> "Não utilizou a embreagem", "Água da bateria"
+ * -> "Não verificou água da bateria". Item já negativo ("Não descansou o pé...") volta sem o
+ * "Não", porque falhar nele significa ter feito.
+ */
+function itemNegado(enunciado: string): ItemMelhorar {
+  const limpo = enunciado.trim().replace(/\s+([,.;])/g, "$1");
+  const [primeira, ...resto] = limpo.split(/\s+/);
+  const palavra = primeira.toLowerCase();
+  const restoTexto = resto.join(" ");
+
+  if (palavra === "não" || palavra === "nao") {
+    return { destaque: "", texto: restoTexto.charAt(0).toUpperCase() + restoTexto.slice(1) };
+  }
+  if (!NAO_VERBOS.has(palavra)) {
+    const infinitivo = /^(.{2,})(ar|er|ir)$/.exec(palavra);
+    if (PRETERITO_IRREGULAR[palavra] || infinitivo) {
+      const preterito =
+        PRETERITO_IRREGULAR[palavra] ??
+        infinitivo![1] + { ar: "ou", er: "eu", ir: "iu" }[infinitivo![2] as "ar" | "er" | "ir"];
+      return { destaque: "Não", texto: [preterito, restoTexto].filter(Boolean).join(" ") };
+    }
+    if (/(ou|iu|eu)$/.test(palavra) && palavra.length > 3) {
+      return { destaque: "Não", texto: minusculaInicial(limpo) };
+    }
+    if (VERBOS_PRESENTE.has(palavra)) {
+      return { destaque: "Não", texto: minusculaInicial(limpo) };
+    }
+  }
+  return { destaque: "Não", texto: `verificou ${minusculaInicial(limpo)}` };
 }
 
 function statusDaAnalise(parecer: Parecer | null, notaGeral: number | null) {
@@ -83,12 +157,13 @@ export function gerarAnaliseAvaliacao(
 
   const analiseSecoes: AnaliseSecao[] = [];
   const pontosFortes: string[] = [];
-  const pontosMelhorar: string[] = [];
+  const pontosMelhorar: GrupoMelhorar[] = [];
 
   if (falhasCriticas.length > 0) {
-    pontosMelhorar.push(
-      `Falha crítica: ${juntarLista(falhasCriticas.map((f) => f.pergunta.enunciado))}`
-    );
+    pontosMelhorar.push({
+      titulo: "Falhas críticas",
+      itens: falhasCriticas.map((f) => ({ destaque: "Falha crítica:", texto: f.pergunta.enunciado.trim() })),
+    });
   }
 
   for (const secao of [...secoes].sort((a, b) => a.ordem - b.ordem)) {
@@ -105,7 +180,7 @@ export function gerarAnaliseAvaliacao(
     // Checklist: lista os itens pelo nome. Questões (múltipla escolha etc.) têm enunciado longo,
     // então entram só como contagem de acertos.
     const checklistOk: string[] = [];
-    const checklistFalha: string[] = [];
+    const checklistFalha: ItemMelhorar[] = [];
     let questoesTotal = 0;
     let questoesAcertos = 0;
     for (const p of perguntasSecao) {
@@ -114,31 +189,33 @@ export function gerarAnaliseAvaliacao(
       if (p.tipo === "checklist") {
         const status = r.resposta && "status" in r.resposta ? r.resposta.status : null;
         if (status === "sim") checklistOk.push(p.enunciado);
-        else if (status === "parcial") checklistFalha.push(`${p.enunciado} (parcial)`);
-        else if (status === "nao") checklistFalha.push(p.enunciado);
+        else if (status === "parcial") checklistFalha.push({ destaque: "Parcial:", texto: p.enunciado.trim() });
+        else if (status === "nao") checklistFalha.push(itemNegado(p.enunciado));
       } else {
         questoesTotal += 1;
         if (r.pontuacao >= 10) questoesAcertos += 1;
       }
     }
 
+    const itensMelhorar: ItemMelhorar[] = [];
     if (questoesTotal > 0) {
       if (questoesAcertos === questoesTotal) {
         pontosFortes.push(
           `${secao.nome}: acertou ${questoesTotal === 1 ? "a questão" : `todas as ${questoesTotal} questões`}`
         );
       } else {
-        const texto = `${secao.nome}: acertou ${questoesAcertos} de ${questoesTotal} questões`;
-        if (nivel === "atencao") pontosMelhorar.push(texto);
-        else pontosFortes.push(texto);
+        if (nivel === "atencao") {
+          itensMelhorar.push({ destaque: "Errou", texto: `${questoesTotal - questoesAcertos} de ${questoesTotal} questões` });
+        } else {
+          pontosFortes.push(`${secao.nome}: acertou ${questoesAcertos} de ${questoesTotal} questões`);
+        }
       }
     }
     if (checklistOk.length > 0 && nivel !== "atencao") {
       pontosFortes.push(`${secao.nome}: ${juntarLista(checklistOk.map(minusculaInicial))}`);
     }
-    if (checklistFalha.length > 0) {
-      pontosMelhorar.push(`${secao.nome}: ${juntarLista(checklistFalha.map(minusculaInicial))}`);
-    }
+    itensMelhorar.push(...checklistFalha);
+    if (itensMelhorar.length > 0) pontosMelhorar.push({ titulo: secao.nome, itens: itensMelhorar });
   }
 
   return {

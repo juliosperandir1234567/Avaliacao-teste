@@ -211,7 +211,7 @@ function FieldLine({ label, value }: { label: string; value: string }) {
 function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
   if (analise.secoes.length === 0) return null;
   return (
-    <View wrap={false}>
+    <View>
       <View style={styles.secaoHeaderRow}>
         <Text style={styles.secaoNome}>Análise da avaliação</Text>
         {analise.status ? (
@@ -245,8 +245,17 @@ function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
       {analise.pontosMelhorar.length > 0 ? (
         <>
           <Text style={[styles.analiseTituloLista, { color: NIVEL_CORES.atencao }]}>Pontos a melhorar</Text>
-          {analise.pontosMelhorar.map((t) => (
-            <Text key={t} style={styles.analiseItem}>• {t}</Text>
+          {analise.pontosMelhorar.map((grupo) => (
+            <View key={grupo.titulo} style={{ marginBottom: 3 }}>
+              <Text style={{ fontWeight: 700, marginBottom: 1.5 }}>{grupo.titulo}</Text>
+              {grupo.itens.map((item, i) => (
+                <Text key={i} style={styles.analiseItem}>
+                  •{" "}
+                  {item.destaque ? <Text style={styles.errado}>{item.destaque} </Text> : null}
+                  {item.texto}
+                </Text>
+              ))}
+            </View>
           ))}
         </>
       ) : null}

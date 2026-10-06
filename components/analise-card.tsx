@@ -51,11 +51,23 @@ export function AnaliseCard({ analise }: { analise: AnaliseAvaliacao }) {
             <p className="font-semibold" style={{ color: NIVEL_CORES.atencao }}>
               ✖ Pontos a melhorar
             </p>
-            <ul className="list-disc pl-5">
-              {analise.pontosMelhorar.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
+            {analise.pontosMelhorar.map((grupo) => (
+              <div key={grupo.titulo} className="flex flex-col gap-0.5">
+                <p className="font-medium">{grupo.titulo}</p>
+                <ul className="list-disc pl-5">
+                  {grupo.itens.map((item, i) => (
+                    <li key={i}>
+                      {item.destaque ? (
+                        <span className="font-bold" style={{ color: NIVEL_CORES.atencao }}>
+                          {item.destaque}{" "}
+                        </span>
+                      ) : null}
+                      {item.texto}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         ) : null}
 
