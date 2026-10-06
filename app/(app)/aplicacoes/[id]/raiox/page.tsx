@@ -14,7 +14,6 @@ import { gerarAnaliseAvaliacao } from "@/lib/analise";
 import { AnaliseCard } from "@/components/analise-card";
 import {
   APLICACAO_STATUS_LABELS,
-  PARECER_LABELS,
   type ChecklistStatus,
   type Parecer,
 } from "@/lib/types";
@@ -138,8 +137,6 @@ export default async function RaioXPage({
               <>
                 <FieldLine label="Matrícula" value={pessoa && "matricula" in pessoa ? pessoa.matricula : "-"} />
                 <FieldLine label="Cargo" value={pessoa && "cargo" in pessoa ? pessoa.cargo : "-"} />
-                <FieldLine label="Estrutura" value={pessoa && "estrutura" in pessoa ? pessoa.estrutura : "-"} />
-                <FieldLine label="Letra da CNH" value={aplicacao.colaborador_snapshot?.categoria_cnh || "-"} />
                 <FieldLine label="Função avaliada" value={aplicacao.funcao_avaliada} />
                 {aplicacao.colaborador_snapshot?.observacoes ? (
                   <FieldLine label="Observações" value={aplicacao.colaborador_snapshot.observacoes} />
@@ -149,7 +146,6 @@ export default async function RaioXPage({
               <>
                 <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
                 <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
-                <FieldLine label="Letra da CNH" value={candidatoExterno?.categoria_cnh || "-"} />
                 <FieldLine label="Tipo de teste / Função pretendida" value={candidatoExterno?.funcao_pretendida ?? "-"} />
                 {candidatoExterno?.observacoes ? (
                   <FieldLine label="Observações" value={candidatoExterno.observacoes} />
@@ -179,24 +175,6 @@ export default async function RaioXPage({
               <span className="text-lg text-muted-foreground"> / 10</span>
             </p>
           </div>
-          {aplicacao.parecer_gestor ? (
-            <div>
-              <CardTitle className="text-sm font-normal text-muted-foreground">Parecer do gestor</CardTitle>
-              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_gestor)}`}>
-                {PARECER_LABELS[aplicacao.parecer_gestor]}
-              </p>
-            </div>
-          ) : null}
-          {aplicacao.parecer_final ? (
-            <div>
-              <CardTitle className="text-sm font-normal text-muted-foreground">
-                {aplicacao.parecer_gestor ? "Parecer do avaliador" : "Status"}
-              </CardTitle>
-              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_final)}`}>
-                {PARECER_LABELS[aplicacao.parecer_final as Parecer]}
-              </p>
-            </div>
-          ) : null}
         </CardHeader>
         {competencias.length > 0 ? (
           <CardContent className="grid grid-cols-2 gap-2 border-t pt-3 text-sm sm:grid-cols-3">
@@ -280,12 +258,6 @@ export default async function RaioXPage({
       ) : null}
     </div>
   );
-}
-
-function corParecer(parecer: Parecer) {
-  if (parecer === "apto") return "text-green-600";
-  if (parecer === "reprovado" || parecer === "nao_recomendado") return "text-destructive";
-  return "";
 }
 
 function FieldLine({ label, value }: { label: string; value: string }) {
