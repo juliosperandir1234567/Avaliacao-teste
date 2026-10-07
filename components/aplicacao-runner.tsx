@@ -161,9 +161,7 @@ export function AplicacaoRunner({
     return initial;
   });
 
-  const [index, setIndex] = useState(0);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const [mostrarResumo, setMostrarResumo] = useState(false);
   const [mostrarInterromper, setMostrarInterromper] = useState(false);
   const [motivoInterrupcao, setMotivoInterrupcao] = useState("");
   const [assinaturaAvaliadoPath, setAssinaturaAvaliadoPath] = useState<string | null>(
@@ -238,6 +236,18 @@ export function AplicacaoRunner({
   );
 
   const passos = useMemo(() => agruparPassos(perguntasVisiveis), [perguntasVisiveis]);
+
+  // Retomando uma prova em andamento: abre no primeiro passo com item sem resposta; se já está
+  // tudo respondido, vai direto pro resumo (fechamento) em vez de recomeçar do passo 1.
+  const [index, setIndex] = useState(() => {
+    const i = passos.findIndex((passo) =>
+      (passo.tipo === "checklist" ? passo.perguntas : [passo.pergunta]).some((p) => !respostas[p.id])
+    );
+    return i === -1 ? Math.max(0, passos.length - 1) : i;
+  });
+  const [mostrarResumo, setMostrarResumo] = useState(
+    () => respostasIniciais.length > 0 && perguntasVisiveis.length > 0 && perguntasVisiveis.every((p) => respostas[p.id])
+  );
 
   const totalItens = perguntasVisiveis.length;
   const respondidas = perguntasVisiveis.filter((p) => respostas[p.id]).length;
