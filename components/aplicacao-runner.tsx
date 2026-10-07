@@ -253,6 +253,18 @@ export function AplicacaoRunner({
     );
     return i === -1 ? Math.max(0, passos.length - 1) : i;
   });
+  // Trava do avaliado no meio da prova: quando a prova tem perguntas teóricas (respondidas pelo
+  // avaliado) seguidas de checklist (preenchido pelo avaliador), o avaliado assina e libera antes
+  // do primeiro checklist -- mesma trava da etapa 1 do fechamento. Depois de liberado, as perguntas
+  // teóricas ficam bloqueadas (não dá pra voltar nelas). A assinatura gravada é o que marca a trava
+  // como passada ao retomar a prova.
+  const indiceTrava = useMemo(() => {
+    const primeiraTeorica = passos.findIndex((passo) => passo.tipo === "unico");
+    if (primeiraTeorica === -1) return -1;
+    return passos.findIndex((passo, i) => i > primeiraTeorica && passo.tipo === "checklist");
+  }, [passos]);
+  const temTrava = indiceTrava > 0;
+  const [liberadoTrava, setLiberadoTrava] = useState(Boolean(assinaturaAvaliadoPathInicial));
   const [mostrarResumo, setMostrarResumo] = useState(
     () => respostasIniciais.length > 0 && perguntasVisiveis.length > 0 && perguntasVisiveis.every((p) => respostas[p.id])
   );
@@ -263,6 +275,8 @@ export function AplicacaoRunner({
   const indiceSeguro = Math.min(index, Math.max(0, totalPassos - 1));
   const passoAtual = passos[indiceSeguro];
   const progresso = totalPassos > 0 ? Math.round(((indiceSeguro + 1) / totalPassos) * 100) : 0;
+  const indiceMinimo = temTrava && liberadoTrava ? indiceTrava : 0;
+  const naTrava = temTrava && !liberadoTrava && (mostrarResumo || indiceSeguro >= indiceTrava);
 
   function persistir(perguntaId: string, novaResposta: RespostaLocal, imediato = false) {
     setRespostas((prev) => ({ ...prev, [perguntaId]: novaResposta }));
@@ -343,6 +357,55 @@ export function AplicacaoRunner({
     return <p className="text-center text-muted-foreground">Esta avaliação não possui perguntas.</p>;
   }
 
+  if (naTrava) {
+    const pendentesTeoricas = passos
+      .slice(0, indiceTrava)
+      .flatMap((passo) => (passo.tipo === "checklist" ? passo.perguntas : [passo.pergunta]))
+      .filter((p) => !respostas[p.id]).length;
+    return (
+      <div className="mx-auto flex max-w-xl flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{pessoaNome}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            {pendentesTeoricas > 0 ? (
+              <p className="text-xs text-destructive">
+                Ainda há {pendentesTeoricas} pergunta(s) sem resposta. Revise antes da assinatura.
+              </p>
+            ) : (
+              <SignaturePad
+                label="Assinatura do avaliado"
+                captured={Boolean(assinaturaAvaliadoPath)}
+                onCapture={(blob) => capturarAssinatura("avaliado", blob)}
+              />
+            )}
+            <div className="flex justify-between gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setMostrarResumo(false);
+                  setIndex(indiceTrava - 1);
+                }}
+              >
+                Revisar
+              </Button>
+              <Button
+                disabled={enviandoAssinatura || !assinaturaAvaliadoPath || pendentesTeoricas > 0}
+                onClick={() => {
+                  setLiberadoTrava(true);
+                  setIndex(indiceTrava);
+                }}
+              >
+                Liberar para o avaliador
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (mostrarResumo) {
     const respostasComoResposta: Resposta[] = perguntasVisiveis
       .filter((p) => respostas[p.id])
@@ -374,7 +437,8 @@ export function AplicacaoRunner({
 
     // Etapa 1: o avaliado só vê o próprio nome e assina. Nota, parecer e análise ficam escondidos
     // até o avaliador clicar em "Liberar para o avaliador" (etapa 2).
-    if (!liberadoAvaliador) {
+    // Com a trava no meio da prova o avaliado já assinou lá, então pula direto pra etapa 2.
+    if (!liberadoAvaliador && !temTrava) {
       return (
         <div className="mx-auto flex max-w-xl flex-col gap-4">
           <Card>
@@ -637,7 +701,11 @@ export function AplicacaoRunner({
         </p>
       ) : null}
       <div className="flex justify-between gap-2">
-        <Button variant="outline" disabled={indiceSeguro === 0} onClick={() => setIndex(Math.max(0, indiceSeguro - 1))}>
+        <Button
+          variant="outline"
+          disabled={indiceSeguro <= indiceMinimo}
+          onClick={() => setIndex(Math.max(indiceMinimo, indiceSeguro - 1))}
+        >
           Anterior
         </Button>
         {indiceSeguro === totalPassos - 1 ? (
