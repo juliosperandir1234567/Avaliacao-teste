@@ -346,6 +346,21 @@ export async function importarCandidatosLote(
       colaboradorSnapshot = resultado.snapshot;
     }
 
+    // Reimportar a mesma planilha não pode duplicar a prova: se a pessoa já tem essa avaliação
+    // em aberto, só atualiza o cadastro (feito acima) e reaproveita a pendência existente.
+    const { data: pendente } = await supabase
+      .from("avaliacoes_aplicadas")
+      .select("id")
+      .eq("avaliacao_id", avaliacao.id)
+      .eq(candidatoExternoId ? "candidato_externo_id" : "colaborador_id", candidatoExternoId ?? colaboradorId)
+      .not("status", "in", "(finalizada,cancelada)")
+      .limit(1)
+      .maybeSingle();
+    if (pendente) {
+      existentes++;
+      continue;
+    }
+
     const { error } = await supabase.from("avaliacoes_aplicadas").insert({
       avaliacao_id: avaliacao.id,
       avaliacao_versao: avaliacao.versao,
@@ -423,8 +438,7 @@ export async function listCandidatos() {
     .select(
       "id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final, candidatos_externos(nome)"
     )
-    .order("created_at", { ascending: false })
-    .limit(50);
+    .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
 }

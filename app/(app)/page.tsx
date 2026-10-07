@@ -50,8 +50,7 @@ export default async function HomePage() {
       "id, avaliacao_id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final, candidatos_externos(nome), avaliacoes(nota_minima)"
     )
     .not("status", "in", "(finalizada,cancelada)")
-    .order("created_at", { ascending: false })
-    .limit(20);
+    .order("created_at", { ascending: false });
   const pendencias = (data ?? []) as AplicacaoResumo[];
 
   const andamentoPorAplicacao = await calcularAndamentos(supabase, pendencias);
