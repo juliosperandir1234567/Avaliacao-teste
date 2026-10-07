@@ -40,6 +40,10 @@ function primeiro<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
+function nomePessoa(a: AplicacaoResumo) {
+  return a.colaborador_snapshot?.nome ?? primeiro(a.candidatos_externos)?.nome ?? "Candidato externo";
+}
+
 export default async function HomePage() {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
@@ -51,7 +55,10 @@ export default async function HomePage() {
     )
     .not("status", "in", "(finalizada,cancelada)")
     .order("created_at", { ascending: false });
-  const pendencias = (data ?? []) as AplicacaoResumo[];
+  // Fila em ordem alfabética pelo nome da pessoa (interno vem do snapshot, externo do cadastro).
+  const pendencias = ((data ?? []) as AplicacaoResumo[]).sort((a, b) =>
+    nomePessoa(a).localeCompare(nomePessoa(b), "pt-BR")
+  );
 
   const andamentoPorAplicacao = await calcularAndamentos(supabase, pendencias);
 
@@ -133,8 +140,7 @@ async function calcularAndamentos(
 }
 
 function AplicacaoRow({ a, andamento }: { a: AplicacaoResumo; andamento: Andamento | undefined }) {
-  const candidatoExterno = primeiro(a.candidatos_externos);
-  const nome = a.colaborador_snapshot?.nome ?? candidatoExterno?.nome ?? "Candidato externo";
+  const nome = nomePessoa(a);
   const nota = andamento?.notaParcial ?? a.nota_geral;
   const notaMinima = andamento?.notaMinima ?? null;
   const corNota =
