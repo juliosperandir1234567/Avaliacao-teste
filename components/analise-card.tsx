@@ -7,7 +7,7 @@ export function AnaliseCard({ analise }: { analise: AnaliseAvaliacao }) {
   if (analise.secoes.length === 0) return null;
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base">Análise da avaliação</CardTitle>
         {analise.status ? (
           <span className="text-sm font-bold" style={{ color: analise.status.cor }}>

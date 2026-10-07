@@ -168,15 +168,15 @@ export default async function RaioXPage({
       </Card>
 
       <Card>
-        <CardHeader className="flex-row flex-wrap items-center justify-center gap-8 text-center">
+        <CardHeader className="flex flex-wrap items-center justify-center gap-x-12 gap-y-2 py-1 text-center">
           <div>
             <CardTitle className="text-sm font-normal text-muted-foreground">Nota Geral</CardTitle>
-            <p className="text-4xl font-bold">{notaGeral !== null ? notaGeral.toFixed(1) : "-"}</p>
+            <p className="text-3xl font-bold leading-tight">{notaGeral !== null ? notaGeral.toFixed(1) : "-"}</p>
           </div>
           {aplicacao.parecer_gestor ? (
             <div>
               <CardTitle className="text-sm font-normal text-muted-foreground">Parecer do gestor</CardTitle>
-              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_gestor)}`}>
+              <p className={`text-2xl font-bold leading-tight ${corParecer(aplicacao.parecer_gestor)}`}>
                 {PARECER_LABELS[aplicacao.parecer_gestor]}
               </p>
             </div>
@@ -186,7 +186,7 @@ export default async function RaioXPage({
               <CardTitle className="text-sm font-normal text-muted-foreground">
                 {aplicacao.parecer_gestor ? "Parecer do avaliador" : "Status"}
               </CardTitle>
-              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_final)}`}>
+              <p className={`text-2xl font-bold leading-tight ${corParecer(aplicacao.parecer_final)}`}>
                 {PARECER_LABELS[aplicacao.parecer_final as Parecer]}
               </p>
             </div>
