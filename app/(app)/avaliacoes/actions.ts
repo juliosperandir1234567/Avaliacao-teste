@@ -297,7 +297,7 @@ export async function saveAvaliacaoBuilder(
     if (state.secoes.every((s) => s.perguntas.length === 0)) {
       return { error: "Adicione ao menos uma pergunta antes de publicar." };
     }
-    const somaPontos = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
+    const somaPontos = state.secoes.reduce((acc, s) => Math.round((acc + Number(s.peso || 0)) * 100) / 100, 0);
     if (Math.abs(somaPontos - 10) > 0.05) {
       return { error: `A soma dos pontos das seções deve ser 10 (atual: ${somaPontos})` };
     }

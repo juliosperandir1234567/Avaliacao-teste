@@ -83,7 +83,7 @@ export function AvaliacaoBuilder({
   );
   const [arquivando, setArquivando] = useState<{ secaoId: string; perguntaId: string } | null>(null);
 
-  const somaPontosSecoes = state.secoes.reduce((acc, s) => acc + Number(s.peso || 0), 0);
+  const somaPontosSecoes = state.secoes.reduce((acc, s) => Math.round((acc + Number(s.peso || 0)) * 100) / 100, 0);
 
   function abrirNovaPergunta(secaoId: string) {
     setEditando({ secaoId, pergunta: novaPergunta(0), isNew: true });
