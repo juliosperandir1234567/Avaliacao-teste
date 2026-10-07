@@ -39,20 +39,21 @@ interface LinhaParsed {
   dados: Partial<Record<keyof LinhaImportacao, string>>;
 }
 
-const COLUNAS_POR_TIPO: Record<TipoPessoa, { campo: keyof LinhaImportacao; label: string }[]> = {
+// Obrigatórios: interno = Código, Nome e Tipo de teste; externo (não tem código) = Nome e Tipo
+// de teste. Função vazia no interno usa a função da avaliação.
+const COLUNAS_POR_TIPO: Record<TipoPessoa, { campo: keyof LinhaImportacao; label: string; obrigatoria?: boolean }[]> = {
   interno: [
-    { campo: "matricula", label: "Matrícula" },
-    { campo: "nome", label: "Nome" },
+    { campo: "matricula", label: "Código", obrigatoria: true },
+    { campo: "nome", label: "Nome", obrigatoria: true },
     { campo: "cargo", label: "Função" },
     { campo: "observacoes", label: "Observação" },
-    { campo: "avaliacaoNome", label: "Tipo de teste" },
+    { campo: "avaliacaoNome", label: "Tipo de teste", obrigatoria: true },
   ],
   externo: [
-    { campo: "matricula", label: "Matrícula" },
-    { campo: "nome", label: "Nome" },
+    { campo: "nome", label: "Nome", obrigatoria: true },
     { campo: "cpf", label: "CPF" },
     { campo: "observacoes", label: "Observação" },
-    { campo: "avaliacaoNome", label: "Tipo de teste" },
+    { campo: "avaliacaoNome", label: "Tipo de teste", obrigatoria: true },
   ],
 };
 
@@ -89,7 +90,7 @@ export function ImportarCandidatosForm() {
   function confirmarImportacao() {
     const payload: LinhaImportacao[] = linhas.map((l) => ({
       tipoPessoa,
-      matricula: l.dados.matricula ?? "",
+      matricula: tipoPessoa === "interno" ? l.dados.matricula : undefined,
       nome: l.dados.nome ?? "",
       cargo: l.dados.cargo,
       cpf: l.dados.cpf,
@@ -118,7 +119,7 @@ export function ImportarCandidatosForm() {
         <CardTitle>Importar candidatos em massa</CardTitle>
         <CardDescription>
           Arquivo CSV com cabeçalho na primeira linha. Colunas esperadas para {tipoPessoa === "interno" ? "teste interno" : "teste externo"}:{" "}
-          {colunas.map((c) => c.label).join(", ")}. A coluna &quot;Tipo de teste&quot; deve ter o nome exato
+          {colunas.map((c) => (c.obrigatoria ? `${c.label} (obrigatória)` : c.label)).join(", ")}. A coluna &quot;Tipo de teste&quot; deve ter o nome exato
           de uma avaliação publicada.
         </CardDescription>
       </CardHeader>

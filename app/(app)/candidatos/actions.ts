@@ -255,12 +255,15 @@ export async function criarAcessoRapido(input: AcessoRapidoInput): Promise<{ err
 
 const linhaImportacaoSchema = z.object({
   tipoPessoa: z.enum(["interno", "externo"]),
-  matricula: maiusc("Matrícula é obrigatória"),
+  matricula: maiuscOpcional(),
   nome: maiusc("Nome é obrigatório"),
   cargo: maiuscOpcional(),
   cpf: maiuscOpcional(),
   observacoes: z.string().trim().optional(),
   avaliacaoNome: z.string().trim().min(1, "Tipo de teste é obrigatório"),
+}).refine((d) => d.tipoPessoa === "externo" || d.matricula, {
+  message: "Código é obrigatório pra teste interno",
+  path: ["matricula"],
 });
 export type LinhaImportacao = z.infer<typeof linhaImportacaoSchema>;
 
@@ -308,33 +311,37 @@ export async function importarCandidatosLote(
     let jaExistia = false;
 
     if (linha.tipoPessoa === "externo") {
-      const { data: existente } = await supabase
-        .from("candidatos_externos")
-        .select("id")
-        .eq("matricula", linha.matricula)
-        .maybeSingle();
+      // Externo não tem código: casa pelo nome (e CPF, se veio), pra reimportar a mesma planilha
+      // não duplicar a pessoa.
+      let busca = supabase.from("candidatos_externos").select("id").eq("nome", linha.nome);
+      if (linha.cpf) busca = busca.eq("cpf", linha.cpf);
+      const { data: existente } = await busca.limit(1).maybeSingle();
       jaExistia = Boolean(existente);
-      const resultado = await upsertCandidatoExterno(supabase, linha, avaliacao.funcao, profile.id);
+      const resultado = existente
+        ? await supabase
+            .from("candidatos_externos")
+            .update({ cpf: linha.cpf || null, observacoes: linha.observacoes || null })
+            .eq("id", existente.id)
+            .then(({ error }) => (error ? { ok: false as const, error: error.message } : { ok: true as const, id: existente.id as string }))
+        : await upsertCandidatoExterno(supabase, { ...linha, matricula: null }, avaliacao.funcao, profile.id);
       if (!resultado.ok) {
         erros.push({ linha: numeroLinha, motivo: resultado.error });
         continue;
       }
       candidatoExternoId = resultado.id;
     } else {
-      if (!linha.cargo) {
-        erros.push({ linha: numeroLinha, motivo: "Função é obrigatória pra teste interno." });
-        continue;
-      }
+      const matricula = linha.matricula!;
       const { data: existente } = await supabase
         .from("colaboradores")
         .select("id")
-        .eq("matricula", linha.matricula)
+        .eq("matricula", matricula)
         .maybeSingle();
       jaExistia = Boolean(existente);
       const resultado = await upsertColaborador(supabase, {
-        matricula: linha.matricula,
+        matricula,
         nome: linha.nome,
-        cargo: linha.cargo,
+        // Função é opcional na planilha -- sem ela, usa a função da avaliação (como o acesso rápido).
+        cargo: linha.cargo || avaliacao.funcao,
         estrutura: "-",
         observacoes: linha.observacoes,
       });
