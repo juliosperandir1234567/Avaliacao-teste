@@ -5,6 +5,8 @@ import {
   View,
   Image,
   StyleSheet,
+  Svg,
+  Line,
 } from "@react-pdf/renderer";
 import {
   APLICACAO_STATUS_LABELS,
@@ -158,7 +160,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  checklistX: { fontSize: 6.5, fontWeight: 700, marginTop: 0.5 },
   analiseGrupoTitulo: { fontSize: 8, color: "#6b7280", marginBottom: 2 },
   analiseChips: { flexDirection: "row", flexWrap: "wrap", gap: 3 },
   analiseChip: {
@@ -613,7 +614,13 @@ export function RelatorioDocument({
                             return (
                               <View key={valor} style={styles.checklistOpcao}>
                                 <View style={[styles.checklistCaixa, marcada ? { borderColor: cor } : {}]}>
-                                  {marcada ? <Text style={[styles.checklistX, { color: cor }]}>X</Text> : null}
+                                  {marcada ? (
+                                    // X desenhado em linhas: um "X" de texto não cabe na caixinha de 8pt e some.
+                                    <Svg width={6} height={6} viewBox="0 0 6 6">
+                                      <Line x1="0.5" y1="0.5" x2="5.5" y2="5.5" stroke={cor} strokeWidth={1.3} />
+                                      <Line x1="5.5" y1="0.5" x2="0.5" y2="5.5" stroke={cor} strokeWidth={1.3} />
+                                    </Svg>
+                                  ) : null}
                                 </View>
                                 <Text style={marcada ? { color: cor, fontWeight: 700 } : { color: "#6b7280" }}>
                                   {rotulo}
