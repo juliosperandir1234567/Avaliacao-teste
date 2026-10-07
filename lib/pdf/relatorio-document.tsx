@@ -31,6 +31,13 @@ const CHECKLIST_STATUS_LABELS: Record<ChecklistEscala, Record<ChecklistStatus, s
   zero_cinco_dez_na: { sim: "10", nao: "0", parcial: "5", nao_avaliado: "N.A." },
 };
 
+/** Colunas do checklist no PDF, na ordem da prova, por escala da seção. */
+const OPCOES_CHECKLIST: Record<ChecklistEscala, [ChecklistStatus, string][]> = {
+  sim_nao: [["sim", "Sim"], ["nao", "Não"]],
+  sim_nao_na: [["sim", "Sim"], ["nao", "Não"], ["nao_avaliado", "N.A."]],
+  zero_cinco_dez_na: [["sim", "10"], ["parcial", "5"], ["nao", "0"], ["nao_avaliado", "N.A."]],
+};
+
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827" },
   headerCard: {
@@ -139,6 +146,19 @@ const styles = StyleSheet.create({
   analiseBarraLabel: { width: 95, textAlign: "right", fontWeight: 700, fontSize: 8.5 },
   analiseTituloLista: { fontWeight: 700, marginTop: 8, marginBottom: 2 },
   analiseItem: { marginLeft: 8, marginBottom: 1.5 },
+  checklistLinha: { paddingVertical: 2.5, borderBottom: "0.5 solid #e5e7eb" },
+  checklistLinhaTopo: { flexDirection: "row", alignItems: "center", gap: 8 },
+  checklistItem: { flex: 1, fontWeight: 600 },
+  checklistOpcoes: { flexDirection: "row", gap: 8 },
+  checklistOpcao: { flexDirection: "row", alignItems: "center", gap: 2.5 },
+  checklistCaixa: {
+    width: 8,
+    height: 8,
+    border: "0.7 solid #9ca3af",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checklistX: { fontSize: 6.5, fontWeight: 700, marginTop: 0.5 },
   analiseGrupoTitulo: { fontSize: 8, color: "#6b7280", marginBottom: 2 },
   analiseChips: { flexDirection: "row", flexWrap: "wrap", gap: 3 },
   analiseChip: {
@@ -272,7 +292,14 @@ function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
       ) : null}
       <View style={styles.analiseParecer}>
         <Text style={{ fontWeight: 700, marginBottom: 2 }}>Parecer</Text>
-        <Text style={{ lineHeight: 1.35 }}>{analise.parecer}</Text>
+        {analise.parecer
+          .split(/\n+/)
+          .filter((p) => p.trim())
+          .map((p, i) => (
+            <Text key={i} style={{ marginBottom: 2.5 }}>
+              {p.trim()}
+            </Text>
+          ))}
       </View>
     </View>
   );
@@ -436,7 +463,6 @@ export function RelatorioDocument({
                 </>
               ) : (
                 <>
-                  <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
                   <FieldLine label="Candidato" value={pessoaNome} />
                   <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
                   {candidatoExterno?.observacoes ? (
@@ -576,18 +602,27 @@ export function RelatorioDocument({
                     r?.resposta && "status" in r.resposta
                       ? r.resposta.status
                       : null;
-                  const corStatus =
-                    status === "sim"
-                      ? styles.correto
-                      : status === "nao"
-                        ? styles.errado
-                        : undefined;
                   return (
-                    <View key={p.id} style={styles.pergunta}>
-                      <Text style={styles.perguntaTitulo}>{p.enunciado}</Text>
-                      <Text style={corStatus}>
-                        {respostaTexto(p, r, alternativasTexto, secao.escala_checklist)}
-                      </Text>
+                    <View key={p.id} style={styles.checklistLinha} wrap={false}>
+                      <View style={styles.checklistLinhaTopo}>
+                        <Text style={styles.checklistItem}>{p.enunciado.trim()}</Text>
+                        <View style={styles.checklistOpcoes}>
+                          {OPCOES_CHECKLIST[secao.escala_checklist ?? "sim_nao"].map(([valor, rotulo]) => {
+                            const marcada = status === valor;
+                            const cor = valor === "sim" ? "#15803d" : valor === "nao" ? "#b91c1c" : "#374151";
+                            return (
+                              <View key={valor} style={styles.checklistOpcao}>
+                                <View style={[styles.checklistCaixa, marcada ? { borderColor: cor } : {}]}>
+                                  {marcada ? <Text style={[styles.checklistX, { color: cor }]}>X</Text> : null}
+                                </View>
+                                <Text style={marcada ? { color: cor, fontWeight: 700 } : { color: "#6b7280" }}>
+                                  {rotulo}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
                       {r?.observacao ? (
                         <Text style={styles.perguntaMeta}>
                           Obs: {r.observacao}

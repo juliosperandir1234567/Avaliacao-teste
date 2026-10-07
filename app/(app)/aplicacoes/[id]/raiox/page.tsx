@@ -152,7 +152,6 @@ export default async function RaioXPage({
               </>
             ) : (
               <>
-                <FieldLine label="Matrícula" value={candidatoExterno?.matricula ?? "-"} />
                 <FieldLine label="CPF" value={candidatoExterno?.cpf ?? "-"} />
                 <FieldLine label="Tipo de teste / Função pretendida" value={candidatoExterno?.funcao_pretendida ?? "-"} />
                 {candidatoExterno?.observacoes ? (
