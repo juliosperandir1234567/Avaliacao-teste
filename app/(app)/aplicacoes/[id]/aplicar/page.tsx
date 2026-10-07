@@ -75,6 +75,9 @@ export default async function AplicarPage({
       assinaturaAvaliadorPathInicial={data.aplicacao.assinatura_avaliador_path}
       observacaoFinalInicial={observacaoFinalInicial}
       fotoCnhPathInicial={data.aplicacao.foto_cnh_path}
+      tipoPessoa={data.aplicacao.tipo_pessoa}
+      funcaoAvaliada={data.aplicacao.funcao_avaliada}
+      parecerTextoInicial={data.aplicacao.parecer_texto ?? null}
     />
   );
 }

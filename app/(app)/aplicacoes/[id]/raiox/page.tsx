@@ -39,7 +39,14 @@ export default async function RaioXPage({
   // desatualizado quando uma pergunta foi editada depois que a prova já tinha sido respondida.
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
-  const analise = gerarAnaliseAvaliacao(secoes, perguntas, respostas, (aplicacao.parecer_final as Parecer | null) ?? null);
+  const analise = gerarAnaliseAvaliacao(
+    secoes,
+    perguntas,
+    respostas,
+    (aplicacao.parecer_final as Parecer | null) ?? null,
+    { tipoPessoa: aplicacao.tipo_pessoa, funcao: aplicacao.funcao_avaliada }
+  );
+  const podeEditarParecer = profile.role === "admin" || profile.role === "avaliador" || profile.role === "gestor";
 
   const supabase = await createClient();
   const { data: avaliadorProfile } = aplicacao.avaliador_id
@@ -234,7 +241,11 @@ export default async function RaioXPage({
         </Card>
       ) : null}
 
-      <AnaliseCard analise={analise} />
+      <AnaliseCard
+        analise={analise}
+        textoSalvo={aplicacao.parecer_texto ?? null}
+        edicao={podeEditarParecer ? { aplicacaoId: id, textoSalvo: aplicacao.parecer_texto ?? null } : undefined}
+      />
 
       <Card>
         <CardHeader>

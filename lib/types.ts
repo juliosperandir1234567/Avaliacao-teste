@@ -257,6 +257,8 @@ export interface AvaliacaoAplicada {
   parecer_final: Parecer | null;
   parecer_justificativa: string | null;
   observacao_gestor: string | null;
+  /** Parecer da análise editado à mão; null = usa o texto automático (lib/analise.ts). */
+  parecer_texto?: string | null;
   finalizada_em: string | null;
   finalizada_por: string | null;
   assinatura_avaliado_path: string | null;

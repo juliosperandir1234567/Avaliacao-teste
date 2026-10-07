@@ -261,7 +261,7 @@ function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
       ) : null}
       <View style={styles.analiseParecer}>
         <Text style={{ fontWeight: 700, marginBottom: 2 }}>Parecer</Text>
-        <Text>{analise.parecer}</Text>
+        <Text style={{ lineHeight: 1.35 }}>{analise.parecer}</Text>
       </View>
     </View>
   );
@@ -378,7 +378,15 @@ export function RelatorioDocument({
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
   const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
-  const analise = gerarAnaliseAvaliacao(secoes, perguntas, respostas, (aplicacao.parecer_final as Parecer | null) ?? null);
+  const analise = gerarAnaliseAvaliacao(
+    secoes,
+    perguntas,
+    respostas,
+    (aplicacao.parecer_final as Parecer | null) ?? null,
+    { tipoPessoa: aplicacao.tipo_pessoa, funcao: aplicacao.funcao_avaliada }
+  );
+  // Parecer editado à mão pelo avaliador substitui o automático.
+  if (aplicacao.parecer_texto) analise.parecer = aplicacao.parecer_texto;
 
   return (
     <Document>

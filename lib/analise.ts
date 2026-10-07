@@ -145,129 +145,239 @@ function statusDaAnalise(parecer: Parecer | null, notaGeral: number | null) {
   return { label: PARECER_LABELS[parecer], cor };
 }
 
+/** Contexto da pessoa avaliada, usado só pra redigir o parecer. */
+export interface ContextoParecer {
+  tipoPessoa?: "interno" | "externo" | null;
+  funcao?: string | null;
+}
+
+type CategoriaSecao = "teorica" | "inspecao" | "operacao" | "tecnologia" | "outra";
+
+/** Dados de uma seção já apurados, base dos pontos fortes/a melhorar e do parecer. */
+interface SecaoApurada extends AnaliseSecao {
+  categoria: CategoriaSecao;
+  questoesTotal: number;
+  questoesAcertos: number;
+  checklistTotal: number;
+  checklistOk: number;
+  falhas: ItemMelhorar[];
+}
+
+/** Classifica a seção pelo conteúdo/nome, pra escolher como ela é descrita no parecer. */
+function categoriaDaSecao(nome: string, soQuestoes: boolean): CategoriaSecao {
+  if (soQuestoes) return "teorica";
+  const n = nome.toLowerCase();
+  if (/verifica|inspe|check/.test(n)) return "inspecao";
+  if (/tecnolog|piloto|embarcad/.test(n)) return "tecnologia";
+  if (/comport|opera|condu|pr[aá]tic|manobr/.test(n)) return "operacao";
+  return "outra";
+}
+
+const NOME_AREA: Record<CategoriaSecao, string | null> = {
+  teorica: "conhecimento teórico",
+  inspecao: "inspeção pré-operacional",
+  operacao: "práticas de operação",
+  tecnologia: "tecnologia embarcada",
+  outra: null,
+};
+
 export function gerarAnaliseAvaliacao(
   secoes: AvaliacaoSecao[],
   perguntas: AvaliacaoPergunta[],
   respostas: Resposta[],
-  parecer: Parecer | null
+  parecer: Parecer | null,
+  contexto: ContextoParecer = {}
 ): AnaliseAvaliacao {
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
 
-  const analiseSecoes: AnaliseSecao[] = [];
-  const pontosFortes: string[] = [];
-  const pontosMelhorar: GrupoMelhorar[] = [];
-
-  if (falhasCriticas.length > 0) {
-    pontosMelhorar.push({
-      titulo: "Falhas críticas",
-      itens: falhasCriticas.map((f) => ({ destaque: "Falha crítica:", texto: f.pergunta.enunciado.trim() })),
-    });
-  }
-
+  const apuradas: SecaoApurada[] = [];
   for (const secao of [...secoes].sort((a, b) => a.ordem - b.ordem)) {
     const nota = calcularNotaSecao(secao.id, perguntas, respostas);
     if (nota === null) continue;
     const percentual = Math.round(nota * 10);
-    const nivel = nivelDoPercentual(percentual);
-    analiseSecoes.push({ nome: secao.nome, percentual, nivel });
 
-    const perguntasSecao = perguntas
-      .filter((p) => p.secao_id === secao.id)
-      .sort((a, b) => a.ordem - b.ordem);
-
-    // Checklist: lista os itens pelo nome. Questões (múltipla escolha etc.) têm enunciado longo,
-    // então entram só como contagem de acertos.
-    const checklistOk: string[] = [];
-    const checklistFalha: ItemMelhorar[] = [];
     let questoesTotal = 0;
     let questoesAcertos = 0;
-    for (const p of perguntasSecao) {
+    let checklistTotal = 0;
+    let checklistOk = 0;
+    const falhas: ItemMelhorar[] = [];
+    for (const p of perguntas.filter((p) => p.secao_id === secao.id).sort((a, b) => a.ordem - b.ordem)) {
       const r = respostaPorPergunta.get(p.id);
       if (!r || r.pontuacao === null) continue;
       if (p.tipo === "checklist") {
         const status = r.resposta && "status" in r.resposta ? r.resposta.status : null;
-        if (status === "sim") checklistOk.push(p.enunciado);
-        else if (status === "parcial") checklistFalha.push({ destaque: "Parcial:", texto: p.enunciado.trim() });
-        else if (status === "nao") checklistFalha.push(itemNegado(p.enunciado));
+        checklistTotal += 1;
+        if (status === "sim") checklistOk += 1;
+        else if (status === "parcial") falhas.push({ destaque: "Parcial:", texto: p.enunciado.trim() });
+        else if (status === "nao") falhas.push(itemNegado(p.enunciado));
       } else {
         questoesTotal += 1;
         if (r.pontuacao >= 10) questoesAcertos += 1;
       }
     }
 
-    const itensMelhorar: ItemMelhorar[] = [];
-    if (questoesTotal > 0) {
-      if (questoesAcertos === questoesTotal) {
-        pontosFortes.push(
-          `${secao.nome}: acertou ${questoesTotal === 1 ? "a questão" : `todas as ${questoesTotal} questões`}`
-        );
-      } else {
-        if (nivel === "atencao") {
-          itensMelhorar.push({ destaque: "Errou", texto: `${questoesTotal - questoesAcertos} de ${questoesTotal} questões` });
-        } else {
-          pontosFortes.push(`${secao.nome}: acertou ${questoesAcertos} de ${questoesTotal} questões`);
-        }
-      }
+    apuradas.push({
+      nome: secao.nome,
+      percentual,
+      nivel: nivelDoPercentual(percentual),
+      categoria: categoriaDaSecao(secao.nome, checklistTotal === 0),
+      questoesTotal,
+      questoesAcertos,
+      checklistTotal,
+      checklistOk,
+      falhas,
+    });
+  }
+
+  // Pontos fortes: só a contagem por seção (os itens um a um ficam nos pontos a melhorar).
+  const pontosFortes: string[] = [];
+  for (const s of apuradas) {
+    if (s.nivel === "atencao") continue;
+    if (s.questoesTotal > 0) {
+      pontosFortes.push(
+        s.questoesAcertos === s.questoesTotal
+          ? `${s.nome}: acertou todas as ${s.questoesTotal} questões`
+          : `${s.nome}: acertou ${s.questoesAcertos} de ${s.questoesTotal} questões`
+      );
     }
-    if (checklistOk.length > 0 && nivel !== "atencao") {
-      pontosFortes.push(`${secao.nome}: ${juntarLista(checklistOk.map(minusculaInicial))}`);
+    if (s.checklistTotal > 0) {
+      pontosFortes.push(
+        s.checklistOk === s.checklistTotal
+          ? `${s.nome}: atendeu todos os ${s.checklistTotal} itens`
+          : `${s.nome}: atendeu ${s.checklistOk} de ${s.checklistTotal} itens (${s.percentual}%)`
+      );
     }
-    itensMelhorar.push(...checklistFalha);
-    if (itensMelhorar.length > 0) pontosMelhorar.push({ titulo: secao.nome, itens: itensMelhorar });
+  }
+
+  const pontosMelhorar: GrupoMelhorar[] = [];
+  if (falhasCriticas.length > 0) {
+    pontosMelhorar.push({
+      titulo: "Falhas críticas",
+      itens: falhasCriticas.map((f) => ({ destaque: "Falha crítica:", texto: f.pergunta.enunciado.trim() })),
+    });
+  }
+  for (const s of apuradas) {
+    const itens: ItemMelhorar[] = [];
+    if (s.questoesTotal > 0 && s.questoesAcertos < s.questoesTotal && s.nivel === "atencao") {
+      itens.push({ destaque: "Errou", texto: `${s.questoesTotal - s.questoesAcertos} de ${s.questoesTotal} questões` });
+    }
+    itens.push(...s.falhas);
+    if (itens.length > 0) pontosMelhorar.push({ titulo: s.nome, itens });
   }
 
   return {
     status: statusDaAnalise(parecer, notaGeral),
-    secoes: analiseSecoes,
+    secoes: apuradas.map(({ nome, percentual, nivel }) => ({ nome, percentual, nivel })),
     pontosFortes,
     pontosMelhorar,
-    parecer: montarParecer(notaGeral, analiseSecoes, falhasCriticas.length, parecer),
+    parecer: montarParecer(
+      notaGeral,
+      apuradas,
+      falhasCriticas.map((f) => f.pergunta.enunciado.trim()),
+      parecer,
+      contexto
+    ),
   };
 }
 
 /** Pareceres em que a pessoa não segue na função: aí não cabe recomendar treinamento. */
 const PARECERES_SEM_RECOMENDACAO: Parecer[] = ["reprovado", "nao_recomendado", "nova_avaliacao"];
 
+const ITEM_DE_SEGURANCA = /cinto|extintor|epi\b|seguran/i;
+
+function formatarNota(n: number) {
+  return n.toFixed(1).replace(".", ",");
+}
+
+/** Frase de uma falha dentro do texto corrido: "não usou o cinto", "descansou o pé...". */
+function falhaEmFrase(item: ItemMelhorar): string {
+  if (item.destaque === "Parcial:") return `atendeu apenas parcialmente o item ${minusculaInicial(item.texto)}`;
+  if (item.destaque === "Não") return `não ${item.texto}`;
+  return minusculaInicial(item.texto);
+}
+
+const ABERTURA_SECAO: Record<Exclude<CategoriaSecao, "teorica" | "outra">, string> = {
+  inspecao: "Na inspeção pré-operacional",
+  operacao: "Durante a operação",
+  tecnologia: "Quanto à tecnologia embarcada",
+};
+
+/** Parágrafo de uma seção, em terceira pessoa. */
+function paragrafoSecao(s: SecaoApurada): string {
+  if (s.categoria === "teorica") {
+    const base = `Na parte teórica, acertou ${s.questoesAcertos} de ${s.questoesTotal} questões`;
+    if (s.questoesAcertos === s.questoesTotal) return `${base}, demonstrando domínio dos procedimentos avaliados.`;
+    if (s.percentual >= LIMITE_ADEQUADO) return `${base}, demonstrando bom conhecimento, com pontos a revisar.`;
+    return `${base}, o que indica a necessidade de consolidar os procedimentos básicos de operação e manutenção.`;
+  }
+
+  const abertura = s.categoria === "outra" ? `Em ${s.nome}` : ABERTURA_SECAO[s.categoria];
+  const frases: string[] = [];
+  if (s.checklistOk === s.checklistTotal) {
+    frases.push(`${abertura}, atendeu todos os ${s.checklistTotal} itens avaliados.`);
+  } else {
+    const quantidade =
+      s.percentual >= LIMITE_ADEQUADO
+        ? "a maior parte dos itens"
+        : s.checklistOk > 0
+          ? "apenas parte dos itens"
+          : "nenhum dos itens";
+    frases.push(`${abertura}, atendeu ${quantidade} avaliados (${s.checklistOk} de ${s.checklistTotal}).`);
+  }
+
+  // Itens de conferência ("Não verificou faróis") viram uma frase só; as demais falhas, outra.
+  const ehConferencia = (f: ItemMelhorar) => f.destaque === "Não" && f.texto.startsWith("verificou ");
+  const naoConferidos = s.falhas.filter(ehConferencia).map((f) => f.texto.slice("verificou ".length));
+  const outras = s.falhas.filter((f) => !ehConferencia(f)).map(falhaEmFrase);
+  if (naoConferidos.length > 0) frases.push(`Deixou de verificar ${juntarLista(naoConferidos)}.`);
+  if (outras.length > 0) frases.push(`${naoConferidos.length > 0 ? "Também" : "Porém,"} ${juntarLista(outras)}.`);
+  return frases.join(" ");
+}
+
 function montarParecer(
   notaGeral: number | null,
-  secoes: AnaliseSecao[],
-  qtdFalhasCriticas: number,
-  parecer: Parecer | null
+  secoes: SecaoApurada[],
+  falhasCriticas: string[],
+  parecer: Parecer | null,
+  contexto: ContextoParecer
 ): string {
   if (notaGeral === null || secoes.length === 0) return "Sem respostas suficientes para gerar a análise.";
 
-  const fortes = secoes.filter((s) => s.nivel === "forte").map((s) => s.nome);
-  const adequadas = secoes.filter((s) => s.nivel === "adequado").map((s) => s.nome);
-  const atencao = secoes.filter((s) => s.nivel === "atencao").map((s) => s.nome);
-
-  const frases: string[] = [];
+  const sujeito = contexto.tipoPessoa === "externo" ? "O candidato" : "O colaborador";
   const desempenho =
-    notaGeral >= 8 ? "bom desempenho geral" : notaGeral >= 6 ? "desempenho satisfatório" : "desempenho abaixo do esperado";
-  let abertura = `Avaliado com ${desempenho} (nota ${notaGeral.toFixed(1).replace(".", ",")})`;
-  if (fortes.length > 0) abertura += `, com destaque em ${juntarLista(fortes)}`;
-  frases.push(`${abertura}.`);
+    notaGeral >= 8 ? "bom desempenho" : notaGeral >= 6 ? "desempenho satisfatório" : "desempenho abaixo do esperado";
+  const naFuncao = contexto.funcao ? ` na avaliação de ${contexto.funcao}` : " na avaliação";
 
-  if (atencao.length > 0) {
-    frases.push(`Apresentou deficiências em ${juntarLista(atencao)}.`);
-  }
-  if (adequadas.length > 0) {
-    frases.push(`Em ${juntarLista(adequadas)}, o resultado foi adequado, mas com pontos a corrigir.`);
-  }
-  if (qtdFalhasCriticas > 0) {
-    frases.push(
-      `Registrou ${qtdFalhasCriticas} falha${qtdFalhasCriticas > 1 ? "s" : ""} crítica${qtdFalhasCriticas > 1 ? "s" : ""}, que exige${qtdFalhasCriticas > 1 ? "m" : ""} atenção imediata.`
+  const paragrafos: string[] = [
+    `${sujeito} obteve nota final de ${formatarNota(notaGeral)}, com ${desempenho}${naFuncao}.`,
+  ];
+  if (falhasCriticas.length > 0) {
+    paragrafos.push(
+      `Registrou falha crítica em ${juntarLista(falhasCriticas.map(minusculaInicial))}, o que exige atenção imediata.`
     );
   }
+  paragrafos.push(...secoes.map(paragrafoSecao));
 
-  if (parecer && PARECERES_SEM_RECOMENDACAO.includes(parecer)) return frases.join(" ");
-
-  const reciclagem = [...atencao, ...adequadas];
-  if (reciclagem.length > 0) {
-    frases.push(`Recomenda-se acompanhamento ou reciclagem em ${juntarLista(reciclagem)}.`);
-  } else {
-    frases.push("Não há recomendações de reciclagem.");
+  if (parecer && PARECERES_SEM_RECOMENDACAO.includes(parecer)) {
+    paragrafos.push(
+      parecer === "nova_avaliacao"
+        ? `Diante dos resultados apresentados, recomenda-se que ${sujeito.toLowerCase()} passe por nova avaliação.`
+        : `Diante dos resultados apresentados, ${sujeito.toLowerCase()} não atingiu o desempenho mínimo exigido para a função.`
+    );
+    return paragrafos.join("\n\n");
   }
-  return frases.join(" ");
+
+  const areas = [...new Set(secoes.filter((s) => s.nivel !== "forte").map((s) => NOME_AREA[s.categoria] ?? s.nome))];
+  const falhouSeguranca = secoes.some((s) => s.falhas.some((f) => ITEM_DE_SEGURANCA.test(f.texto)));
+  if (areas.length === 0) {
+    paragrafos.push(`${sujeito} demonstrou estar apto a desempenhar a função, sem necessidade de reciclagem.`);
+  } else {
+    paragrafos.push(
+      `Recomenda-se reciclagem em ${juntarLista(areas)}` +
+        (falhouSeguranca ? ", com atenção especial aos itens de segurança não atendidos." : ".")
+    );
+  }
+  return paragrafos.join("\n\n");
 }

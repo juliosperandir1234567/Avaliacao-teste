@@ -236,6 +236,22 @@ export async function salvarObservacaoFinal(aplicacaoId: string, texto: string) 
   return { success: true };
 }
 
+/** Grava o parecer da análise editado à mão. `texto` null volta pro texto automático. */
+export async function salvarParecerTexto(aplicacaoId: string, texto: string | null) {
+  const supabase = await createClient();
+  const { data: atualizada, error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .update({ parecer_texto: texto?.trim() || null })
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!atualizada) return { error: "Não foi possível salvar o parecer: você não tem permissão para atualizar esta avaliação." };
+  revalidatePath(`/aplicacoes/${aplicacaoId}/raiox`);
+  return { success: true };
+}
+
 /** Grava a foto da CNH assim que enviada (antes de finalizar) -- mesmo motivo de salvarAssinatura:
  * sem isso ela só existia no estado local do runner e sumia se o avaliador saísse da tela de
  * resumo antes de finalizar. */

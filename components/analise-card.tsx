@@ -1,9 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao } from "@/lib/analise";
+import { ParecerEditavel } from "@/components/parecer-editavel";
 
 /** Card da análise automática (barras por seção, pontos fortes/a melhorar e parecer). Usado no
- * Raio-X e na tela de finalização, antes da assinatura do avaliador. */
-export function AnaliseCard({ analise }: { analise: AnaliseAvaliacao }) {
+ * Raio-X e na tela de finalização, antes da assinatura do avaliador. Com `edicao`, o parecer
+ * pode ser reescrito; sem, mostra `textoSalvo` (parecer já editado) ou o automático. */
+export function AnaliseCard({
+  analise,
+  edicao,
+  textoSalvo = null,
+}: {
+  analise: AnaliseAvaliacao;
+  edicao?: { aplicacaoId: string; textoSalvo: string | null };
+  textoSalvo?: string | null;
+}) {
   if (analise.secoes.length === 0) return null;
   return (
     <Card>
@@ -73,7 +83,15 @@ export function AnaliseCard({ analise }: { analise: AnaliseAvaliacao }) {
 
         <div className="flex flex-col gap-1 border-t pt-3">
           <p className="font-semibold">Parecer</p>
-          <p className="text-muted-foreground">{analise.parecer}</p>
+          {edicao ? (
+            <ParecerEditavel
+              aplicacaoId={edicao.aplicacaoId}
+              textoAutomatico={analise.parecer}
+              textoSalvo={edicao.textoSalvo}
+            />
+          ) : (
+            <p className="whitespace-pre-line text-muted-foreground">{textoSalvo ?? analise.parecer}</p>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -102,6 +102,9 @@ export function AplicacaoRunner({
   assinaturaAvaliadorPathInicial = null,
   observacaoFinalInicial = null,
   fotoCnhPathInicial = null,
+  tipoPessoa = null,
+  funcaoAvaliada = null,
+  parecerTextoInicial = null,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -117,6 +120,9 @@ export function AplicacaoRunner({
   assinaturaAvaliadorPathInicial?: string | null;
   observacaoFinalInicial?: string | null;
   fotoCnhPathInicial?: string | null;
+  tipoPessoa?: "interno" | "externo" | null;
+  funcaoAvaliada?: string | null;
+  parecerTextoInicial?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -424,7 +430,11 @@ export function AplicacaoRunner({
         {assinaturaAvaliadoPath ? (
           <>
             <AnaliseCard
-              analise={gerarAnaliseAvaliacao(secoes, perguntasVisiveis, respostasComoResposta, parecerFinal)}
+              analise={gerarAnaliseAvaliacao(secoes, perguntasVisiveis, respostasComoResposta, parecerFinal, {
+                tipoPessoa,
+                funcao: funcaoAvaliada,
+              })}
+              edicao={{ aplicacaoId, textoSalvo: parecerTextoInicial }}
             />
             <Button
               variant="outline"
