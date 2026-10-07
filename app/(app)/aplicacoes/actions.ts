@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import {
@@ -235,27 +234,6 @@ export async function salvarObservacaoFinal(aplicacaoId: string, texto: string) 
   if (error) return { error: error.message };
   if (!atualizada) return { error: "Não foi possível salvar a observação: você não tem permissão para atualizar esta avaliação." };
   return { success: true };
-}
-
-/** Confere a senha de quem está logado (o avaliador), sem mexer na sessão atual: usado pra liberar
- * a tela de resultado depois que o avaliado assina, pra ele não ver nota/parecer antes disso. */
-export async function confirmarSenhaUsuarioAtual(senha: string): Promise<{ error?: string }> {
-  if (!senha) return { error: "Digite sua senha." };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) return { error: "Sessão expirada. Entre novamente." };
-
-  const verifyClient = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  );
-  const { error } = await verifyClient.auth.signInWithPassword({ email: user.email, password: senha });
-  // Sem signOut aqui: o padrão dele é "global" e derrubaria a sessão do avaliador no navegador.
-  if (error) return { error: "Senha incorreta." };
-  return {};
 }
 
 /** Grava o parecer da análise editado à mão. `texto` null volta pro texto automático. */
