@@ -14,6 +14,7 @@ import { gerarAnaliseAvaliacao } from "@/lib/analise";
 import { AnaliseCard } from "@/components/analise-card";
 import {
   APLICACAO_STATUS_LABELS,
+  PARECER_LABELS,
   type ChecklistStatus,
   type Parecer,
 } from "@/lib/types";
@@ -170,11 +171,26 @@ export default async function RaioXPage({
         <CardHeader className="flex-row flex-wrap items-center justify-center gap-8 text-center">
           <div>
             <CardTitle className="text-sm font-normal text-muted-foreground">Nota Geral</CardTitle>
-            <p className="text-4xl font-bold">
-              {notaGeral !== null ? notaGeral.toFixed(1) : "-"}
-              <span className="text-lg text-muted-foreground"> / 10</span>
-            </p>
+            <p className="text-4xl font-bold">{notaGeral !== null ? notaGeral.toFixed(1) : "-"}</p>
           </div>
+          {aplicacao.parecer_gestor ? (
+            <div>
+              <CardTitle className="text-sm font-normal text-muted-foreground">Parecer do gestor</CardTitle>
+              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_gestor)}`}>
+                {PARECER_LABELS[aplicacao.parecer_gestor]}
+              </p>
+            </div>
+          ) : null}
+          {aplicacao.parecer_final ? (
+            <div>
+              <CardTitle className="text-sm font-normal text-muted-foreground">
+                {aplicacao.parecer_gestor ? "Parecer do avaliador" : "Status"}
+              </CardTitle>
+              <p className={`text-xl font-bold ${corParecer(aplicacao.parecer_final)}`}>
+                {PARECER_LABELS[aplicacao.parecer_final as Parecer]}
+              </p>
+            </div>
+          ) : null}
         </CardHeader>
         {competencias.length > 0 ? (
           <CardContent className="grid grid-cols-2 gap-2 border-t pt-3 text-sm sm:grid-cols-3">
@@ -267,4 +283,10 @@ function FieldLine({ label, value }: { label: string; value: string }) {
       <span className="font-medium">{value}</span>
     </p>
   );
+}
+
+function corParecer(parecer: Parecer) {
+  if (parecer === "apto") return "text-green-600";
+  if (parecer === "reprovado" || parecer === "nao_recomendado") return "text-destructive";
+  return "";
 }

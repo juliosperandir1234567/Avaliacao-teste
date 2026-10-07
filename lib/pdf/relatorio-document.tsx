@@ -246,16 +246,16 @@ function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
         <>
           <Text style={[styles.analiseTituloLista, { color: NIVEL_CORES.atencao }]}>Pontos a melhorar</Text>
           {analise.pontosMelhorar.map((grupo) => (
-            <View key={grupo.titulo} style={{ marginBottom: 3 }}>
-              <Text style={{ fontWeight: 700, marginBottom: 1.5 }}>{grupo.titulo}</Text>
+            <Text key={grupo.titulo} style={styles.analiseItem}>
+              <Text style={{ fontWeight: 700 }}>{grupo.titulo}: </Text>
               {grupo.itens.map((item, i) => (
-                <Text key={i} style={styles.analiseItem}>
-                  •{" "}
+                <Text key={i}>
+                  {i > 0 ? "  ·  " : ""}
                   {item.destaque ? <Text style={styles.errado}>{item.destaque} </Text> : null}
                   {item.texto}
                 </Text>
               ))}
-            </View>
+            </Text>
           ))}
         </>
       ) : null}
