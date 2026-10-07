@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, ShieldAlert } from "lucide-react";
+import { Camera, Lock, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
@@ -21,11 +21,13 @@ import {
 import { QuestionInput } from "@/components/question-input";
 import { PerguntaImagem } from "@/components/pergunta-imagem";
 import { SignaturePad } from "@/components/signature-pad";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AnaliseCard } from "@/components/analise-card";
 import { gerarAnaliseAvaliacao } from "@/lib/analise";
 import { ChecklistTable } from "@/components/checklist-table";
 import { createClient } from "@/utils/supabase/client";
 import {
+  confirmarSenhaUsuarioAtual,
   finalizarAplicacao,
   interromperPorSeguranca,
   salvarAssinatura,
@@ -179,6 +181,10 @@ export function AplicacaoRunner({
   const [observacaoFinal, setObservacaoFinal] = useState(observacaoFinalInicial ?? "");
   const [parecerEscolhido, setParecerEscolhido] = useState<Parecer | null>(null);
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
+  // Resultado (nota/parecer/análise) só aparece depois que o avaliador libera com a senha.
+  const [liberadoAvaliador, setLiberadoAvaliador] = useState(false);
+  const [liberarAberto, setLiberarAberto] = useState(false);
+  const [senhaLiberar, setSenhaLiberar] = useState("");
   const [fotoCnhPath, setFotoCnhPath] = useState<string | null>(fotoCnhPathInicial);
   const [enviandoFotoCnh, setEnviandoFotoCnh] = useState(false);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -370,6 +376,96 @@ export function AplicacaoRunner({
     });
     const parecerFinal = parecerEscolhido ?? parecerSugerido;
 
+    // Etapa 1: o avaliado só vê a confirmação de que a prova acabou e assina. Nota, parecer e
+    // análise ficam escondidos até o avaliador liberar com a própria senha (etapa 2).
+    if (!liberadoAvaliador) {
+      return (
+        <div className="mx-auto flex max-w-xl flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Avaliação concluída</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm">
+              <p>
+                <span className="font-medium">{pessoaNome}</span>, sua avaliação de{" "}
+                <span className="font-medium">{tituloAvaliacao}</span> foi concluída ({respondidas} de {totalItens}{" "}
+                itens). Confira seus dados e assine abaixo.
+              </p>
+              {naoAvaliados > 0 ? (
+                <p className="text-xs text-destructive">
+                  Ainda há {naoAvaliados} item(ns) sem resposta. O avaliador precisa revisar antes da assinatura.
+                </p>
+              ) : (
+                <div className="border-t pt-3">
+                  <SignaturePad
+                    label="Assinatura do avaliado"
+                    captured={Boolean(assinaturaAvaliadoPath)}
+                    onCapture={(blob) => capturarAssinatura("avaliado", blob)}
+                  />
+                </div>
+              )}
+              <div className="flex justify-between gap-2 pt-2">
+                <Button variant="outline" onClick={() => setMostrarResumo(false)}>
+                  Revisar
+                </Button>
+                <Button
+                  disabled={enviandoAssinatura || !assinaturaAvaliadoPath || naoAvaliados > 0}
+                  onClick={() => setLiberarAberto(true)}
+                >
+                  <Lock className="size-4" /> Liberar para o avaliador
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Dialog
+            open={liberarAberto}
+            onOpenChange={(v) => {
+              setLiberarAberto(v);
+              if (!v) setSenhaLiberar("");
+            }}
+          >
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Liberar resultado</DialogTitle>
+              </DialogHeader>
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  startTransition(async () => {
+                    const result = await confirmarSenhaUsuarioAtual(senhaLiberar);
+                    if (result.error) {
+                      toast.error(result.error);
+                      return;
+                    }
+                    setSenhaLiberar("");
+                    setLiberarAberto(false);
+                    setLiberadoAvaliador(true);
+                  });
+                }}
+              >
+                <p className="text-sm text-muted-foreground">
+                  Digite a sua senha de avaliador para ver a nota, o parecer e finalizar a avaliação.
+                </p>
+                <Input
+                  type="password"
+                  autoFocus
+                  autoComplete="current-password"
+                  value={senhaLiberar}
+                  onChange={(e) => setSenhaLiberar(e.target.value)}
+                  placeholder="Senha"
+                />
+                <Button type="submit" disabled={pending || !senhaLiberar}>
+                  {pending ? "Conferindo..." : "Liberar"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      );
+    }
+
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-4">
         <Card>
@@ -415,55 +511,39 @@ export function AplicacaoRunner({
               />
             </div>
 
-            <div className="border-t pt-3">
-              <SignaturePad
-                label="Assinatura do avaliado"
-                captured={Boolean(assinaturaAvaliadoPath)}
-                onCapture={(blob) => capturarAssinatura("avaliado", blob)}
-              />
-            </div>
+            <p className="border-t pt-3 text-xs text-green-700">✔ Assinatura do avaliado coletada</p>
           </CardContent>
         </Card>
 
-        {/* A análise e a assinatura do avaliador só aparecem depois que o avaliado assina: o
-            avaliador confere o relatório e, estando tudo certo, assina e finaliza. */}
-        {assinaturaAvaliadoPath ? (
-          <>
-            <AnaliseCard
-              analise={gerarAnaliseAvaliacao(secoes, perguntasVisiveis, respostasComoResposta, parecerFinal, {
-                tipoPessoa,
-                funcao: funcaoAvaliada,
-              })}
-              edicao={{ aplicacaoId, textoSalvo: parecerTextoInicial }}
-            />
-            <Button
-              variant="outline"
-              render={
-                <a
-                  href={`/aplicacoes/${aplicacaoId}/relatorio${parecerFinal ? `?parecer=${parecerFinal}` : ""}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Ver prévia do relatório (PDF)
-                </a>
-              }
-            />
-          </>
-        ) : (
-          <p className="text-center text-sm text-muted-foreground">
-            Após a assinatura do avaliado, a análise do relatório aparece aqui para conferência.
-          </p>
-        )}
+        {/* Etapa 2 (liberada pelo avaliador): confere a análise e o PDF e, estando tudo certo,
+            assina e finaliza. */}
+        <AnaliseCard
+          analise={gerarAnaliseAvaliacao(secoes, perguntasVisiveis, respostasComoResposta, parecerFinal, {
+            tipoPessoa,
+            funcao: funcaoAvaliada,
+          })}
+          edicao={{ aplicacaoId, textoSalvo: parecerTextoInicial }}
+        />
+        <Button
+          variant="outline"
+          render={
+            <a
+              href={`/aplicacoes/${aplicacaoId}/relatorio${parecerFinal ? `?parecer=${parecerFinal}` : ""}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Ver prévia do relatório (PDF)
+            </a>
+          }
+        />
 
         <Card>
           <CardContent className="flex flex-col gap-3 pt-4 text-sm">
-            {assinaturaAvaliadoPath ? (
-              <SignaturePad
-                label="Assinatura do avaliador"
-                captured={Boolean(assinaturaAvaliadorPath)}
-                onCapture={(blob) => capturarAssinatura("avaliador", blob)}
-              />
-            ) : null}
+            <SignaturePad
+              label="Assinatura do avaliador"
+              captured={Boolean(assinaturaAvaliadorPath)}
+              onCapture={(blob) => capturarAssinatura("avaliador", blob)}
+            />
 
             <div className="flex justify-between gap-2 pt-2">
               <Button variant="outline" onClick={() => setMostrarResumo(false)}>

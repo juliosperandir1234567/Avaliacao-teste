@@ -139,6 +139,16 @@ const styles = StyleSheet.create({
   analiseBarraLabel: { width: 95, textAlign: "right", fontWeight: 700, fontSize: 8.5 },
   analiseTituloLista: { fontWeight: 700, marginTop: 8, marginBottom: 2 },
   analiseItem: { marginLeft: 8, marginBottom: 1.5 },
+  analiseGrupoTitulo: { fontSize: 8, color: "#6b7280", marginBottom: 2 },
+  analiseChips: { flexDirection: "row", flexWrap: "wrap", gap: 3 },
+  analiseChip: {
+    fontSize: 8,
+    border: "0.5 solid #d1d5db",
+    borderRadius: 3,
+    backgroundColor: "#f9fafb",
+    paddingVertical: 1.5,
+    paddingHorizontal: 4,
+  },
   analiseParecer: {
     marginTop: 8,
     paddingTop: 5,
@@ -246,16 +256,17 @@ function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
         <>
           <Text style={[styles.analiseTituloLista, { color: NIVEL_CORES.atencao }]}>Pontos a melhorar</Text>
           {analise.pontosMelhorar.map((grupo) => (
-            <Text key={grupo.titulo} style={styles.analiseItem}>
-              <Text style={{ fontWeight: 700 }}>{grupo.titulo}: </Text>
-              {grupo.itens.map((item, i) => (
-                <Text key={i}>
-                  {i > 0 ? "  ·  " : ""}
-                  {item.destaque ? <Text style={styles.errado}>{item.destaque} </Text> : null}
-                  {item.texto}
-                </Text>
-              ))}
-            </Text>
+            <View key={grupo.titulo} style={{ marginLeft: 8, marginBottom: 4 }}>
+              <Text style={styles.analiseGrupoTitulo}>{grupo.titulo}</Text>
+              <View style={styles.analiseChips}>
+                {grupo.itens.map((item, i) => (
+                  <Text key={i} style={styles.analiseChip}>
+                    {item.destaque ? <Text style={styles.errado}>{item.destaque} </Text> : null}
+                    {item.texto}
+                  </Text>
+                ))}
+              </View>
+            </View>
           ))}
         </>
       ) : null}
@@ -468,8 +479,7 @@ export function RelatorioDocument({
           <View style={styles.notaBox}>
             <Text style={styles.label}>NOTA GERAL</Text>
             <Text style={styles.notaValor}>
-              {notaGeral !== null ? notaGeral.toFixed(1) : "-"}{" "}
-              / 10
+              {notaGeral !== null ? notaGeral.toFixed(1) : "-"}
             </Text>
           </View>
           {aplicacao.parecer_gestor ? (

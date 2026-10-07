@@ -93,7 +93,7 @@ export function AppShell({
 
       <div className="flex flex-1">
         {/* Desktop sidebar */}
-        <nav className="hidden w-56 shrink-0 flex-col justify-between border-r bg-primary/10 p-3 md:flex">
+        <nav className="sticky top-14 hidden h-[calc(100svh-3.5rem)] w-56 shrink-0 flex-col justify-between self-start overflow-y-auto border-r bg-primary/10 p-3 md:flex">
           <ul className="flex flex-col gap-1">
             {items.map((item) => {
               const Icon = item.icon;
