@@ -256,8 +256,8 @@ export function AplicacaoRunner({
   // Trava do avaliado no meio da prova: quando a prova tem perguntas teóricas (respondidas pelo
   // avaliado) seguidas de checklist (preenchido pelo avaliador), o avaliado clica em "Liberar para
   // o avaliador" antes do primeiro checklist (sem assinatura -- a assinatura do avaliado continua
-  // só no fechamento). Depois de liberado, as perguntas teóricas ficam bloqueadas (não dá pra
-  // voltar nelas). Ao retomar a prova, já ter resposta de checklist marca a trava como passada.
+  // só no fechamento). Depois de liberado, dá pra voltar nas perguntas normalmente. Ao retomar a
+  // prova, já ter resposta de checklist marca a trava como passada.
   const indiceTrava = useMemo(() => {
     const primeiraTeorica = passos.findIndex((passo) => passo.tipo === "unico");
     if (primeiraTeorica === -1) return -1;
@@ -279,7 +279,6 @@ export function AplicacaoRunner({
   const indiceSeguro = Math.min(index, Math.max(0, totalPassos - 1));
   const passoAtual = passos[indiceSeguro];
   const progresso = totalPassos > 0 ? Math.round(((indiceSeguro + 1) / totalPassos) * 100) : 0;
-  const indiceMinimo = temTrava && liberadoTrava ? indiceTrava : 0;
   const naTrava = temTrava && !liberadoTrava && (mostrarResumo || indiceSeguro >= indiceTrava);
 
   function persistir(perguntaId: string, novaResposta: RespostaLocal, imediato = false) {
@@ -379,7 +378,7 @@ export function AplicacaoRunner({
               </p>
             ) : (
               <p className="text-muted-foreground">
-                Perguntas respondidas. Depois de liberar, as respostas não podem mais ser alteradas.
+                Perguntas respondidas. Clique em liberar para o avaliador continuar.
               </p>
             )}
             <div className="flex justify-between gap-2 pt-2">
@@ -702,11 +701,7 @@ export function AplicacaoRunner({
         </p>
       ) : null}
       <div className="flex justify-between gap-2">
-        <Button
-          variant="outline"
-          disabled={indiceSeguro <= indiceMinimo}
-          onClick={() => setIndex(Math.max(indiceMinimo, indiceSeguro - 1))}
-        >
+        <Button variant="outline" disabled={indiceSeguro === 0} onClick={() => setIndex(Math.max(0, indiceSeguro - 1))}>
           Anterior
         </Button>
         {indiceSeguro === totalPassos - 1 ? (
