@@ -34,9 +34,15 @@ export async function claimPendenciaSeNecessario(aplicacaoId: string) {
 
   if (!aplicacao || aplicacao.status !== "pendente") return;
 
+  // data/horario da prova = momento em que ela é iniciada, não o cadastro da pendência (o default
+  // da coluna grava a data do cadastro). Horário de Brasília, independente do fuso do servidor.
+  const agora = new Date();
+  const data = agora.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const horario = agora.toLocaleTimeString("en-GB", { timeZone: "America/Sao_Paulo", hour12: false });
+
   await supabase
     .from("avaliacoes_aplicadas")
-    .update({ avaliador_id: profile.id, status: "em_andamento" })
+    .update({ avaliador_id: profile.id, status: "em_andamento", data, horario })
     .eq("id", aplicacaoId)
     .eq("status", "pendente");
 }
