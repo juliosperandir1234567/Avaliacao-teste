@@ -14,7 +14,7 @@ import {
   PERGUNTA_TIPO_LABELS,
 } from "@/lib/types";
 import { avaliarItensCriticos, calcularNotaGeral, calcularNotaSecao, calcularNotasPorCompetencia } from "@/lib/scoring";
-import { gerarAnaliseAvaliacao, NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao } from "@/lib/analise";
+import { estiloParecerDaAplicacao, gerarAnaliseAvaliacao, NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao } from "@/lib/analise";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoAplicada,
@@ -422,7 +422,11 @@ export function RelatorioDocument({
     perguntas,
     respostas,
     (aplicacao.parecer_final as Parecer | null) ?? null,
-    { tipoPessoa: aplicacao.tipo_pessoa, funcao: aplicacao.funcao_avaliada }
+    {
+      tipoPessoa: aplicacao.tipo_pessoa,
+      funcao: aplicacao.funcao_avaliada,
+      estiloParecer: estiloParecerDaAplicacao(aplicacao),
+    }
   );
   // Parecer editado à mão pelo avaliador substitui o automático.
   if (aplicacao.parecer_texto) analise.parecer = aplicacao.parecer_texto;

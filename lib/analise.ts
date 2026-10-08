@@ -149,6 +149,18 @@ function statusDaAnalise(parecer: Parecer | null, notaGeral: number | null) {
 export interface ContextoParecer {
   tipoPessoa?: "interno" | "externo" | null;
   funcao?: string | null;
+  /** "v1" = texto antigo, mantido só pras provas finalizadas antes da troca de estilo. */
+  estiloParecer?: EstiloParecer;
+}
+
+export type EstiloParecer = "v1" | "v2";
+
+/** Provas finalizadas antes disso continuam com o parecer no estilo antigo (v1) -- o texto delas
+ * não pode mudar. Em andamento e finalizadas depois usam o estilo atual (v2). */
+const PARECER_V2_DESDE = "2026-10-08T23:35:00Z";
+
+export function estiloParecerDaAplicacao(aplicacao: { finalizada_em: string | null }): EstiloParecer {
+  return aplicacao.finalizada_em && aplicacao.finalizada_em < PARECER_V2_DESDE ? "v1" : "v2";
 }
 
 type CategoriaSecao = "teorica" | "inspecao" | "operacao" | "tecnologia" | "outra";
@@ -272,7 +284,7 @@ export function gerarAnaliseAvaliacao(
     secoes: apuradas.map(({ nome, percentual, nivel }) => ({ nome, percentual, nivel })),
     pontosFortes,
     pontosMelhorar,
-    parecer: montarParecer(
+    parecer: (contexto.estiloParecer === "v1" ? montarParecerV1 : montarParecer)(
       notaGeral,
       apuradas,
       falhasCriticas.map((f) => f.pergunta.enunciado.trim()),
@@ -304,8 +316,8 @@ const ABERTURA_SECAO: Record<Exclude<CategoriaSecao, "teorica" | "outra">, strin
   tecnologia: "Quanto à tecnologia embarcada",
 };
 
-/** Parágrafo de uma seção, em terceira pessoa. */
-function paragrafoSecao(s: SecaoApurada): string {
+/** Parágrafo de uma seção, em terceira pessoa (estilo antigo, v1). */
+function paragrafoSecaoV1(s: SecaoApurada): string {
   if (s.categoria === "teorica") {
     const base = `Na parte teórica, acertou ${s.questoesAcertos} de ${s.questoesTotal} questões`;
     if (s.questoesAcertos === s.questoesTotal) return `${base}, demonstrando domínio dos procedimentos avaliados.`;
@@ -336,7 +348,8 @@ function paragrafoSecao(s: SecaoApurada): string {
   return frases.join(" ");
 }
 
-function montarParecer(
+/** Estilo antigo (v1) -- só pras provas finalizadas antes de PARECER_V2_DESDE. Não alterar. */
+function montarParecerV1(
   notaGeral: number | null,
   secoes: SecaoApurada[],
   falhasCriticas: string[],
@@ -358,7 +371,142 @@ function montarParecer(
       `Registrou falha crítica em ${juntarLista(falhasCriticas.map(minusculaInicial))}, o que exige atenção imediata.`
     );
   }
-  paragrafos.push(...secoes.map(paragrafoSecao));
+  paragrafos.push(...secoes.map(paragrafoSecaoV1));
+
+  if (parecer && PARECERES_SEM_RECOMENDACAO.includes(parecer)) {
+    paragrafos.push(
+      parecer === "nova_avaliacao"
+        ? `Diante dos resultados apresentados, recomenda-se que ${sujeito.toLowerCase()} passe por nova avaliação.`
+        : `Diante dos resultados apresentados, ${sujeito.toLowerCase()} não atingiu o desempenho mínimo exigido para a função.`
+    );
+    return paragrafos.join("\n\n");
+  }
+
+  const areas = [...new Set(secoes.filter((s) => s.nivel !== "forte").map((s) => NOME_AREA[s.categoria] ?? s.nome))];
+  const falhouSeguranca = secoes.some((s) => s.falhas.some((f) => ITEM_DE_SEGURANCA.test(f.texto)));
+  if (areas.length === 0) {
+    paragrafos.push(`${sujeito} demonstrou estar apto a desempenhar a função, sem necessidade de reciclagem.`);
+  } else {
+    paragrafos.push(
+      `Recomenda-se reciclagem em ${juntarLista(areas)}` +
+        (falhouSeguranca ? ", com atenção especial aos itens de segurança não atendidos." : ".")
+    );
+  }
+  return paragrafos.join("\n\n");
+}
+
+// ============================================================================
+// Estilo atual (v2): "Na inspeção pré-operacional, cumpriu 8 dos 14 critérios. O candidato não
+// verificou ..., nem realizou ..."
+// ============================================================================
+
+const ABERTURA_SECAO_V2: Record<Exclude<CategoriaSecao, "teorica" | "outra">, string> = {
+  inspecao: "Na inspeção pré-operacional",
+  operacao: "Na avaliação operacional",
+  tecnologia: "Em tecnologia embarcada",
+};
+
+/** Itens de checklist que são uma tarefa ("Drenagem filtro...") -> "não realizou drenagem...". */
+const ITEM_DE_TAREFA = /^(drenagem|limpeza|lubrifica|regulagem|calibragem|troca|aferi)/i;
+
+/** Verbo no presente vira pretérito no texto corrido: "não sabe ativar" -> "não soube ativar". */
+const PRESENTE_PARA_PRETERITO: Record<string, string> = {
+  sabe: "soube",
+  conhece: "demonstrou conhecer",
+  consegue: "conseguiu",
+  possui: "possuía",
+  tem: "teve",
+  faz: "fez",
+  usa: "usou",
+  utiliza: "utilizou",
+  verifica: "verificou",
+  realiza: "realizou",
+  mantém: "manteve",
+  executa: "executou",
+  identifica: "identificou",
+  opera: "operou",
+  respeita: "respeitou",
+  aplica: "aplicou",
+  domina: "dominou",
+};
+
+function falhaEmFraseV2(item: ItemMelhorar): string {
+  if (item.destaque === "Parcial:") return `atendeu apenas parcialmente o item ${minusculaInicial(item.texto)}`;
+  if (item.destaque === "Não") {
+    const [primeira, ...resto] = item.texto.split(" ");
+    const preterito = PRESENTE_PARA_PRETERITO[primeira.toLowerCase()];
+    return `não ${preterito ? [preterito, ...resto].join(" ") : item.texto}`;
+  }
+  return minusculaInicial(item.texto);
+}
+
+function maiusculaInicial(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+/** "8 dos 14 critérios" / "4 das 4 questões" / "1 de 1 critério". */
+function contagem(qtd: number, total: number, singular: string, plural: string, feminino = false): string {
+  return `${qtd} ${total === 1 ? "de" : feminino ? "das" : "dos"} ${total} ${total === 1 ? singular : plural}`;
+}
+
+function paragrafoSecao(s: SecaoApurada, sujeito: string): string {
+  if (s.categoria === "teorica") {
+    const base = `Na avaliação teórica, acertou ${contagem(s.questoesAcertos, s.questoesTotal, "questão", "questões", true)}`;
+    if (s.questoesAcertos === s.questoesTotal) return `${base}, demonstrando domínio dos conhecimentos avaliados.`;
+    if (s.percentual >= LIMITE_ADEQUADO) return `${base}, demonstrando bom conhecimento, com pontos a revisar.`;
+    return `${base}, o que indica a necessidade de reforçar os conhecimentos avaliados.`;
+  }
+
+  const abertura = s.categoria === "outra" ? `Em ${s.nome}` : ABERTURA_SECAO_V2[s.categoria];
+  const frases: string[] = [
+    s.checklistOk === s.checklistTotal
+      ? `${abertura}, cumpriu ${s.checklistTotal === 1 ? "o critério avaliado" : `todos os ${s.checklistTotal} critérios`}.`
+      : `${abertura}, cumpriu ${contagem(s.checklistOk, s.checklistTotal, "critério", "critérios")}.`,
+  ];
+
+  // Itens de conferência ("Não verificou faróis") e de tarefa ("drenagem...") viram uma frase
+  // com o sujeito ("O candidato não verificou ..., nem realizou ..."); as demais falhas, outra.
+  const ehConferencia = (f: ItemMelhorar) => f.destaque === "Não" && f.texto.startsWith("verificou ");
+  const conferencias = s.falhas.filter(ehConferencia).map((f) => f.texto.slice("verificou ".length));
+  const naoVerificados = conferencias.filter((t) => !ITEM_DE_TAREFA.test(t));
+  const naoRealizados = conferencias.filter((t) => ITEM_DE_TAREFA.test(t));
+  const outras = s.falhas.filter((f) => !ehConferencia(f)).map(falhaEmFraseV2);
+
+  if (naoVerificados.length > 0 || naoRealizados.length > 0) {
+    const partes: string[] = [];
+    if (naoVerificados.length > 0) partes.push(`não verificou ${juntarLista(naoVerificados)}`);
+    if (naoRealizados.length > 0) {
+      partes.push(`${naoVerificados.length > 0 ? "nem" : "não"} realizou ${juntarLista(naoRealizados)}`);
+    }
+    frases.push(`${sujeito} ${partes.join(", ")}.`);
+  }
+  if (outras.length > 0) frases.push(`${maiusculaInicial(juntarLista(outras))}.`);
+  return frases.join(" ");
+}
+
+function montarParecer(
+  notaGeral: number | null,
+  secoes: SecaoApurada[],
+  falhasCriticas: string[],
+  parecer: Parecer | null,
+  contexto: ContextoParecer
+): string {
+  if (notaGeral === null || secoes.length === 0) return "Sem respostas suficientes para gerar a análise.";
+
+  const sujeito = contexto.tipoPessoa === "externo" ? "O candidato" : "O colaborador";
+  const desempenho =
+    notaGeral >= 8 ? "bom desempenho" : notaGeral >= 6 ? "desempenho satisfatório" : "desempenho abaixo do esperado";
+  const naFuncao = contexto.funcao ? ` na avaliação para a função de ${contexto.funcao}` : " na avaliação";
+
+  const paragrafos: string[] = [
+    `${sujeito} obteve nota final de ${formatarNota(notaGeral)}, apresentando ${desempenho}${naFuncao}.`,
+  ];
+  if (falhasCriticas.length > 0) {
+    paragrafos.push(
+      `Registrou falha crítica em ${juntarLista(falhasCriticas.map(minusculaInicial))}, o que exige atenção imediata.`
+    );
+  }
+  paragrafos.push(...secoes.map((s) => paragrafoSecao(s, sujeito)));
 
   if (parecer && PARECERES_SEM_RECOMENDACAO.includes(parecer)) {
     paragrafos.push(

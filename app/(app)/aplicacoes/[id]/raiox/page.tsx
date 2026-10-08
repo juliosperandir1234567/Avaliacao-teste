@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AprovarParecerForm } from "@/components/aprovar-parecer-form";
 import { calcularNotaGeral, calcularNotasPorCompetencia } from "@/lib/scoring";
-import { gerarAnaliseAvaliacao } from "@/lib/analise";
+import { estiloParecerDaAplicacao, gerarAnaliseAvaliacao } from "@/lib/analise";
 import { AnaliseCard } from "@/components/analise-card";
 import {
   APLICACAO_STATUS_LABELS,
@@ -44,7 +44,11 @@ export default async function RaioXPage({
     perguntas,
     respostas,
     (aplicacao.parecer_final as Parecer | null) ?? null,
-    { tipoPessoa: aplicacao.tipo_pessoa, funcao: aplicacao.funcao_avaliada }
+    {
+      tipoPessoa: aplicacao.tipo_pessoa,
+      funcao: aplicacao.funcao_avaliada,
+      estiloParecer: estiloParecerDaAplicacao(aplicacao),
+    }
   );
   const podeEditarParecer = profile.role === "admin" || profile.role === "avaliador" || profile.role === "gestor";
 
