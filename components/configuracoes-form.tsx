@@ -13,10 +13,12 @@ export function ConfiguracoesForm({
   nomeEmpresaInicial,
   logoUrlInicial,
   backgroundUrlInicial,
+  menuFundoUrlInicial,
 }: {
   nomeEmpresaInicial: string;
   logoUrlInicial: string | null;
   backgroundUrlInicial: string | null;
+  menuFundoUrlInicial: string | null;
 }) {
   const router = useRouter();
   const [nomeEmpresa, setNomeEmpresa] = useState(nomeEmpresaInicial);
@@ -24,15 +26,18 @@ export function ConfiguracoesForm({
   const [backgroundUrl, setBackgroundUrl] = useState(backgroundUrlInicial);
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoFundo, setEnviandoFundo] = useState(false);
+  const [menuFundoUrl, setMenuFundoUrl] = useState(menuFundoUrlInicial);
+  const [enviandoMenuFundo, setEnviandoMenuFundo] = useState(false);
   const [pending, startTransition] = useTransition();
 
   async function uploadImagem(
     file: File,
     prefixo: string,
-    campo: "logoPath" | "backgroundPath",
+    campo: "logoPath" | "backgroundPath" | "menuFundoPath",
     aplicar: (url: string) => void
   ) {
-    const setEnviando = campo === "logoPath" ? setEnviandoLogo : setEnviandoFundo;
+    const setEnviando =
+      campo === "logoPath" ? setEnviandoLogo : campo === "menuFundoPath" ? setEnviandoMenuFundo : setEnviandoFundo;
     setEnviando(true);
     const supabase = createClient();
     const extensao = file.name.split(".").pop() || "jpg";
@@ -57,13 +62,14 @@ export function ConfiguracoesForm({
     router.refresh();
   }
 
-  async function removerFundo() {
-    const result = await updateConfiguracoes({ backgroundPath: "" });
+  async function removerFundo(campo: "backgroundPath" | "menuFundoPath") {
+    const result = await updateConfiguracoes({ [campo]: "" });
     if (result.error) {
       toast.error(result.error);
       return;
     }
-    setBackgroundUrl(null);
+    if (campo === "menuFundoPath") setMenuFundoUrl(null);
+    else setBackgroundUrl(null);
     toast.success("Imagem de fundo removida");
     router.refresh();
   }
@@ -125,7 +131,43 @@ export function ConfiguracoesForm({
               />
             </label>
             {backgroundUrl ? (
-              <Button variant="ghost" size="sm" className="text-destructive" onClick={removerFundo}>
+              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removerFundo("backgroundPath")}>
+                Remover imagem
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Imagem de fundo do menu lateral</Label>
+        <p className="text-xs text-muted-foreground">
+          Aparece atrás do menu lateral (computador e tablet). Prefira uma imagem vertical.
+        </p>
+        <div className="flex items-center gap-4">
+          <div className="flex h-40 w-20 items-center justify-center rounded-md border bg-muted/30">
+            {menuFundoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={menuFundoUrl} alt="Fundo do menu" className="h-full w-full rounded-md object-cover" />
+            ) : (
+              <span className="px-1 text-center text-xs text-muted-foreground">Sem imagem</span>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm hover:bg-muted/50">
+              {enviandoMenuFundo ? "Enviando..." : "Trocar imagem"}
+              <input
+                type="file"
+                accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadImagem(file, "menu-fundo", "menuFundoPath", setMenuFundoUrl);
+                }}
+              />
+            </label>
+            {menuFundoUrl ? (
+              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removerFundo("menuFundoPath")}>
                 Remover imagem
               </Button>
             ) : null}

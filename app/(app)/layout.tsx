@@ -20,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       profile={profile}
       logoUrl={config.logoUrl}
       nomeEmpresa={config.nomeEmpresa}
+      menuFundoUrl={config.menuFundoUrl}
       pendenciasCount={pendenciasCount ?? 0}
     >
       {children}

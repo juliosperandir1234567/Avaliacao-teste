@@ -39,12 +39,15 @@ export function AppShell({
   children,
   logoUrl,
   nomeEmpresa,
+  menuFundoUrl = null,
   pendenciasCount = 0,
 }: {
   profile: Profile;
   children: React.ReactNode;
   logoUrl?: string | null;
   nomeEmpresa?: string | null;
+  /** Imagem de fundo do menu lateral (Configurações). Com imagem, o menu fica escuro com texto branco. */
+  menuFundoUrl?: string | null;
   pendenciasCount?: number;
 }) {
   const pathname = usePathname();
@@ -53,6 +56,7 @@ export function AppShell({
   const mobilePrincipais = items.slice(0, 4);
   const mobileMais = items.slice(4);
   const colunasMobile = mobilePrincipais.length + 1;
+  const comFundo = Boolean(menuFundoUrl);
 
   return (
     <div className="flex min-h-svh w-full flex-col">
@@ -93,7 +97,19 @@ export function AppShell({
 
       <div className="flex flex-1">
         {/* Desktop sidebar */}
-        <nav className="sticky top-14 hidden h-[calc(100svh-3.5rem)] w-56 shrink-0 flex-col justify-between self-start overflow-y-auto border-r bg-primary/10 p-3 md:flex">
+        <nav
+          className={`sticky top-14 hidden h-[calc(100svh-3.5rem)] w-56 shrink-0 flex-col justify-between self-start overflow-y-auto border-r p-3 md:flex ${
+            comFundo ? "bg-cover bg-center" : "bg-primary/10"
+          }`}
+          style={
+            comFundo
+              ? {
+                  // Camada escura por cima da foto pra manter o texto do menu legível.
+                  backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url("${menuFundoUrl}")`,
+                }
+              : undefined
+          }
+        >
           <ul className="flex flex-col gap-1">
             {items.map((item) => {
               const Icon = item.icon;
@@ -105,8 +121,12 @@ export function AppShell({
                     prefetch={false}
                     className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       active
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? comFundo
+                          ? "bg-white text-foreground shadow-sm"
+                          : "bg-primary text-primary-foreground"
+                        : comFundo
+                          ? "text-white drop-shadow hover:bg-white/15"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
                     <span className="relative">
@@ -126,7 +146,11 @@ export function AppShell({
           <form action={logout}>
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+              className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                comFundo
+                  ? "border border-white/40 text-white drop-shadow hover:bg-white/15"
+                  : "text-muted-foreground hover:bg-muted hover:text-destructive"
+              }`}
             >
               <LogOut className="size-4" /> Sair
             </button>

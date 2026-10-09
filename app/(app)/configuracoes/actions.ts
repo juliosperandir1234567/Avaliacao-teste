@@ -8,6 +8,7 @@ export async function updateConfiguracoes(input: {
   nomeEmpresa?: string;
   logoPath?: string;
   backgroundPath?: string;
+  menuFundoPath?: string;
 }) {
   const profile = await getCurrentProfile();
   if (profile.role !== "admin") return { error: "Apenas administradores podem alterar as configurações." };
@@ -19,6 +20,7 @@ export async function updateConfiguracoes(input: {
       ...(input.nomeEmpresa !== undefined ? { nome_empresa: input.nomeEmpresa || null } : {}),
       ...(input.logoPath !== undefined ? { logo_path: input.logoPath || null } : {}),
       ...(input.backgroundPath !== undefined ? { background_path: input.backgroundPath || null } : {}),
+      ...(input.menuFundoPath !== undefined ? { menu_fundo_path: input.menuFundoPath || null } : {}),
       updated_by: profile.id,
     })
     .eq("id", 1);

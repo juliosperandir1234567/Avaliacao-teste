@@ -4,6 +4,8 @@ export interface ConfiguracoesPublicas {
   nomeEmpresa: string | null;
   logoUrl: string | null;
   backgroundUrl: string | null;
+  /** Imagem de fundo do menu lateral (desktop). null = fundo padrão. */
+  menuFundoUrl: string | null;
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,7 +18,7 @@ export async function getConfiguracoesPublicas(): Promise<ConfiguracoesPublicas>
   const supabase = await createClient();
   const { data } = await supabase
     .from("configuracoes")
-    .select("nome_empresa, logo_path, background_path")
+    .select("nome_empresa, logo_path, background_path, menu_fundo_path")
     .eq("id", 1)
     .maybeSingle();
 
@@ -24,5 +26,6 @@ export async function getConfiguracoesPublicas(): Promise<ConfiguracoesPublicas>
     nomeEmpresa: data?.nome_empresa ?? null,
     logoUrl: data?.logo_path ? publicStorageUrl("branding", data.logo_path) : null,
     backgroundUrl: data?.background_path ? publicStorageUrl("branding", data.background_path) : null,
+    menuFundoUrl: data?.menu_fundo_path ? publicStorageUrl("branding", data.menu_fundo_path) : null,
   };
 }

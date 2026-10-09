@@ -22,6 +22,7 @@ export default async function ConfiguracoesPage() {
             nomeEmpresaInicial={config.nomeEmpresa ?? ""}
             logoUrlInicial={config.logoUrl}
             backgroundUrlInicial={config.backgroundUrl}
+            menuFundoUrlInicial={config.menuFundoUrl}
           />
         </CardContent>
       </Card>
