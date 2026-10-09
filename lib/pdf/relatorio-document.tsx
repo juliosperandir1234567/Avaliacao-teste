@@ -14,7 +14,15 @@ import {
   PERGUNTA_TIPO_LABELS,
 } from "@/lib/types";
 import { avaliarItensCriticos, calcularNotaGeral, calcularNotaSecao, calcularNotasPorCompetencia } from "@/lib/scoring";
-import { estiloParecerDaAplicacao, gerarAnaliseAvaliacao, NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao } from "@/lib/analise";
+import {
+  consideracoesDaAplicacao,
+  estiloParecerDaAplicacao,
+  gerarAnaliseAvaliacao,
+  NIVEL_CORES,
+  NIVEL_LABELS,
+  type AnaliseAvaliacao,
+  type Consideracao,
+} from "@/lib/analise";
 import type {
   AvaliacaoAlternativa,
   AvaliacaoAplicada,
@@ -239,7 +247,13 @@ function FieldLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
+function AnaliseSecao({
+  analise,
+  consideracoes = [],
+}: {
+  analise: AnaliseAvaliacao;
+  consideracoes?: Consideracao[];
+}) {
   if (analise.secoes.length === 0) return null;
   return (
     <View>
@@ -302,6 +316,19 @@ function AnaliseSecao({ analise }: { analise: AnaliseAvaliacao }) {
             </Text>
           ))}
       </View>
+      {consideracoes.map((c) => (
+        <View key={c.titulo} style={styles.analiseParecer}>
+          <Text style={{ fontWeight: 700, marginBottom: 2 }}>{c.titulo}</Text>
+          {c.texto
+            .split(/\n+/)
+            .filter((p) => p.trim())
+            .map((p, i) => (
+              <Text key={i} style={{ marginBottom: 2.5 }}>
+                {p.trim()}
+              </Text>
+            ))}
+        </View>
+      ))}
     </View>
   );
 }
@@ -430,6 +457,11 @@ export function RelatorioDocument({
   );
   // Parecer editado à mão pelo avaliador substitui o automático.
   if (aplicacao.parecer_texto) analise.parecer = aplicacao.parecer_texto;
+  // Estilo novo: a observação final vira "Considerações do avaliador", logo abaixo do parecer.
+  const consideracoesNoFim =
+    estiloParecerDaAplicacao(aplicacao) === "v2" && analise.secoes.length > 0
+      ? consideracoesDaAplicacao(aplicacao)
+      : null;
 
   return (
     <Document>
@@ -562,7 +594,7 @@ export function RelatorioDocument({
           <Text>{aplicacao.motivo_interrupcao}</Text>
         ) : null}
 
-        {aplicacao.observacao_gestor || aplicacao.parecer_justificativa ? (
+        {!consideracoesNoFim && (aplicacao.observacao_gestor || aplicacao.parecer_justificativa) ? (
           <>
             <Text style={styles.h2}>Observações</Text>
             {aplicacao.observacao_gestor ? (
@@ -582,7 +614,7 @@ export function RelatorioDocument({
           </>
         ) : null}
 
-        <AnaliseSecao analise={analise} />
+        <AnaliseSecao analise={analise} consideracoes={consideracoesNoFim ?? []} />
 
         {secoesOrdenadas.map((secao) => {
           const pesoSecao = Number(secao.peso || 0);

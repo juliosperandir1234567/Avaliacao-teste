@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AprovarParecerForm } from "@/components/aprovar-parecer-form";
 import { calcularNotaGeral, calcularNotasPorCompetencia } from "@/lib/scoring";
-import { estiloParecerDaAplicacao, gerarAnaliseAvaliacao } from "@/lib/analise";
+import { consideracoesDaAplicacao, estiloParecerDaAplicacao, gerarAnaliseAvaliacao } from "@/lib/analise";
 import { AnaliseCard } from "@/components/analise-card";
 import {
   APLICACAO_STATUS_LABELS,
@@ -50,6 +50,11 @@ export default async function RaioXPage({
       estiloParecer: estiloParecerDaAplicacao(aplicacao),
     }
   );
+  // Estilo novo: a observação final vira "Considerações do avaliador", logo abaixo do parecer.
+  const consideracoesNoFim =
+    estiloParecerDaAplicacao(aplicacao) === "v2" && analise.secoes.length > 0
+      ? consideracoesDaAplicacao(aplicacao)
+      : null;
   const podeEditarParecer = profile.role === "admin" || profile.role === "avaliador" || profile.role === "gestor";
 
   const supabase = await createClient();
@@ -220,7 +225,7 @@ export default async function RaioXPage({
         ) : null}
       </Card>
 
-      {aplicacao.observacao_gestor || aplicacao.parecer_justificativa ? (
+      {!consideracoesNoFim && (aplicacao.observacao_gestor || aplicacao.parecer_justificativa) ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Observações</CardTitle>
@@ -248,6 +253,7 @@ export default async function RaioXPage({
         analise={analise}
         textoSalvo={aplicacao.parecer_texto ?? null}
         edicao={podeEditarParecer ? { aplicacaoId: id, textoSalvo: aplicacao.parecer_texto ?? null } : undefined}
+        consideracoes={consideracoesNoFim ?? []}
       />
 
       <Card>

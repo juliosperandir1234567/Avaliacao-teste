@@ -510,12 +510,12 @@ export function AplicacaoRunner({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="observacaoFinal">Observação final</Label>
+              <Label htmlFor="observacaoFinal">Considerações do avaliador</Label>
               <Textarea
                 id="observacaoFinal"
                 value={observacaoFinal}
                 onChange={(e) => handleObservacaoFinalChange(e.target.value)}
-                placeholder="Justificativa/observações para o parecer final"
+                placeholder="Pontos positivos ou negativos observados (sai no relatório logo abaixo do parecer)"
               />
             </div>
 

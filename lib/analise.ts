@@ -159,6 +159,27 @@ export type EstiloParecer = "v1" | "v2";
  * não pode mudar. Em andamento e finalizadas depois usam o estilo atual (v2). */
 const PARECER_V2_DESDE = "2026-10-08T23:35:00Z";
 
+/** Observação final do avaliador/gestor, mostrada logo abaixo do parecer (estilo v2) com o
+ * título "Considerações do ...". No estilo v1 ela continua no bloco "Observações" antigo. */
+export interface Consideracao {
+  titulo: string;
+  texto: string;
+}
+
+export function consideracoesDaAplicacao(aplicacao: {
+  observacao_gestor: string | null;
+  parecer_justificativa: string | null;
+}): Consideracao[] {
+  const lista: Consideracao[] = [];
+  if (aplicacao.parecer_justificativa?.trim()) {
+    lista.push({ titulo: "Considerações do avaliador", texto: aplicacao.parecer_justificativa.trim() });
+  }
+  if (aplicacao.observacao_gestor?.trim()) {
+    lista.push({ titulo: "Considerações do gestor", texto: aplicacao.observacao_gestor.trim() });
+  }
+  return lista;
+}
+
 export function estiloParecerDaAplicacao(aplicacao: { finalizada_em: string | null }): EstiloParecer {
   return aplicacao.finalizada_em && aplicacao.finalizada_em < PARECER_V2_DESDE ? "v1" : "v2";
 }

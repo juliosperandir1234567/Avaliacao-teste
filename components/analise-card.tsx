@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao } from "@/lib/analise";
+import { NIVEL_CORES, NIVEL_LABELS, type AnaliseAvaliacao, type Consideracao } from "@/lib/analise";
 import { ParecerEditavel } from "@/components/parecer-editavel";
 
 /** Card da análise automática (barras por seção, pontos fortes/a melhorar e parecer). Usado no
@@ -9,10 +9,13 @@ export function AnaliseCard({
   analise,
   edicao,
   textoSalvo = null,
+  consideracoes = [],
 }: {
   analise: AnaliseAvaliacao;
   edicao?: { aplicacaoId: string; textoSalvo: string | null };
   textoSalvo?: string | null;
+  /** "Considerações do avaliador/gestor", mostradas logo abaixo do parecer. */
+  consideracoes?: Consideracao[];
 }) {
   if (analise.secoes.length === 0) return null;
   return (
@@ -93,6 +96,13 @@ export function AnaliseCard({
             <p className="whitespace-pre-line text-muted-foreground">{textoSalvo ?? analise.parecer}</p>
           )}
         </div>
+
+        {consideracoes.map((c) => (
+          <div key={c.titulo} className="flex flex-col gap-1 border-t pt-3">
+            <p className="font-semibold">{c.titulo}</p>
+            <p className="whitespace-pre-line text-muted-foreground">{c.texto}</p>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
