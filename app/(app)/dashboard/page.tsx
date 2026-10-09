@@ -161,6 +161,7 @@ export default async function DashboardPage({
                     <th className="py-1.5 pr-3 font-medium">Data</th>
                     <th className="py-1.5 pr-3 font-medium">Nota</th>
                     <th className="py-1.5 pr-3 font-medium">Parecer</th>
+                    <th className="py-1.5 pr-3 font-medium">Observação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -177,6 +178,21 @@ export default async function DashboardPage({
                         {r.notaGeral !== null ? r.notaGeral.toFixed(1) : "-"}
                       </td>
                       <td className="py-1.5 pr-3">{r.parecerFinal ? PARECER_LABELS[r.parecerFinal] : "-"}</td>
+                      <td className="min-w-48 py-1.5 pr-3 text-xs whitespace-pre-line text-muted-foreground">
+                        {r.observacaoAvaliador || r.observacaoGestor ? (
+                          <>
+                            {r.observacaoAvaliador ? <p>{r.observacaoAvaliador}</p> : null}
+                            {r.observacaoGestor ? (
+                              <p>
+                                <span className="font-medium text-foreground">Gestor: </span>
+                                {r.observacaoGestor}
+                              </p>
+                            ) : null}
+                          </>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

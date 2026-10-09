@@ -21,6 +21,8 @@ interface AplicacaoRow {
   nota_geral: number | null;
   falhas_criticas_count: number;
   parecer_final: Parecer | null;
+  parecer_justificativa: string | null;
+  observacao_gestor: string | null;
   data: string;
   funcao_avaliada: string | null;
   colaborador_snapshot: { nome: string; matricula: string } | null;
@@ -57,7 +59,7 @@ export async function getDashboardData(filtros: DashboardFiltros) {
   let query = supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, data, funcao_avaliada, colaborador_snapshot, candidatos_externos(nome, cpf), avaliacoes(nome, equipamentos_tipos(familia))"
+      "id, avaliacao_id, tipo_pessoa, nota_geral, falhas_criticas_count, parecer_final, parecer_justificativa, observacao_gestor, data, funcao_avaliada, colaborador_snapshot, candidatos_externos(nome, cpf), avaliacoes(nome, equipamentos_tipos(familia))"
     )
     .eq("status", "finalizada")
     .order("data", { ascending: true })
@@ -145,6 +147,8 @@ export async function getDashboardData(filtros: DashboardFiltros) {
       data: a.data,
       notaGeral: a.nota_geral,
       parecerFinal: a.parecer_final,
+      observacaoAvaliador: a.parecer_justificativa?.trim() || null,
+      observacaoGestor: a.observacao_gestor?.trim() || null,
     }))
     .sort((a, b) => (b.notaGeral ?? -1) - (a.notaGeral ?? -1));
 
