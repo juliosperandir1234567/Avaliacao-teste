@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Camera, ShieldAlert } from "lucide-react";
@@ -183,8 +183,24 @@ export function AplicacaoRunner({
   const [liberadoAvaliador, setLiberadoAvaliador] = useState(false);
   const [fotoCnhPath, setFotoCnhPath] = useState<string | null>(fotoCnhPathInicial);
   const [enviandoFotoCnh, setEnviandoFotoCnh] = useState(false);
+  // URL assinada da foto da CNH já anexada -- mostra a miniatura em vez de só "Foto anexada".
+  const [fotoCnhUrl, setFotoCnhUrl] = useState<string | null>(null);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const observacaoFinalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!fotoCnhPath) return;
+    let cancelado = false;
+    createClient()
+      .storage.from("evidencias")
+      .createSignedUrl(fotoCnhPath, 60 * 60)
+      .then(({ data }) => {
+        if (!cancelado) setFotoCnhUrl(data?.signedUrl ?? null);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [fotoCnhPath]);
 
   async function handleFotoCnh(file: File) {
     setEnviandoFotoCnh(true);
@@ -636,7 +652,22 @@ export function AplicacaoRunner({
       <div className="flex flex-col gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2.5">
         <Label htmlFor="fotoCnh" className="flex items-center gap-1 text-xs text-amber-800">
           <Camera className="size-3.5" /> Foto da CNH do candidato
+          {fotoCnhPath ? <span className="font-normal">(enviar outra substitui a atual)</span> : null}
         </Label>
+        {fotoCnhPath ? (
+          fotoCnhUrl ? (
+            <a href={fotoCnhUrl} target="_blank" rel="noreferrer" title="Abrir foto em tamanho real">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={fotoCnhUrl}
+                alt="Foto da CNH anexada"
+                className="max-h-48 w-auto rounded border bg-background object-contain"
+              />
+            </a>
+          ) : (
+            <p className="text-xs text-amber-800">Carregando foto anexada...</p>
+          )
+        ) : null}
         <Input
           id="fotoCnh"
           type="file"
@@ -648,7 +679,6 @@ export function AplicacaoRunner({
             if (file) handleFotoCnh(file);
           }}
         />
-        {fotoCnhPath ? <p className="text-xs text-amber-800">Foto anexada.</p> : null}
       </div>
 
       {mostrarInterromper ? (
