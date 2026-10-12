@@ -9,6 +9,7 @@ import { logout } from "@/app/(app)/actions";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuLabel,
@@ -75,12 +76,15 @@ export function AppShell({
             <Badge variant="secondary">{ROLE_LABELS[profile.role]}</Badge>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col">
-                <span className="font-medium">{profile.nome}</span>
-                <span className="text-xs text-muted-foreground">{profile.email}</span>
-              </div>
-            </DropdownMenuLabel>
+            {/* GroupLabel do Base UI quebra a página se ficar fora de um Menu.Group. */}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col">
+                  <span className="font-medium">{profile.nome}</span>
+                  <span className="text-xs text-muted-foreground">{profile.email}</span>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               render={
