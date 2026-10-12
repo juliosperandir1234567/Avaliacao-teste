@@ -406,7 +406,7 @@ export function AplicacaoRunner({
       .flatMap((passo) => (passo.tipo === "checklist" ? passo.perguntas : [passo.pergunta]))
       .filter((p) => !respostas[p.id]).length;
     return (
-      <div className="mx-auto flex max-w-xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <Card>
           <CardHeader>
             <CardTitle>{pessoaNome}</CardTitle>
@@ -465,7 +465,7 @@ export function AplicacaoRunner({
     // até o avaliador clicar em "Liberar para o avaliador" (etapa 2).
     if (!liberadoAvaliador) {
       return (
-        <div className="mx-auto flex max-w-xl flex-col gap-4">
+        <div className="flex w-full flex-col gap-4">
           <Card>
             <CardHeader>
               <CardTitle>{pessoaNome}</CardTitle>
@@ -500,7 +500,7 @@ export function AplicacaoRunner({
     }
 
     return (
-      <div className="mx-auto flex max-w-xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Resumo</CardTitle>
@@ -772,7 +772,7 @@ export function AplicacaoRunner({
     );
 
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-3">
+      <div className="flex w-full flex-col gap-3">
         {cabecalho}
         <ChecklistTable
           perguntas={passoAtual.perguntas}
@@ -792,7 +792,7 @@ export function AplicacaoRunner({
   const precisaManual = precisaCorrecaoManual(pergunta);
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-3">
+    <div className="flex w-full flex-col gap-3">
       {cabecalho}
 
       <Card>
@@ -837,25 +837,6 @@ export function AplicacaoRunner({
               />
             </div>
           ) : null}
-
-          <div className="flex flex-col gap-1.5">
-            <Label className="flex items-center gap-1 text-xs">
-              <Camera className="size-3.5" /> Evidência{pergunta.evidencia_obrigatoria ? " (obrigatória)" : ""}
-            </Label>
-            <Input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="h-11"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleEvidencia(pergunta.id, file);
-              }}
-            />
-            {respostaAtual?.evidencias.length ? (
-              <p className="text-xs text-muted-foreground">{respostaAtual.evidencias.length} evidência(s) anexada(s)</p>
-            ) : null}
-          </div>
         </CardContent>
       </Card>
 

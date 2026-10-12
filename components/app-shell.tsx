@@ -158,7 +158,7 @@ export function AppShell({
         </nav>
 
         <main className="flex-1 pb-20 md:pb-6">
-          <div className="mx-auto w-full max-w-5xl p-4">{children}</div>
+          <div className="mx-auto w-full max-w-screen-2xl p-4 lg:px-6">{children}</div>
         </main>
       </div>
 

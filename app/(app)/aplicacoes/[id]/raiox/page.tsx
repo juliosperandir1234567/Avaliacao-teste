@@ -99,7 +99,7 @@ export default async function RaioXPage({
   ]);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       {aplicacao.status === "finalizada" ? (
         <div className="flex justify-end">
           <Button
