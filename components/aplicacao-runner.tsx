@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, ShieldAlert } from "lucide-react";
+import { Camera, PenLine, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
@@ -105,6 +105,7 @@ export function AplicacaoRunner({
   tipoPessoa = null,
   funcaoAvaliada = null,
   parecerTextoInicial = null,
+  minhaAssinaturaPath = null,
 }: {
   aplicacaoId: string;
   tituloAvaliacao: string;
@@ -123,6 +124,8 @@ export function AplicacaoRunner({
   tipoPessoa?: "interno" | "externo" | null;
   funcaoAvaliada?: string | null;
   parecerTextoInicial?: string | null;
+  /** Assinatura salva de quem está logado (Minha assinatura) -- habilita "Usar minha assinatura". */
+  minhaAssinaturaPath?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -245,6 +248,24 @@ export function AplicacaoRunner({
     // Grava na aplicação imediatamente (não só no estado local) pra sobreviver se o avaliador
     // sair da tela de resumo antes de finalizar.
     const salvo = await salvarAssinatura(aplicacaoId, quem, path);
+    if (salvo.error) toast.error("Falha ao gravar assinatura: " + salvo.error);
+  }
+
+  // Copia a assinatura salva do usuário pra pasta da aplicação (em vez de apontar pro arquivo
+  // dele) -- se ele trocar a assinatura depois, esta prova continua com a que foi usada aqui.
+  async function usarMinhaAssinatura() {
+    if (!minhaAssinaturaPath) return;
+    setEnviandoAssinatura(true);
+    const supabase = createClient();
+    const path = `${aplicacaoId}/avaliador-${Date.now()}.png`;
+    const { error } = await supabase.storage.from("assinaturas").copy(minhaAssinaturaPath, path);
+    setEnviandoAssinatura(false);
+    if (error) {
+      toast.error("Falha ao usar a assinatura salva: " + error.message);
+      return;
+    }
+    setAssinaturaAvaliadorPath(path);
+    const salvo = await salvarAssinatura(aplicacaoId, "avaliador", path);
     if (salvo.error) toast.error("Falha ao gravar assinatura: " + salvo.error);
   }
 
@@ -572,6 +593,18 @@ export function AplicacaoRunner({
 
         <Card>
           <CardContent className="flex flex-col gap-3 pt-4 text-sm">
+            {minhaAssinaturaPath && !assinaturaAvaliadorPath ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                disabled={enviandoAssinatura}
+                onClick={usarMinhaAssinatura}
+              >
+                <PenLine className="size-4" /> Usar minha assinatura
+              </Button>
+            ) : null}
             <SignaturePad
               label="Assinatura do avaliador"
               captured={Boolean(assinaturaAvaliadorPath)}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, MoreHorizontal } from "lucide-react";
+import { LogOut, MoreHorizontal, PenLine } from "lucide-react";
 import { navItemsForRole } from "./nav-items";
 import type { Profile } from "@/lib/types";
 import { logout } from "@/app/(app)/actions";
@@ -82,6 +82,13 @@ export function AppShell({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              render={
+                <Link href="/minha-assinatura" prefetch={false} className="flex w-full items-center gap-2">
+                  <PenLine className="size-4" /> Minha assinatura
+                </Link>
+              }
+            />
             <DropdownMenuItem
               render={
                 <form action={logout} className="w-full">

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { claimPendenciaSeNecessario, getAplicacaoRunnerData } from "../../actions";
 import { AplicacaoRunner } from "@/components/aplicacao-runner";
 import { getCurrentProfile } from "@/lib/auth";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function AplicarPage({
   params,
@@ -11,6 +12,12 @@ export default async function AplicarPage({
   const { id } = await params;
   await claimPendenciaSeNecessario(id);
   const [data, profile] = await Promise.all([getAplicacaoRunnerData(id), getCurrentProfile()]);
+  const supabase = await createClient();
+  const { data: perfilAssinatura } = await supabase
+    .from("profiles")
+    .select("assinatura_path")
+    .eq("id", profile.id)
+    .single();
   if (!data) notFound();
 
   if (data.aplicacao.status === "pendente") {
@@ -78,6 +85,7 @@ export default async function AplicarPage({
       tipoPessoa={data.aplicacao.tipo_pessoa}
       funcaoAvaliada={data.aplicacao.funcao_avaliada}
       parecerTextoInicial={data.aplicacao.parecer_texto ?? null}
+      minhaAssinaturaPath={(perfilAssinatura?.assinatura_path as string | null) ?? null}
     />
   );
 }
