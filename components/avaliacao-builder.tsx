@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,6 +133,19 @@ export function AvaliacaoBuilder({
         return { ...sec, perguntas: perguntas.map((p, i) => ({ ...p, ordem: i })) };
       }),
     }));
+  }
+
+  // Move a seção inteira (com todas as perguntas) e renumera a ordem de todas -- o save faz
+  // upsert por id, então provas já aplicadas continuam ligadas às mesmas seções.
+  function moverSecao(secaoId: string, direcao: -1 | 1) {
+    setState((s) => {
+      const idx = s.secoes.findIndex((sec) => sec.id === secaoId);
+      const novoIdx = idx + direcao;
+      if (idx < 0 || novoIdx < 0 || novoIdx >= s.secoes.length) return s;
+      const secoes = [...s.secoes];
+      [secoes[idx], secoes[novoIdx]] = [secoes[novoIdx], secoes[idx]];
+      return { ...s, secoes: secoes.map((sec, i) => ({ ...sec, ordem: i })) };
+    });
   }
 
   function moverPerguntaParaSecao(secaoOrigemId: string, perguntaId: string, secaoDestinoId: string) {
@@ -303,6 +316,26 @@ export function AvaliacaoBuilder({
                 }));
               }}
             />
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              title="Subir seção"
+              disabled={secaoIdx === 0}
+              onClick={() => moverSecao(secao.id, -1)}
+            >
+              <ArrowUp className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              title="Descer seção"
+              disabled={secaoIdx === state.secoes.length - 1}
+              onClick={() => moverSecao(secao.id, 1)}
+            >
+              <ArrowDown className="size-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
