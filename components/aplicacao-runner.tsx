@@ -297,6 +297,30 @@ export function AplicacaoRunner({
   const progresso = totalPassos > 0 ? Math.round(((indiceSeguro + 1) / totalPassos) * 100) : 0;
   const naTrava = temTrava && !liberadoTrava && (mostrarResumo || indiceSeguro >= indiceTrava);
 
+  const respostasComoResposta: Resposta[] = useMemo(
+    () =>
+      perguntasVisiveis
+        .filter((p) => respostas[p.id])
+        .map((p) => ({
+          id: p.id,
+          aplicacao_id: aplicacaoId,
+          pergunta_id: p.id,
+          tipo: p.tipo,
+          resposta: respostas[p.id].valor,
+          correta: null,
+          pontuacao: respostas[p.id].pontuacao,
+          observacao: respostas[p.id].observacao || null,
+          evidencias: respostas[p.id].evidencias,
+          item_critico_falhou: p.item_critico && respostas[p.id].pontuacao === 0,
+        })),
+    [perguntasVisiveis, respostas, aplicacaoId]
+  );
+  // Mesma conta da "Nota preliminar" do fechamento, só que sobre o que já foi respondido.
+  const notaParcial = useMemo(
+    () => calcularNotaGeral(secoes, perguntasVisiveis, respostasComoResposta),
+    [secoes, perguntasVisiveis, respostasComoResposta]
+  );
+
   function persistir(perguntaId: string, novaResposta: RespostaLocal, imediato = false) {
     setRespostas((prev) => ({ ...prev, [perguntaId]: novaResposta }));
     if (saveTimer.current[perguntaId]) clearTimeout(saveTimer.current[perguntaId]);
@@ -424,22 +448,7 @@ export function AplicacaoRunner({
   }
 
   if (mostrarResumo) {
-    const respostasComoResposta: Resposta[] = perguntasVisiveis
-      .filter((p) => respostas[p.id])
-      .map((p) => ({
-        id: p.id,
-        aplicacao_id: aplicacaoId,
-        pergunta_id: p.id,
-        tipo: p.tipo,
-        resposta: respostas[p.id].valor,
-        correta: null,
-        pontuacao: respostas[p.id].pontuacao,
-        observacao: respostas[p.id].observacao || null,
-        evidencias: respostas[p.id].evidencias,
-        item_critico_falhou: p.item_critico && respostas[p.id].pontuacao === 0,
-      }));
-
-    const notaPreliminar = calcularNotaGeral(secoes, perguntasVisiveis, respostasComoResposta);
+    const notaPreliminar = notaParcial;
     const falhasCriticas = avaliarItensCriticos(perguntasVisiveis, respostasComoResposta);
     const naoAvaliados = totalItens - respondidas;
     const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntasVisiveis, respostasComoResposta);
@@ -623,6 +632,11 @@ export function AplicacaoRunner({
             Passo {indiceSeguro + 1} de {totalPassos}
             {passoAtual.tipo === "checklist" ? ` — checklist (${passoAtual.perguntas.length} itens)` : ""} —{" "}
             {progresso}% concluído
+            {/* Nota parcial só nos passos do avaliador (checklist) -- nas questões quem está com o
+                aparelho é o avaliado, então ela não aparece. */}
+            {passoAtual.tipo === "checklist" && notaParcial !== null ? (
+              <span className="font-medium text-foreground"> — nota parcial: {notaParcial.toFixed(1)}</span>
+            ) : null}
           </span>
           <span>{saveStatus === "saving" ? "Salvando..." : saveStatus === "saved" ? "Salvo" : ""}</span>
         </div>
