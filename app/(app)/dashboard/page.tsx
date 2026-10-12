@@ -468,7 +468,7 @@ function StatCard({ label, value, icon: Icon, cor, href, ativo, titulo }: StatCa
       >
         <Icon className="size-4" />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 text-center">
         <p className="text-[11px] leading-tight text-muted-foreground">{label}</p>
         <p className="text-lg leading-tight font-bold">{value}</p>
       </div>
