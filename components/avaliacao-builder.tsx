@@ -418,7 +418,7 @@ export function AvaliacaoBuilder({
         </Card>
       ))}
 
-      <div className="fixed inset-x-0 bottom-16 z-30 flex justify-center gap-2 border-t bg-background p-3 md:bottom-0 md:left-56">
+      <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center gap-2 border-t bg-background p-3 md:bottom-0 md:left-56">
         <Button
           variant="ghost"
           className="text-destructive"
