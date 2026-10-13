@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import {
@@ -401,4 +403,118 @@ export async function getSignedUrl(bucket: string, path: string) {
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 10);
   if (error) return null;
   return data.signedUrl;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Edição de prova já finalizada (só admin): o admin confirma a própria senha em Resultados
+// individuais (dashboard), o que grava um cookie de liberação válido por 30 min só para aquela
+// aplicação. A página /aplicacoes/[id]/editar e salvarEdicaoAplicacao exigem admin + o cookie.
+// A edição não deixa marca de "alterado" na prova (pedido do usuário).
+
+const COOKIE_EDICAO = "edicao_aplicacao";
+
+export async function edicaoLiberada(aplicacaoId: string) {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "admin") return false;
+  const cookieStore = await cookies();
+  return cookieStore.get(COOKIE_EDICAO)?.value === aplicacaoId;
+}
+
+export async function liberarEdicaoAplicacao(aplicacaoId: string, senha: string): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "admin") return { error: "Só administradores podem editar uma prova." };
+  if (!senha) return { error: "Digite sua senha." };
+
+  // Confere a senha num client separado (sem mexer na sessão atual do navegador).
+  const verifyClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+  const { error } = await verifyClient.auth.signInWithPassword({ email: profile.email, password: senha });
+  if (error) return { error: "Senha incorreta." };
+
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_EDICAO, aplicacaoId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 30,
+    path: "/",
+  });
+  return {};
+}
+
+export interface EdicaoRespostaInput {
+  perguntaId: string;
+  valor: RespostaValor;
+  observacao: string;
+  pontuacaoManual: number | null;
+  evidencias: string[];
+}
+
+export async function salvarEdicaoAplicacao(input: {
+  aplicacaoId: string;
+  respostas: EdicaoRespostaInput[];
+  /** Respostas de perguntas condicionais que deixaram de aparecer com a edição. */
+  removerPerguntaIds: string[];
+  parecerFinal: Parecer;
+  observacao: string;
+}): Promise<{ error?: string }> {
+  const { aplicacaoId } = input;
+  if (!(await edicaoLiberada(aplicacaoId))) {
+    return { error: "Edição não liberada ou expirada. Volte ao dashboard e confirme a senha de novo." };
+  }
+
+  for (const r of input.respostas) {
+    const result = await salvarResposta({ aplicacaoId, ...r });
+    if (result.error) return { error: result.error };
+  }
+
+  const supabase = await createClient();
+  if (input.removerPerguntaIds.length > 0) {
+    const { error } = await supabase
+      .from("respostas")
+      .delete()
+      .eq("aplicacao_id", aplicacaoId)
+      .in("pergunta_id", input.removerPerguntaIds);
+    if (error) return { error: error.message };
+  }
+
+  // Recalcula tudo a partir das respostas gravadas (mesma conta de finalizarAplicacao).
+  const runnerData = await getAplicacaoRunnerData(aplicacaoId);
+  if (!runnerData) return { error: "Avaliação não encontrada" };
+  const { secoes, perguntas, respostas, competencias, aplicacao } = runnerData;
+  const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
+  const notasPorCompetencia = calcularNotasPorCompetencia(competencias, perguntas, respostas);
+  const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
+  const parecerSugerido = gerarParecerSugerido({
+    notaGeral,
+    notaMinima: aplicacao.avaliacoes.nota_minima,
+    competencias,
+    notasPorCompetencia,
+    falhasCriticas,
+  });
+
+  const { data: atualizada, error } = await supabase
+    .from("avaliacoes_aplicadas")
+    .update({
+      nota_geral: notaGeral,
+      notas_por_competencia: notasPorCompetencia,
+      falhas_criticas_count: falhasCriticas.length,
+      parecer_sugerido: parecerSugerido,
+      parecer_final: input.parecerFinal,
+      parecer_justificativa: input.observacao.trim() || null,
+    })
+    .eq("id", aplicacaoId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!atualizada) return { error: "Não foi possível salvar: você não tem permissão para atualizar esta avaliação." };
+
+  revalidatePath(`/aplicacoes/${aplicacaoId}/raiox`);
+  revalidatePath("/dashboard");
+  revalidatePath("/");
+  return {};
 }

@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
+import { EditarResultadoButton } from "@/components/editar-resultado-button";
 import { getDashboardData, listAvaliacoesParaFiltro, listFuncoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -269,6 +270,7 @@ export default async function DashboardPage({
                     <th className="px-3 py-2 font-medium">Nota</th>
                     <th className="px-3 py-2 font-medium">Parecer</th>
                     <th className="px-3 py-2 font-medium">Observação</th>
+                    {profile.role === "admin" ? <th className="px-3 py-2" /> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -302,6 +304,11 @@ export default async function DashboardPage({
                           "-"
                         )}
                       </td>
+                      {profile.role === "admin" ? (
+                        <td className="px-2 py-1.5">
+                          <EditarResultadoButton aplicacaoId={r.id} nome={r.nome} />
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>

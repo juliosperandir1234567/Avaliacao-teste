@@ -17,6 +17,7 @@ export function ConfirmarSenhaDialog({
   labelAcao = "Excluir definitivamente",
   labelPendente = "Excluindo...",
   variant = "destructive",
+  pedirEmail = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,6 +28,8 @@ export function ConfirmarSenhaDialog({
   labelAcao?: string;
   labelPendente?: string;
   variant?: "destructive" | "default";
+  /** false = confirma só com a senha de quem está logado (onConfirm recebe e-mail vazio). */
+  pedirEmail?: boolean;
 }) {
   const [emailAdmin, setEmailAdmin] = useState("");
   const [senha, setSenha] = useState("");
@@ -41,7 +44,7 @@ export function ConfirmarSenhaDialog({
   }
 
   function confirmar() {
-    if (!emailAdmin || !senha) return;
+    if ((pedirEmail && !emailAdmin) || !senha) return;
     startTransition(async () => {
       const result = await onConfirm(emailAdmin, senha);
       if (result?.error) {
@@ -61,19 +64,22 @@ export function ConfirmarSenhaDialog({
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">{descricao}</p>
+          {pedirEmail ? (
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">E-mail do administrador</Label>
+              <Input
+                type="email"
+                autoFocus
+                value={emailAdmin}
+                onChange={(e) => setEmailAdmin(e.target.value)}
+              />
+            </div>
+          ) : null}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">E-mail do administrador</Label>
-            <Input
-              type="email"
-              autoFocus
-              value={emailAdmin}
-              onChange={(e) => setEmailAdmin(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Senha do administrador</Label>
+            <Label className="text-xs">{pedirEmail ? "Senha do administrador" : "Sua senha"}</Label>
             <Input
               type="password"
+              autoFocus={!pedirEmail}
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               onKeyDown={(e) => {
@@ -81,7 +87,7 @@ export function ConfirmarSenhaDialog({
               }}
             />
           </div>
-          <Button variant={variant} disabled={pending || !emailAdmin || !senha} onClick={confirmar}>
+          <Button variant={variant} disabled={pending || (pedirEmail && !emailAdmin) || !senha} onClick={confirmar}>
             {pending ? labelPendente : labelAcao}
           </Button>
         </div>
