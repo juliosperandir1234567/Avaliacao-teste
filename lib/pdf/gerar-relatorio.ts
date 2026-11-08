@@ -1,4 +1,5 @@
 import { renderToBuffer } from "@react-pdf/renderer";
+import sharp from "sharp";
 import { createClient } from "@/utils/supabase/server";
 import { getAplicacaoRunnerData } from "@/app/(app)/aplicacoes/actions";
 import { RelatorioDocument } from "./relatorio-document";
@@ -18,6 +19,32 @@ async function imagemComoDataUri(url: string | null): Promise<string | null> {
     const buffer = Buffer.from(await res.arrayBuffer());
     const contentType = res.headers.get("content-type") || "image/png";
     return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Igual a imagemComoDataUri, mas reduz a foto (celular manda 4-8 MB) pra no máximo `maxLado` px
+ * em JPEG -- no PDF ela aparece pequena, então o resto é peso à toa. Era o principal motivo dos
+ * PDFs/ZIP lentos e pesados. Se o sharp falhar, usa a imagem original. */
+async function fotoOtimizadaDataUri(url: string | null, maxLado = 900): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const original = Buffer.from(await res.arrayBuffer());
+    try {
+      const reduzida = await sharp(original)
+        .rotate() // respeita a orientação EXIF da câmera
+        .resize({ width: maxLado, height: maxLado, fit: "inside", withoutEnlargement: true })
+        .flatten({ background: "#ffffff" })
+        .jpeg({ quality: 72, mozjpeg: true })
+        .toBuffer();
+      return `data:image/jpeg;base64,${reduzida.toString("base64")}`;
+    } catch {
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      return `data:${contentType};base64,${original.toString("base64")}`;
+    }
   } catch {
     return null;
   }
@@ -70,22 +97,23 @@ export async function gerarRelatorioPdfBuffer(
     signedUrl("evidencias", data.aplicacao.foto_cnh_path),
     imagemComoDataUri(config.logoUrl),
   ]);
-  const fotoCnhUrl = await imagemComoDataUri(fotoCnhSignedUrl);
-
-  // Troca os paths de evidência (bucket "evidencias") por URLs assinadas -- o PDF é gerado sob
-  // demanda e as URLs só precisam viver o suficiente pro download, igual assinatura.
-  const respostasComEvidencias = await Promise.all(
+  // Troca os paths de evidência (bucket "evidencias") por fotos já reduzidas (data URI) -- antes
+  // ia a URL da foto original e o PDF embutia a imagem inteira do celular.
+  const [fotoCnhUrl, respostasComEvidencias] = await Promise.all([
+    fotoOtimizadaDataUri(fotoCnhSignedUrl),
+    Promise.all(
     data.respostas.map(async (r) => {
       if (r.evidencias.length === 0) return r;
       const urls = await Promise.all(
         r.evidencias.map(async (path) => {
           const { data: signed } = await supabase.storage.from("evidencias").createSignedUrl(path, 60 * 5);
-          return signed?.signedUrl ?? null;
+          return fotoOtimizadaDataUri(signed?.signedUrl ?? null, 700);
         })
       );
       return { ...r, evidencias: urls.filter((u): u is string => u !== null) };
     })
-  );
+    ),
+  ]);
 
   const alternativasTexto = new Map(data.alternativas.map((a) => [a.id, a.texto]));
 

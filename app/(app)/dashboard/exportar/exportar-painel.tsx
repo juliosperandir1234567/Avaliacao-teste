@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
-import { Eye } from "lucide-react";
 import { toast } from "sonner";
+import { OlhoComCnh } from "@/components/olho-com-cnh";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +33,7 @@ interface LinhaAplicacao {
   parecer_final: Parecer | null;
   exportado_em: string | null;
   nota_geral: number | null;
+  foto_cnh_path: string | null;
   avaliacoes: { nome: string } | { nome: string }[] | null;
   candidatos_externos: { nome: string } | { nome: string }[] | null;
 }
@@ -135,17 +135,18 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardContent className="grid grid-cols-2 gap-3 pt-4 sm:grid-cols-3 lg:grid-cols-6">
+      <Card size="sm">
+        {/* Filtros compactos numa linha só (no notebook), com o botão no fim da linha. */}
+        <CardContent className="grid grid-cols-2 items-end gap-2 sm:grid-cols-3 lg:grid-cols-[repeat(6,minmax(0,1fr))_auto]">
           <Field label="De">
-            <Input type="date" className="h-10" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            <Input type="date" className="h-8 w-full text-xs" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
           </Field>
           <Field label="Até">
-            <Input type="date" className="h-10" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            <Input type="date" className="h-8 w-full text-xs" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
           </Field>
           <Field label="Avaliação">
             <Select value={avaliacaoId || "todas"} onValueChange={(v) => setAvaliacaoId(!v || v === "todas" ? "" : v)}>
-              <SelectTrigger className="h-10">
+              <SelectTrigger className="h-8 w-full text-xs">
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
@@ -160,7 +161,7 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
           </Field>
           <Field label="Resultado">
             <Select value={resultado || "todos"} onValueChange={(v) => setResultado(!v || v === "todos" ? "" : v)}>
-              <SelectTrigger className="h-10">
+              <SelectTrigger className="h-8 w-full text-xs">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
@@ -174,22 +175,18 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
             </Select>
           </Field>
           <Field label="Código">
-            <Input className="h-10" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Matrícula" />
+            <Input className="h-8 w-full text-xs" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Matrícula" />
           </Field>
           <Field label="CPF ou Nome">
-            <Input className="h-10" value={cpfOuNome} onChange={(e) => setCpfOuNome(e.target.value)} />
+            <Input className="h-8 w-full text-xs" value={cpfOuNome} onChange={(e) => setCpfOuNome(e.target.value)} />
           </Field>
-          <div className="col-span-full flex items-end gap-2">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={incluirJaExportadas} onCheckedChange={(v) => setIncluirJaExportadas(Boolean(v))} />
-              Incluir avaliações já exportadas anteriormente
-            </label>
-          </div>
-          <div className="col-span-full">
-            <Button type="button" variant="outline" disabled={pending} onClick={atualizarPrevia}>
-              {pending ? "Atualizando..." : "Atualizar prévia"}
-            </Button>
-          </div>
+          <Button type="button" size="sm" className="col-span-2 h-8 sm:col-span-1" disabled={pending} onClick={atualizarPrevia}>
+            {pending ? "Atualizando..." : "Atualizar prévia"}
+          </Button>
+          <label className="col-span-full flex items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox checked={incluirJaExportadas} onCheckedChange={(v) => setIncluirJaExportadas(Boolean(v))} />
+            Incluir avaliações já exportadas anteriormente
+          </label>
         </CardContent>
       </Card>
 
@@ -355,15 +352,7 @@ function TabelaAplicacoes({
                   </td>
                 ) : null}
                 <td className="px-2 py-2">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    render={
-                      <Link href={`/aplicacoes/${l.id}/relatorio`} target="_blank">
-                        <Eye className="size-4" />
-                      </Link>
-                    }
-                  />
+                  <OlhoComCnh href={`/aplicacoes/${l.id}/relatorio`} fotoCnhPath={l.foto_cnh_path} />
                 </td>
               </tr>
             ))

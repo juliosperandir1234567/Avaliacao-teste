@@ -41,6 +41,7 @@ import {
   precisaCorrecaoManual,
 } from "@/lib/scoring";
 import { condicaoAtendida } from "@/lib/conditional";
+import { comprimirImagem } from "@/lib/comprimir-imagem";
 import { PARECER_LABELS, PERGUNTA_TIPO_LABELS } from "@/lib/types";
 import type {
   AvaliacaoAlternativa,
@@ -205,8 +206,9 @@ export function AplicacaoRunner({
     };
   }, [fotoCnhPath]);
 
-  async function handleFotoCnh(file: File) {
+  async function handleFotoCnh(original: File) {
     setEnviandoFotoCnh(true);
+    const file = await comprimirImagem(original);
     const supabase = createClient();
     const path = `${aplicacaoId}/cnh-${Date.now()}-${file.name}`;
     const { error } = await supabase.storage.from("evidencias").upload(path, file);
@@ -370,7 +372,8 @@ export function AplicacaoRunner({
     else saveTimer.current[perguntaId] = setTimeout(executar, 500);
   }
 
-  async function handleEvidencia(perguntaId: string, file: File) {
+  async function handleEvidencia(perguntaId: string, original: File) {
+    const file = await comprimirImagem(original);
     const supabase = createClient();
     const path = `${aplicacaoId}/${perguntaId}/${Date.now()}-${file.name}`;
     const { error } = await supabase.storage.from("evidencias").upload(path, file);

@@ -43,7 +43,7 @@ async function buscar(filtros: FiltroExportacao, apenasExportadas: boolean) {
   let query = supabase
     .from("avaliacoes_aplicadas")
     .select(
-      "id, status, data, tipo_pessoa, colaborador_snapshot, parecer_final, exportado_em, nota_geral, avaliacoes(nome), candidatos_externos(nome, cpf)"
+      "id, status, data, tipo_pessoa, colaborador_snapshot, parecer_final, exportado_em, nota_geral, foto_cnh_path, avaliacoes(nome), candidatos_externos(nome, cpf)"
     )
     .eq("status", "finalizada")
     .order(apenasExportadas ? "exportado_em" : "data", { ascending: false })
