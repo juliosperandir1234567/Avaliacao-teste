@@ -191,14 +191,21 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
       </Card>
 
       {previa ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card size="sm" className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">Prévia — {previa.length} avaliação(ões) para exportar</CardTitle>
-            <Button type="button" disabled={selecionadas.size === 0 || baixando} onClick={baixarZip}>
-              {baixando ? "Gerando..." : `Baixar ${selecionadas.size} em ZIP`}
-            </Button>
+            {previa.length > 0 ? (
+              <Button type="button" size="sm" disabled={selecionadas.size === 0 || baixando} onClick={baixarZip}>
+                {baixando ? "Gerando..." : `Baixar ${selecionadas.size} em ZIP`}
+              </Button>
+            ) : null}
           </CardHeader>
           <CardContent className="p-0">
+            {previa.length === 0 ? (
+              <p className="px-4 pb-1 text-sm text-muted-foreground">
+                Nenhuma avaliação nova para exportar com esses filtros.
+              </p>
+            ) : (
             <TabelaAplicacoes
               linhas={previa}
               selecionadas={selecionadas}
@@ -212,32 +219,33 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
               }
               onToggleTodas={(v) => setSelecionadas(v ? new Set(previa.map((l) => l.id)) : new Set())}
             />
+            )}
           </CardContent>
         </Card>
       ) : null}
 
       {exportadas && exportadas.length > 0 ? (
-        <Card>
-          <CardHeader>
+        <Card size="sm" className="gap-2">
+          <CardHeader className="flex flex-row flex-wrap items-baseline gap-x-2 gap-y-0">
             <CardTitle className="text-base">Últimas exportações</CardTitle>
-            <CardDescription>Respeitando os filtros selecionados acima.</CardDescription>
+            <CardDescription className="text-xs">— respeitando os filtros acima</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3 p-0">
-            <div className="flex items-center justify-between px-4 pt-4">
-              <span className="text-sm text-muted-foreground">
-                {selecionadasExportadas.size} selecionada(s)
-              </span>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={selecionadasExportadas.size === 0 || pending}
-                onClick={removerDasExportadas}
-              >
-                Excluir selecionadas
-              </Button>
-            </div>
+          <CardContent className="p-0">
             <TabelaAplicacoes
+              barra={
+                <>
+                  <span className="text-xs text-muted-foreground">{selecionadasExportadas.size} selecionada(s)</span>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={selecionadasExportadas.size === 0 || pending}
+                    onClick={removerDasExportadas}
+                  >
+                    Excluir selecionadas
+                  </Button>
+                </>
+              }
               linhas={exportadas}
               selecionadas={selecionadasExportadas}
               onToggle={(id, v) =>
@@ -264,7 +272,10 @@ function TabelaAplicacoes({
   onToggle,
   onToggleTodas,
   mostrarExportadoEm,
+  barra,
 }: {
+  /** Botões extras na mesma linha da busca (economiza espaço). */
+  barra?: React.ReactNode;
   linhas: LinhaAplicacao[];
   selecionadas: Set<string>;
   onToggle: (id: string, v: boolean) => void;
@@ -289,7 +300,7 @@ function TabelaAplicacoes({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="px-4 pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4">
         <BuscaTabela
           valor={busca}
           onChange={(v) => {
@@ -301,6 +312,7 @@ function TabelaAplicacoes({
           total={todas.length}
           visiveis={linhas.length}
         />
+        {barra ? <div className="flex items-center gap-2">{barra}</div> : null}
       </div>
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -329,7 +341,7 @@ function TabelaAplicacoes({
         <tbody className="divide-y">
           {linhas.length === 0 ? (
             <tr>
-              <td colSpan={mostrarExportadoEm ? 8 : 7} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={mostrarExportadoEm ? 8 : 7} className="px-4 py-3 text-center text-muted-foreground">
                 Nenhuma avaliação encontrada.
               </td>
             </tr>

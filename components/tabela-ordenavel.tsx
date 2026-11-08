@@ -109,7 +109,7 @@ export function BuscaTabela({
   visiveis: number;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       <div className="relative w-full max-w-xs">
         <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
