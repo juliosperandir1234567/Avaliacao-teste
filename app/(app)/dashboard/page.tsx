@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
-import { EditarResultadoButton } from "@/components/editar-resultado-button";
+import { ResultadosIndividuaisTable } from "@/components/resultados-individuais-table";
 import { getDashboardData, listAvaliacoesParaFiltro, listFuncoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ import {
   BarraDistribuicao,
   LinhaEvolucao,
 } from "@/components/dashboard-charts";
-import { PARECER_LABELS, type Parecer, type TipoPessoa } from "@/lib/types";
+import type { Parecer, TipoPessoa } from "@/lib/types";
 
 type DashboardParams = {
   dataInicio?: string;
@@ -252,68 +252,17 @@ export default async function DashboardPage({
           <ChartTitle
             icon={Users}
             titulo={`Resultados individuais${params.funcao ? ` — ${params.funcao}` : ""}`}
-            subtitulo={`${dados.resultadosIndividuais.length} resultado${dados.resultadosIndividuais.length === 1 ? "" : "s"}, da maior para a menor nota`}
+            subtitulo={`${dados.resultadosIndividuais.length} resultado${dados.resultadosIndividuais.length === 1 ? "" : "s"}, clique no título da coluna para ordenar`}
           />
         </CardHeader>
         <CardContent>
           {dados.resultadosIndividuais.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum resultado no período filtrado.</p>
           ) : (
-            // Altura de ~10 linhas; o resto fica na rolagem (cabeçalho fixo).
-            <div className="max-h-[27rem] overflow-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-muted">
-                  <tr className="text-left text-xs text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">Nome</th>
-                    <th className="px-3 py-2 font-medium">Tipo</th>
-                    <th className="px-3 py-2 font-medium">Data</th>
-                    <th className="px-3 py-2 font-medium">Nota</th>
-                    <th className="px-3 py-2 font-medium">Parecer</th>
-                    <th className="px-3 py-2 font-medium">Observação</th>
-                    {profile.role === "admin" ? <th className="px-3 py-2" /> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dados.resultadosIndividuais.map((r, i) => (
-                    <tr key={i} className="border-t align-top hover:bg-muted/40">
-                      <td className="px-3 py-2">
-                        <Link href={`/aplicacoes/${r.id}/raiox`} className="font-medium text-primary hover:underline">
-                          {r.nome}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2 capitalize">{r.tipoPessoa}</td>
-                      <td className="px-3 py-2">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-3 py-2 font-semibold">
-                        {r.notaGeral !== null ? r.notaGeral.toFixed(1) : "-"}
-                      </td>
-                      <td className="px-3 py-2">
-                        {r.parecerFinal ? <ParecerBadge parecer={r.parecerFinal} /> : "-"}
-                      </td>
-                      <td className="min-w-48 px-3 py-2 text-xs whitespace-pre-line text-muted-foreground">
-                        {r.observacaoAvaliador || r.observacaoGestor ? (
-                          <>
-                            {r.observacaoAvaliador ? <p>{r.observacaoAvaliador}</p> : null}
-                            {r.observacaoGestor ? (
-                              <p>
-                                <span className="font-medium text-foreground">Gestor: </span>
-                                {r.observacaoGestor}
-                              </p>
-                            ) : null}
-                          </>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      {profile.role === "admin" ? (
-                        <td className="px-2 py-1.5">
-                          <EditarResultadoButton aplicacaoId={r.id} nome={r.nome} />
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResultadosIndividuaisTable
+              resultados={dados.resultadosIndividuais}
+              isAdmin={profile.role === "admin"}
+            />
           )}
         </CardContent>
       </Card>
@@ -435,24 +384,6 @@ function ChartTitle({
         <p className="text-xs text-muted-foreground">{subtitulo}</p>
       </div>
     </div>
-  );
-}
-
-const PARECER_BADGE: Partial<Record<Parecer, string>> = {
-  apto: "bg-green-100 text-green-800",
-  reprovado: "bg-red-100 text-red-800",
-  nao_recomendado: "bg-red-100 text-red-800",
-};
-
-function ParecerBadge({ parecer }: { parecer: Parecer }) {
-  return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${
-        PARECER_BADGE[parecer] ?? "bg-amber-100 text-amber-800"
-      }`}
-    >
-      {PARECER_LABELS[parecer]}
-    </span>
   );
 }
 

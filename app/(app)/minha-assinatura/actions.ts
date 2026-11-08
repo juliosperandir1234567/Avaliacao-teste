@@ -21,6 +21,6 @@ export async function salvarMinhaAssinatura(path: string) {
     .maybeSingle();
   if (error) return { error: error.message };
   if (!atualizado) return { error: "Não foi possível salvar a assinatura." };
-  revalidatePath("/minha-assinatura");
+  revalidatePath("/configuracoes");
   return { success: true };
 }

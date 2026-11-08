@@ -52,7 +52,8 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/configuracoes",
     label: "Configurações",
     icon: Settings,
-    roles: ["admin"],
+    // Todos: a assinatura de cada usuário fica aqui (Identidade visual segue só pra admin).
+    roles: ["admin", "avaliador", "gestor", "recrutamento"],
   },
 ];
 

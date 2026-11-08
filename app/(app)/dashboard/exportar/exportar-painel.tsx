@@ -24,6 +24,7 @@ import {
   type FiltroExportacao,
 } from "./actions";
 import { PARECER_LABELS, type Parecer } from "@/lib/types";
+import { BuscaTabela, ThOrdenavel, useTabelaOrdenavel } from "@/components/tabela-ordenavel";
 
 interface LinhaAplicacao {
   id: string;
@@ -261,7 +262,7 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
 }
 
 function TabelaAplicacoes({
-  linhas,
+  linhas: todas,
   selecionadas,
   onToggle,
   onToggleTodas,
@@ -273,22 +274,58 @@ function TabelaAplicacoes({
   onToggleTodas: (v: boolean) => void;
   mostrarExportadoEm?: boolean;
 }) {
+  const { visiveis, ordem, alternar, busca, setBusca } = useTabelaOrdenavel({
+    linhas: todas,
+    colunas: {
+      matricula: (l) => l.colaborador_snapshot?.matricula,
+      nome: (l) => nomeDaLinha(l),
+      prova: (l) => nomeAvaliacao(l),
+      nota: (l) => l.nota_geral,
+      resultado: (l) => (l.parecer_final ? PARECER_LABELS[l.parecer_final] : null),
+      exportado: (l) => l.exportado_em,
+    },
+    buscaEm: (l) => [nomeDaLinha(l), l.colaborador_snapshot?.matricula],
+  });
+  const linhas = visiveis;
   const todasMarcadas = linhas.length > 0 && linhas.every((l) => selecionadas.has(l.id));
+  const th = "px-2 py-2";
 
   return (
+    <div className="flex flex-col gap-2">
+      <div className="px-4 pt-2">
+        <BuscaTabela
+          valor={busca}
+          onChange={(v) => {
+            // Limpa a seleção ao buscar, pra só exportar o que está aparecendo.
+            setBusca(v);
+            onToggleTodas(false);
+          }}
+          placeholder="Buscar por nome ou matrícula..."
+          total={todas.length}
+          visiveis={linhas.length}
+        />
+      </div>
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
           <tr>
             <th className="w-10 px-4 py-2">
-              <Checkbox checked={todasMarcadas} onCheckedChange={(v) => onToggleTodas(Boolean(v))} />
+              <Checkbox
+                checked={todasMarcadas}
+                onCheckedChange={(v) => {
+                  onToggleTodas(false);
+                  if (v) linhas.forEach((l) => onToggle(l.id, true));
+                }}
+              />
             </th>
-            <th className="px-2 py-2 font-medium">Matrícula</th>
-            <th className="px-2 py-2 font-medium">Colaborador</th>
-            <th className="px-2 py-2 font-medium">Prova</th>
-            <th className="px-2 py-2 font-medium">Nota</th>
-            <th className="px-2 py-2 font-medium">Resultado</th>
-            {mostrarExportadoEm ? <th className="px-2 py-2 font-medium">Exportado em</th> : null}
+            <ThOrdenavel coluna="matricula" ordem={ordem} onClick={alternar} className={th}>Matrícula</ThOrdenavel>
+            <ThOrdenavel coluna="nome" ordem={ordem} onClick={alternar} className={th}>Colaborador</ThOrdenavel>
+            <ThOrdenavel coluna="prova" ordem={ordem} onClick={alternar} className={th}>Prova</ThOrdenavel>
+            <ThOrdenavel coluna="nota" ordem={ordem} onClick={alternar} className={th}>Nota</ThOrdenavel>
+            <ThOrdenavel coluna="resultado" ordem={ordem} onClick={alternar} className={th}>Resultado</ThOrdenavel>
+            {mostrarExportadoEm ? (
+              <ThOrdenavel coluna="exportado" ordem={ordem} onClick={alternar} className={th}>Exportado em</ThOrdenavel>
+            ) : null}
             <th className="px-2 py-2 font-medium">Ações</th>
           </tr>
         </thead>
@@ -333,6 +370,7 @@ function TabelaAplicacoes({
           )}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }
