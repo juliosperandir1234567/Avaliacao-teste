@@ -45,16 +45,19 @@ function nomePessoa(a: AplicacaoResumo) {
 }
 
 export default async function HomePage() {
-  const profile = await getCurrentProfile();
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("avaliacoes_aplicadas")
-    .select(
-      "id, avaliacao_id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final, candidatos_externos(nome), avaliacoes(nota_minima)"
-    )
-    .not("status", "in", "(finalizada,cancelada)")
-    .order("created_at", { ascending: false });
+  // Perfil e lista de pendências em paralelo (antes um esperava o outro).
+  const [profile, { data }] = await Promise.all([
+    getCurrentProfile(),
+    supabase
+      .from("avaliacoes_aplicadas")
+      .select(
+        "id, avaliacao_id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final, candidatos_externos(nome), avaliacoes(nota_minima)"
+      )
+      .not("status", "in", "(finalizada,cancelada)")
+      .order("created_at", { ascending: false }),
+  ]);
   // Fila em ordem alfabética pelo nome da pessoa (interno vem do snapshot, externo do cadastro).
   const pendencias = ((data ?? []) as AplicacaoResumo[]).sort((a, b) =>
     nomePessoa(a).localeCompare(nomePessoa(b), "pt-BR")
@@ -95,8 +98,9 @@ async function calcularAndamentos(
   if (pendencias.length === 0) return resultado;
 
   const avaliacaoIds = [...new Set(pendencias.map((a) => a.avaliacao_id))];
-  const [{ data: secoesData }, { data: respostasData }] = await Promise.all([
-    supabase.from("avaliacao_secoes").select("*").in("avaliacao_id", avaliacaoIds),
+  // Seções já trazem as perguntas embutidas -- uma ida ao banco a menos.
+  const [{ data: secoesComPerguntas }, { data: respostasData }] = await Promise.all([
+    supabase.from("avaliacao_secoes").select("*, avaliacao_perguntas(*)").in("avaliacao_id", avaliacaoIds),
     supabase
       .from("respostas")
       .select("*")
@@ -105,20 +109,12 @@ async function calcularAndamentos(
         pendencias.map((a) => a.id)
       ),
   ]);
-  const secoes = (secoesData ?? []) as AvaliacaoSecao[];
+  const perguntas: AvaliacaoPergunta[] = [];
+  const secoes = (secoesComPerguntas ?? []).map(({ avaliacao_perguntas, ...s }) => {
+    perguntas.push(...((avaliacao_perguntas ?? []) as AvaliacaoPergunta[]));
+    return s as AvaliacaoSecao;
+  });
   const respostas = (respostasData ?? []) as Resposta[];
-
-  const { data: perguntasData } =
-    secoes.length > 0
-      ? await supabase
-          .from("avaliacao_perguntas")
-          .select("*")
-          .in(
-            "secao_id",
-            secoes.map((s) => s.id)
-          )
-      : { data: [] };
-  const perguntas = (perguntasData ?? []) as AvaliacaoPergunta[];
 
   for (const a of pendencias) {
     const secoesDela = secoes.filter((s) => s.avaliacao_id === a.avaliacao_id);

@@ -52,7 +52,7 @@ export function ResultadosIndividuaisTable({
       observacao: (r) => r.observacaoAvaliador || r.observacaoGestor,
     },
     buscaEm: (r) => [r.nome],
-    inicial: { coluna: "nota", direcao: "desc" },
+    inicial: { coluna: "nome", direcao: "asc" },
   });
 
   return (

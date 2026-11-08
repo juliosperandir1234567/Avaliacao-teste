@@ -293,6 +293,7 @@ function TabelaAplicacoes({
       exportado: (l) => l.exportado_em,
     },
     buscaEm: (l) => [nomeDaLinha(l), l.colaborador_snapshot?.matricula],
+    inicial: { coluna: "nome", direcao: "asc" },
   });
   const linhas = visiveis;
   const todasMarcadas = linhas.length > 0 && linhas.every((l) => selecionadas.has(l.id));

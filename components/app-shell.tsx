@@ -78,7 +78,7 @@ function MenuLateral({
           const Icon = item.icon;
           return (
             <li key={item.href}>
-              <Link href={item.href} prefetch={false} className={classeItemMenu(item.href === ativoHref, comFundo)}>
+              <Link href={item.href} className={classeItemMenu(item.href === ativoHref, comFundo)}>
                 <span className="relative">
                   <Icon className="size-6" />
                   {item.href === "/" && pendenciasCount > 0 ? (

@@ -52,51 +52,48 @@ export async function claimPendenciaSeNecessario(aplicacaoId: string) {
 export async function getAplicacaoRunnerData(aplicacaoId: string) {
   const supabase = await createClient();
 
-  const { data: aplicacao } = await supabase
-    .from("avaliacoes_aplicadas")
-    .select(
-      "*, avaliacoes(nome, nota_minima, equipamento_tipo_id), candidatos_externos(nome, matricula, cpf, categoria_cnh, funcao_pretendida, observacoes)"
-    )
-    .eq("id", aplicacaoId)
-    .single();
+  // Desempenho: antes eram 6 consultas uma depois da outra (~0,2s cada ida ao banco).
+  // Agora são 2 etapas, cada uma com as consultas em paralelo.
+  // Etapa 1: a aplicação e as respostas (as respostas só precisam do id da aplicação).
+  const [{ data: aplicacao }, { data: respostas }] = await Promise.all([
+    supabase
+      .from("avaliacoes_aplicadas")
+      .select(
+        "*, avaliacoes(nome, nota_minima, equipamento_tipo_id), candidatos_externos(nome, matricula, cpf, categoria_cnh, funcao_pretendida, observacoes)"
+      )
+      .eq("id", aplicacaoId)
+      .single(),
+    supabase.from("respostas").select("*").eq("aplicacao_id", aplicacaoId),
+  ]);
 
   if (!aplicacao) return null;
 
-  const { data: secoes } = await supabase
-    .from("avaliacao_secoes")
-    .select("*")
-    .eq("avaliacao_id", aplicacao.avaliacao_id)
-    .order("ordem");
-
-  const { data: perguntasRaw } = await supabase
-    .from("avaliacao_perguntas")
-    .select("*, avaliacao_secoes!inner(avaliacao_id)")
-    .eq("avaliacao_secoes.avaliacao_id", aplicacao.avaliacao_id)
-    .order("ordem");
-
-  const { data: respostas } = await supabase
-    .from("respostas")
-    .select("*")
-    .eq("aplicacao_id", aplicacaoId);
+  // Etapa 2: estrutura da prova -- seções, perguntas (já com as alternativas embutidas) e competências.
+  const [{ data: secoes }, { data: perguntasRaw }, { data: competencias }] = await Promise.all([
+    supabase.from("avaliacao_secoes").select("*").eq("avaliacao_id", aplicacao.avaliacao_id).order("ordem"),
+    supabase
+      .from("avaliacao_perguntas")
+      .select("*, avaliacao_secoes!inner(avaliacao_id), avaliacao_alternativas(*)")
+      .eq("avaliacao_secoes.avaliacao_id", aplicacao.avaliacao_id)
+      .order("ordem")
+      .order("ordem", { referencedTable: "avaliacao_alternativas" }),
+    supabase.from("avaliacao_competencias").select("*").eq("avaliacao_id", aplicacao.avaliacao_id),
+  ]);
 
   // Pergunta arquivada some de provas novas, mas continua aparecendo pra quem já tem resposta
   // registrada (provas antigas) -- ver arquivarPergunta em avaliacoes/actions.ts.
   const perguntaIdsComResposta = new Set((respostas ?? []).map((r) => r.pergunta_id));
-  const perguntas = (perguntasRaw ?? []).filter(
-    (p) =>
-      (!p.equipamento_tipo_id || p.equipamento_tipo_id === aplicacao.avaliacoes.equipamento_tipo_id) &&
-      (!p.arquivada || perguntaIdsComResposta.has(p.id))
-  );
-
-  const perguntaIds = perguntas.map((p) => p.id);
-  const { data: alternativas } = perguntaIds.length
-    ? await supabase.from("avaliacao_alternativas").select("*").in("pergunta_id", perguntaIds)
-    : { data: [] };
-
-  const { data: competencias } = await supabase
-    .from("avaliacao_competencias")
-    .select("*")
-    .eq("avaliacao_id", aplicacao.avaliacao_id);
+  const alternativas: AvaliacaoAlternativa[] = [];
+  const perguntas = (perguntasRaw ?? [])
+    .filter(
+      (p) =>
+        (!p.equipamento_tipo_id || p.equipamento_tipo_id === aplicacao.avaliacoes.equipamento_tipo_id) &&
+        (!p.arquivada || perguntaIdsComResposta.has(p.id))
+    )
+    .map(({ avaliacao_alternativas, ...p }) => {
+      alternativas.push(...((avaliacao_alternativas ?? []) as AvaliacaoAlternativa[]));
+      return p;
+    });
 
   const alternativasPorPergunta = new Map<string, AvaliacaoAlternativa[]>();
   for (const a of (alternativas ?? []) as AvaliacaoAlternativa[]) {

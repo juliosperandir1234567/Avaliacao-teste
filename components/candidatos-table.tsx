@@ -32,6 +32,7 @@ export function CandidatosTable({ candidatos: todos }: { candidatos: Candidato[]
       status: (c) => APLICACAO_STATUS_LABELS[c.status as AplicacaoStatus],
     },
     buscaEm: (c) => [nomeDe(c), c.funcao_avaliada],
+    inicial: { coluna: "nome", direcao: "asc" },
   });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [idsParaExcluir, setIdsParaExcluir] = useState<string[]>([]);

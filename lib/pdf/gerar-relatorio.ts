@@ -65,21 +65,6 @@ export async function gerarRelatorioPdfBuffer(
 
   const supabase = await createClient();
 
-  const { data: avaliadorProfile } = await supabase
-    .from("profiles")
-    .select("nome, role")
-    .eq("id", data.aplicacao.avaliador_id)
-    .single();
-  // "Avaliador" no relatório é quem de fato conduziu a prova (coluna avaliador_id) -- mostra o
-  // papel certo (Gestor x Avaliador) em vez de sempre chamar de "Avaliador".
-  const avaliadorLabel = avaliadorProfile?.role === "gestor" ? "Gestor" : "Avaliador";
-  // Quando quem conduziu foi um gestor, mostra também quem aprovou (finalizada_por) como
-  // "Avaliador" — os dois nomes ficam visíveis, igual parecer/observação do gestor x avaliador.
-  const { data: aprovadorProfile } =
-    avaliadorLabel === "Gestor" && data.aplicacao.finalizada_por
-      ? await supabase.from("profiles").select("nome").eq("id", data.aplicacao.finalizada_por).single()
-      : { data: null };
-
   const pessoaNome =
     data.aplicacao.tipo_pessoa === "externo"
       ? (data.aplicacao.candidatos_externos?.nome ?? "Candidato externo")
@@ -91,16 +76,18 @@ export async function gerarRelatorioPdfBuffer(
     return signed?.signedUrl ?? null;
   }
 
-  const [assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, fotoCnhSignedUrl, logoDataUri] = await Promise.all([
+  // Tudo que depende só da aplicação vai em paralelo (antes: perfil do avaliador, depois o do
+  // aprovador, depois as URLs, depois as fotos -- cada um esperando o anterior).
+  const idsPerfis = [data.aplicacao.avaliador_id, data.aplicacao.finalizada_por].filter(Boolean) as string[];
+  const [{ data: perfis }, assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, fotoCnhUrl, logoDataUri, respostasComEvidencias] =
+    await Promise.all([
+    supabase.from("profiles").select("id, nome, role").in("id", idsPerfis),
     signedUrl("assinaturas", data.aplicacao.assinatura_avaliado_path),
     signedUrl("assinaturas", data.aplicacao.assinatura_avaliador_path),
-    signedUrl("evidencias", data.aplicacao.foto_cnh_path),
+    signedUrl("evidencias", data.aplicacao.foto_cnh_path).then((u) => fotoOtimizadaDataUri(u)),
     imagemComoDataUri(config.logoUrl),
-  ]);
-  // Troca os paths de evidência (bucket "evidencias") por fotos já reduzidas (data URI) -- antes
-  // ia a URL da foto original e o PDF embutia a imagem inteira do celular.
-  const [fotoCnhUrl, respostasComEvidencias] = await Promise.all([
-    fotoOtimizadaDataUri(fotoCnhSignedUrl),
+    // Troca os paths de evidência (bucket "evidencias") por fotos já reduzidas (data URI) -- antes
+    // ia a URL da foto original e o PDF embutia a imagem inteira do celular.
     Promise.all(
     data.respostas.map(async (r) => {
       if (r.evidencias.length === 0) return r;
@@ -114,6 +101,17 @@ export async function gerarRelatorioPdfBuffer(
     })
     ),
   ]);
+
+  const avaliadorProfile = perfis?.find((p) => p.id === data.aplicacao.avaliador_id) ?? null;
+  // "Avaliador" no relatório é quem de fato conduziu a prova (coluna avaliador_id) -- mostra o
+  // papel certo (Gestor x Avaliador) em vez de sempre chamar de "Avaliador".
+  const avaliadorLabel = avaliadorProfile?.role === "gestor" ? "Gestor" : "Avaliador";
+  // Quando quem conduziu foi um gestor, mostra também quem aprovou (finalizada_por) como
+  // "Avaliador" — os dois nomes ficam visíveis, igual parecer/observação do gestor x avaliador.
+  const aprovadorProfile =
+    avaliadorLabel === "Gestor" && data.aplicacao.finalizada_por
+      ? (perfis?.find((p) => p.id === data.aplicacao.finalizada_por) ?? null)
+      : null;
 
   const alternativasTexto = new Map(data.alternativas.map((a) => [a.id, a.texto]));
 
