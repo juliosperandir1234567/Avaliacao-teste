@@ -20,13 +20,14 @@ export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: s
   const [carregou, setCarregou] = useState(false);
 
   async function abrir() {
-    if (!fotoCnhPath || !ref.current) return;
+    if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
     const larg = 288;
-    const alt = 200;
+    const alt = fotoCnhPath ? 200 : 40;
     const top = Math.max(8, Math.min(window.innerHeight - alt - 8, r.top + r.height / 2 - alt / 2));
     const left = r.left - larg - 8 > 8 ? r.left - larg - 8 : Math.min(window.innerWidth - larg - 8, r.right + 8);
     setPos({ top, left });
+    if (!fotoCnhPath) return;
     if (!urlCache.has(fotoCnhPath)) {
       const { data } = await createClient().storage.from("evidencias").createSignedUrl(fotoCnhPath, 60 * 30);
       urlCache.set(fotoCnhPath, data?.signedUrl ?? null);
@@ -41,14 +42,22 @@ export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: s
       <Button
         variant="ghost"
         size="icon-sm"
-        title={fotoCnhPath ? "Abrir PDF (passe o mouse para ver a CNH)" : "Abrir PDF"}
+        aria-label="Abrir PDF"
         render={
           <Link href={href} target="_blank">
             <Eye className="size-4" />
           </Link>
         }
       />
-      {pos ? (
+      {pos && !fotoCnhPath ? (
+        <span
+          className="pointer-events-none fixed z-50 flex h-10 w-72 items-center justify-center rounded-lg border bg-background text-xs text-muted-foreground shadow-xl"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          Sem foto da CNH nesta avaliação
+        </span>
+      ) : null}
+      {pos && fotoCnhPath ? (
         <span
           className="pointer-events-none fixed z-50 flex h-[200px] w-72 items-center justify-center overflow-hidden rounded-lg border bg-background p-1 shadow-xl"
           style={{ top: pos.top, left: pos.left }}
