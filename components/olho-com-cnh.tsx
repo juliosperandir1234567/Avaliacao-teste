@@ -10,10 +10,18 @@ import { Button } from "@/components/ui/button";
 const urlCache = new Map<string, string | null>();
 
 /**
- * Botão do olho (abre o PDF). Ao passar o mouse, mostra a foto da CNH num cartão flutuante.
- * Posição "fixed" calculada pelo botão, pra não ser cortada pela rolagem da tabela.
+ * Envolve qualquer coisa (nome, ícone) e, ao passar o mouse, mostra a foto da CNH num cartão
+ * flutuante. Posição "fixed" calculada pelo elemento, pra não ser cortada pela rolagem da tabela.
  */
-export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: string | null }) {
+export function CnhHover({
+  fotoCnhPath,
+  children,
+  className = "inline-flex",
+}: {
+  fotoCnhPath: string | null;
+  children: React.ReactNode;
+  className?: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [url, setUrl] = useState<string | null | undefined>(fotoCnhPath ? urlCache.get(fotoCnhPath) : null);
@@ -25,7 +33,8 @@ export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: s
     const larg = 288;
     const alt = fotoCnhPath ? 200 : 40;
     const top = Math.max(8, Math.min(window.innerHeight - alt - 8, r.top + r.height / 2 - alt / 2));
-    const left = r.left - larg - 8 > 8 ? r.left - larg - 8 : Math.min(window.innerWidth - larg - 8, r.right + 8);
+    // Prefere abrir à direita do elemento; se não couber, à esquerda.
+    const left = r.right + 8 + larg < window.innerWidth - 8 ? r.right + 8 : Math.max(8, r.left - larg - 8);
     setPos({ top, left });
     if (!fotoCnhPath) return;
     if (!urlCache.has(fotoCnhPath)) {
@@ -38,17 +47,15 @@ export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: s
   }
 
   return (
-    <span ref={ref} className="inline-flex" onMouseEnter={abrir} onMouseLeave={() => setPos(null)} onFocus={abrir} onBlur={() => setPos(null)}>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label="Abrir PDF"
-        render={
-          <Link href={href} target="_blank">
-            <Eye className="size-4" />
-          </Link>
-        }
-      />
+    <span
+      ref={ref}
+      className={className}
+      onMouseEnter={abrir}
+      onMouseLeave={() => setPos(null)}
+      onFocus={abrir}
+      onBlur={() => setPos(null)}
+    >
+      {children}
       {pos && !fotoCnhPath ? (
         <span
           className="pointer-events-none fixed z-50 flex h-10 w-72 items-center justify-center rounded-lg border bg-background text-xs text-muted-foreground shadow-xl"
@@ -81,5 +88,23 @@ export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: s
         </span>
       ) : null}
     </span>
+  );
+}
+
+/** Botão do olho (abre o PDF); passando o mouse mostra a CNH. */
+export function OlhoComCnh({ href, fotoCnhPath }: { href: string; fotoCnhPath: string | null }) {
+  return (
+    <CnhHover fotoCnhPath={fotoCnhPath}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Abrir PDF"
+        render={
+          <Link href={href} target="_blank">
+            <Eye className="size-4" />
+          </Link>
+        }
+      />
+    </CnhHover>
   );
 }

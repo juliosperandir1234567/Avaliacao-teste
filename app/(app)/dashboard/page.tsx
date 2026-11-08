@@ -247,7 +247,7 @@ export default async function DashboardPage({
         </div>
       ) : null}
 
-      <Card>
+      <Card size="sm" className="gap-2">
         <CardHeader>
           <ChartTitle
             icon={Users}
