@@ -459,7 +459,7 @@ export function RelatorioDocument({
   if (aplicacao.parecer_texto) analise.parecer = aplicacao.parecer_texto;
   // Estilo novo: a observação final vira "Considerações do avaliador", logo abaixo do parecer.
   const consideracoesNoFim =
-    estiloParecerDaAplicacao(aplicacao) === "v2" && analise.secoes.length > 0
+    estiloParecerDaAplicacao(aplicacao) !== "v1" && analise.secoes.length > 0
       ? consideracoesDaAplicacao(aplicacao)
       : null;
 

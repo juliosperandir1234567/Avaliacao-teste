@@ -153,11 +153,14 @@ export interface ContextoParecer {
   estiloParecer?: EstiloParecer;
 }
 
-export type EstiloParecer = "v1" | "v2";
+export type EstiloParecer = "v1" | "v2" | "v3";
 
 /** Provas finalizadas antes disso continuam com o parecer no estilo antigo (v1) -- o texto delas
  * não pode mudar. Em andamento e finalizadas depois usam o estilo atual (v2). */
 const PARECER_V2_DESDE = "2026-10-08T23:35:00Z";
+/** v3 = v2 + observações do avaliador em cada pergunta + quais questões teóricas errou.
+ * Provas finalizadas antes disso (já entregues/exportadas) mantêm o texto v2 sem mudança. */
+const PARECER_V3_DESDE = "2026-11-09T00:20:00Z";
 
 /** Observação final do avaliador/gestor, mostrada logo abaixo do parecer (estilo v2) com o
  * título "Considerações do ...". No estilo v1 ela continua no bloco "Observações" antigo. */
@@ -181,7 +184,28 @@ export function consideracoesDaAplicacao(aplicacao: {
 }
 
 export function estiloParecerDaAplicacao(aplicacao: { finalizada_em: string | null }): EstiloParecer {
-  return aplicacao.finalizada_em && aplicacao.finalizada_em < PARECER_V2_DESDE ? "v1" : "v2";
+  const f = aplicacao.finalizada_em;
+  if (f && f < PARECER_V2_DESDE) return "v1";
+  if (f && f < PARECER_V3_DESDE) return "v2";
+  return "v3";
+}
+
+/** Enunciado de questão pronto pra citar: sem a numeração do início ("01) ", "3. ") e sem a
+ * pontuação do fim ("0,30", "(0,5 pt)") que vêm das provas importadas do Word. */
+function textoDaQuestao(enunciado: string): string {
+  const limpo = enunciado
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/^\d{1,3}\s*[).\-–]\s*/, "")
+    .replace(/\s*\(?\s*\d+(?:[,.]\d+)?\s*(?:pts?|pontos?)?\s*\)?\s*$/i, "")
+    .trim();
+  return limpo.length <= 110 ? limpo : `${limpo.slice(0, 109).replace(/\s+\S*$/, "")}…`;
+}
+
+/** Encurta um enunciado pra caber numa frase: tira espaços extras e corta em ~`max` caracteres. */
+function resumir(texto: string, max = 90): string {
+  const limpo = texto.trim().replace(/\s+/g, " ").replace(/[\s:?.]+$/, "");
+  return limpo.length <= max ? limpo : `${limpo.slice(0, max - 1).replace(/\s+\S*$/, "")}…`;
 }
 
 type CategoriaSecao = "teorica" | "inspecao" | "operacao" | "tecnologia" | "outra";
@@ -194,6 +218,10 @@ interface SecaoApurada extends AnaliseSecao {
   checklistTotal: number;
   checklistOk: number;
   falhas: ItemMelhorar[];
+  /** v3: enunciado (resumido) das questões que errou. */
+  questoesErradas: string[];
+  /** v3: observações que o avaliador escreveu nas perguntas desta seção ("Item: texto"). */
+  observacoes: string[];
 }
 
 /** Classifica a seção pelo conteúdo/nome, pra escolher como ela é descrita no parecer. */
@@ -221,6 +249,7 @@ export function gerarAnaliseAvaliacao(
   parecer: Parecer | null,
   contexto: ContextoParecer = {}
 ): AnaliseAvaliacao {
+  const estilo: EstiloParecer = contexto.estiloParecer ?? "v3";
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
@@ -236,8 +265,12 @@ export function gerarAnaliseAvaliacao(
     let checklistTotal = 0;
     let checklistOk = 0;
     const falhas: ItemMelhorar[] = [];
+    const questoesErradas: string[] = [];
+    const observacoes: string[] = [];
     for (const p of perguntas.filter((p) => p.secao_id === secao.id).sort((a, b) => a.ordem - b.ordem)) {
       const r = respostaPorPergunta.get(p.id);
+      const obs = r?.observacao?.trim();
+      if (obs) observacoes.push(`${resumir(textoDaQuestao(p.enunciado), 60)}: ${obs.replace(/\s+/g, " ").replace(/[.\s]+$/, "")}`);
       if (!r || r.pontuacao === null) continue;
       if (p.tipo === "checklist") {
         const status = r.resposta && "status" in r.resposta ? r.resposta.status : null;
@@ -248,6 +281,7 @@ export function gerarAnaliseAvaliacao(
       } else {
         questoesTotal += 1;
         if (r.pontuacao >= 10) questoesAcertos += 1;
+        else questoesErradas.push(textoDaQuestao(p.enunciado));
       }
     }
 
@@ -261,6 +295,8 @@ export function gerarAnaliseAvaliacao(
       checklistTotal,
       checklistOk,
       falhas,
+      questoesErradas,
+      observacoes,
     });
   }
 
@@ -293,7 +329,10 @@ export function gerarAnaliseAvaliacao(
   }
   for (const s of apuradas) {
     const itens: ItemMelhorar[] = [];
-    if (s.questoesTotal > 0 && s.questoesAcertos < s.questoesTotal && s.nivel === "atencao") {
+    if (estilo === "v3") {
+      // v3: lista cada questão errada (antes só dizia "Errou X de Y", e só com aproveitamento baixo).
+      itens.push(...s.questoesErradas.map((q) => ({ destaque: "Errou:", texto: q })));
+    } else if (s.questoesTotal > 0 && s.questoesAcertos < s.questoesTotal && s.nivel === "atencao") {
       itens.push({ destaque: "Errou", texto: `${s.questoesTotal - s.questoesAcertos} de ${s.questoesTotal} questões` });
     }
     itens.push(...s.falhas);
@@ -305,7 +344,7 @@ export function gerarAnaliseAvaliacao(
     secoes: apuradas.map(({ nome, percentual, nivel }) => ({ nome, percentual, nivel })),
     pontosFortes,
     pontosMelhorar,
-    parecer: (contexto.estiloParecer === "v1" ? montarParecerV1 : montarParecer)(
+    parecer: (estilo === "v1" ? montarParecerV1 : montarParecer)(
       notaGeral,
       apuradas,
       falhasCriticas.map((f) => f.pergunta.enunciado.trim()),
@@ -505,6 +544,19 @@ function paragrafoSecao(s: SecaoApurada, sujeito: string): string {
   return frases.join(" ");
 }
 
+/** v3: parágrafo da v2 + quais questões teóricas errou + observações do avaliador na seção. */
+function paragrafoSecaoV3(s: SecaoApurada, sujeito: string): string {
+  let texto = paragrafoSecao(s, sujeito);
+  if (s.questoesErradas.length > 0) {
+    const lista = s.questoesErradas.map((q) => `“${q}”`);
+    texto += ` ${s.questoesErradas.length === 1 ? "Errou a questão" : "Errou as questões"} ${juntarLista(lista)}.`;
+  }
+  if (s.observacoes.length > 0) {
+    texto += ` Observações do avaliador: ${s.observacoes.join("; ")}.`;
+  }
+  return texto;
+}
+
 function montarParecer(
   notaGeral: number | null,
   secoes: SecaoApurada[],
@@ -527,7 +579,11 @@ function montarParecer(
       `Registrou falha crítica em ${juntarLista(falhasCriticas.map(minusculaInicial))}, o que exige atenção imediata.`
     );
   }
-  paragrafos.push(...secoes.map((s) => paragrafoSecao(s, sujeito)));
+  paragrafos.push(
+    ...secoes.map((s) =>
+      (contexto.estiloParecer ?? "v3") === "v3" ? paragrafoSecaoV3(s, sujeito) : paragrafoSecao(s, sujeito)
+    )
+  );
 
   if (parecer && PARECERES_SEM_RECOMENDACAO.includes(parecer)) {
     paragrafos.push(
