@@ -19,15 +19,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { ResultadosIndividuaisTable } from "@/components/resultados-individuais-table";
 import { getDashboardData, listAvaliacoesParaFiltro, listFuncoesParaFiltro } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DashboardFiltros } from "@/components/dashboard-filtros";
 import {
   BarraNotaMedia,
   BarraDistribuicao,
@@ -75,7 +67,6 @@ export default async function DashboardPage({
     codigo: params.codigo || undefined,
     cpfOuNome: params.cpfOuNome || undefined,
   };
-  const temFiltroAtivo = Object.values(filtros).some(Boolean);
 
   const [dados, avaliacoes, funcoes] = await Promise.all([
     getDashboardData(filtros),
@@ -162,75 +153,7 @@ export default async function DashboardPage({
 
       <Card size="sm">
         <CardContent>
-          <form
-            className="grid grid-cols-2 items-end gap-2 sm:grid-cols-4 lg:grid-cols-[repeat(7,minmax(0,1fr))_auto]"
-            action="/dashboard"
-          >
-            {params.resultado ? <input type="hidden" name="resultado" value={params.resultado} /> : null}
-            <FilterField label="De">
-              <Input type="date" name="dataInicio" defaultValue={params.dataInicio} className="h-8 w-full text-xs" />
-            </FilterField>
-            <FilterField label="Até">
-              <Input type="date" name="dataFim" defaultValue={params.dataFim} className="h-8 w-full text-xs" />
-            </FilterField>
-            <FilterField label="Tipo">
-              <Select items={{ interno: "Interno", externo: "Externo" }} name="tipoPessoa" defaultValue={params.tipoPessoa}>
-                <SelectTrigger className="h-8 w-full text-xs">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="interno">Interno</SelectItem>
-                  <SelectItem value="externo">Externo</SelectItem>
-                </SelectContent>
-              </Select>
-            </FilterField>
-            <FilterField label="Função">
-              <Select name="funcao" defaultValue={params.funcao}>
-                <SelectTrigger className="h-8 w-full text-xs">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {funcoes.map((f) => (
-                    <SelectItem key={f} value={f}>
-                      {f}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FilterField>
-            <FilterField label="Avaliação">
-              <Select
-                items={avaliacoes.map((a) => ({ value: a.id, label: a.nome }))}
-                name="avaliacaoId"
-                defaultValue={params.avaliacaoId}
-              >
-                <SelectTrigger className="h-8 w-full text-xs">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {avaliacoes.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FilterField>
-            <FilterField label="Código">
-              <Input name="codigo" defaultValue={params.codigo} placeholder="Matrícula" className="h-8 w-full text-xs" />
-            </FilterField>
-            <FilterField label="CPF ou Nome">
-              <Input name="cpfOuNome" defaultValue={params.cpfOuNome} className="h-8 w-full text-xs" />
-            </FilterField>
-            <div className="col-span-2 flex gap-1 sm:col-span-1">
-              <Button type="submit" size="sm" className="h-8 flex-1">
-                Filtrar
-              </Button>
-              {temFiltroAtivo ? (
-                <Button size="sm" variant="ghost" className="h-8" render={<Link href="/dashboard">Limpar</Link>} />
-              ) : null}
-            </div>
-          </form>
+          <DashboardFiltros params={params} funcoes={funcoes} avaliacoes={avaliacoes} />
         </CardContent>
       </Card>
 
@@ -352,15 +275,6 @@ export default async function DashboardPage({
           )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <label className="text-[11px] text-muted-foreground">{label}</label>
-      {children}
     </div>
   );
 }

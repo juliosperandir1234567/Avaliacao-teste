@@ -87,10 +87,12 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
     });
   }
 
+  // Filtro automático: qualquer mudança atualiza a prévia (texto espera parar de digitar).
   useEffect(() => {
-    atualizarPrevia();
+    const t = setTimeout(atualizarPrevia, 400);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dataInicio, dataFim, avaliacaoId, resultado, codigo, cpfOuNome, incluirJaExportadas]);
 
   async function baixarZip() {
     if (selecionadas.size === 0) return;
@@ -180,8 +182,8 @@ export function ExportarPainel({ avaliacoes }: { avaliacoes: { id: string; nome:
           <Field label="CPF ou Nome">
             <Input className="h-8 w-full text-xs" value={cpfOuNome} onChange={(e) => setCpfOuNome(e.target.value)} />
           </Field>
-          <Button type="button" size="sm" className="col-span-2 h-8 sm:col-span-1" disabled={pending} onClick={atualizarPrevia}>
-            {pending ? "Atualizando..." : "Atualizar prévia"}
+          <Button type="button" size="sm" variant="outline" className="col-span-2 h-8 sm:col-span-1" disabled={pending} onClick={atualizarPrevia}>
+            {pending ? "Filtrando..." : "Recarregar"}
           </Button>
           <label className="col-span-full flex items-center gap-2 text-xs text-muted-foreground">
             <Checkbox checked={incluirJaExportadas} onCheckedChange={(v) => setIncluirJaExportadas(Boolean(v))} />
