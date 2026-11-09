@@ -234,7 +234,7 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cards.map((c) => (
           <StatCard key={c.label} {...c} />
         ))}
@@ -377,7 +377,7 @@ function ChartTitle({
   return (
     <div className="flex items-start gap-2.5">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <Icon className="size-4" />
+        <Icon className="size-6" />
       </span>
       <div className="min-w-0">
         <CardTitle className="text-base">{titulo}</CardTitle>
@@ -401,18 +401,18 @@ function StatCard({ label, value, icon: Icon, cor, href, ativo, titulo }: StatCa
   const conteudo = (
     <>
       <span
-        className="flex size-8 shrink-0 items-center justify-center rounded-md"
+        className="flex size-11 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${cor}1f`, color: cor }}
       >
-        <Icon className="size-4" />
+        <Icon className="size-6" />
       </span>
       <div className="min-w-0 flex-1 text-center">
-        <p className="text-[11px] leading-tight text-muted-foreground">{label}</p>
-        <p className="text-lg leading-tight font-bold">{value}</p>
+        <p className="text-sm leading-tight text-muted-foreground">{label}</p>
+        <p className="mt-0.5 text-3xl leading-tight font-bold">{value}</p>
       </div>
     </>
   );
-  const classe = `flex items-center gap-2 rounded-lg border bg-card px-2.5 py-2 transition-colors ${
+  const classe = `flex items-center gap-3 rounded-xl border bg-card px-4 py-4 transition-colors ${
     ativo ? "ring-2 ring-primary" : ""
   }`;
   if (!href) return <div className={classe}>{conteudo}</div>;
