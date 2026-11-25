@@ -1032,6 +1032,7 @@ function montarParecerV5(
   if (secoes.length === 0) return "Sem respostas suficientes para gerar a análise.";
   // Candidato externo: não se indica treinamento/capacitação (só interno).
   const indicaCapacitacao = tipoPessoa !== "externo";
+  const sujeito = tipoPessoa === "interno" ? "O colaborador" : "O candidato";
 
   const resultado = parecer ?? parecerSugerido;
   const aprovado = resultado ? APROVADOS.includes(resultado) : null;
@@ -1042,7 +1043,7 @@ function montarParecerV5(
   // 1. Síntese
   const sintese: string[] = [];
   if (aprovado === false) {
-    let frase = "O desempenho não atingiu os critérios de aprovação desta avaliação";
+    let frase = `${sujeito} não atingiu os critérios de aprovação desta avaliação`;
     if (abaixo.length > 0 && abaixo.length === secoes.length && secoes.length > 1) {
       frase += `, ficando abaixo do mínimo em todas as etapas avaliadas, com maior dificuldade em ${minusculaInicial(nome(abaixo[0]))}`;
     } else if (abaixo.length > 0) {
@@ -1050,7 +1051,7 @@ function montarParecerV5(
     }
     sintese.push(`${frase}.`);
   } else if (aprovado === true) {
-    let frase = "O desempenho atingiu os critérios de aprovação desta avaliação";
+    let frase = `${sujeito} atingiu os critérios de aprovação desta avaliação`;
     if (fortes.length > 0) frase += `, com domínio demonstrado em ${juntarLista(fortes.map((s) => minusculaInicial(nome(s))))}`;
     sintese.push(`${frase}.`);
     if (abaixo.length > 0) {
