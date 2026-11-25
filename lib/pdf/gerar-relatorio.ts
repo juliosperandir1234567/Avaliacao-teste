@@ -7,24 +7,10 @@ import { getConfiguracoesPublicas } from "@/lib/configuracoes";
 import { calcularNotaGeral } from "@/lib/scoring";
 import { PARECER_LABELS, type Parecer } from "@/lib/types";
 
-/** Baixa a imagem e converte pra data URI: o Image do @react-pdf/renderer as vezes falha a
- * buscar uma URL remota do storage direto (fetch no runtime do servidor), entao embutir os
- * bytes já resolvidos evita depender disso. Usado pra logo e foto da CNH -- essa última ficava
- * em branco no PDF vindo direto da URL assinada. */
-async function imagemComoDataUri(url: string | null): Promise<string | null> {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const contentType = res.headers.get("content-type") || "image/png";
-    return `data:${contentType};base64,${buffer.toString("base64")}`;
-  } catch {
-    return null;
-  }
-}
+/* As imagens vão embutidas como data URI: o Image do @react-pdf/renderer às vezes falha a
+ * buscar uma URL remota do storage direto (a foto da CNH ficava em branco). */
 
-/** Igual a imagemComoDataUri, mas reduz a foto (celular manda 4-8 MB) pra no máximo `maxLado` px
+/** Reduz a foto (celular manda 4-8 MB) pra no máximo `maxLado` px
  * em JPEG -- no PDF ela aparece pequena, então o resto é peso à toa. Era o principal motivo dos
  * PDFs/ZIP lentos e pesados. Se o sharp falhar, usa a imagem original. */
 async function fotoOtimizadaDataUri(url: string | null, maxLado = 900): Promise<string | null> {
@@ -45,6 +31,32 @@ async function fotoOtimizadaDataUri(url: string | null, maxLado = 900): Promise<
       const contentType = res.headers.get("content-type") || "image/jpeg";
       return `data:${contentType};base64,${original.toString("base64")}`;
     }
+  } catch {
+    return null;
+  }
+}
+
+/** Logo e assinaturas: reduz pra no máximo `maxLado` px mantendo PNG (e a transparência).
+ * No PDF elas aparecem pequenas (logo 70pt, assinatura 160x70pt), mas a assinatura cadastrada
+ * no perfil chegou a 1774x887 / 1,2 MB e ia inteira em todo relatório -- era quase todo o peso
+ * do PDF. O arquivo guardado não muda; só a cópia que entra no PDF. Se o sharp falhar, usa o original. */
+async function imagemPngReduzidaDataUri(url: string | null, maxLado: number): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const original = Buffer.from(await res.arrayBuffer());
+    try {
+      const reduzida = await sharp(original)
+        .resize({ width: maxLado, height: maxLado, fit: "inside", withoutEnlargement: true })
+        .png({ compressionLevel: 9 })
+        .toBuffer();
+      if (reduzida.length < original.length) return `data:image/png;base64,${reduzida.toString("base64")}`;
+    } catch {
+      // segue com o original
+    }
+    const contentType = res.headers.get("content-type") || "image/png";
+    return `data:${contentType};base64,${original.toString("base64")}`;
   } catch {
     return null;
   }
@@ -82,10 +94,10 @@ export async function gerarRelatorioPdfBuffer(
   const [{ data: perfis }, assinaturaAvaliadoUrl, assinaturaAvaliadorUrl, fotoCnhUrl, logoDataUri, respostasComEvidencias] =
     await Promise.all([
     supabase.from("profiles").select("id, nome, role").in("id", idsPerfis),
-    signedUrl("assinaturas", data.aplicacao.assinatura_avaliado_path),
-    signedUrl("assinaturas", data.aplicacao.assinatura_avaliador_path),
-    signedUrl("evidencias", data.aplicacao.foto_cnh_path).then((u) => fotoOtimizadaDataUri(u)),
-    imagemComoDataUri(config.logoUrl),
+    signedUrl("assinaturas", data.aplicacao.assinatura_avaliado_path).then((u) => imagemPngReduzidaDataUri(u, 600)),
+    signedUrl("assinaturas", data.aplicacao.assinatura_avaliador_path).then((u) => imagemPngReduzidaDataUri(u, 600)),
+    signedUrl("evidencias", data.aplicacao.foto_cnh_path).then((u) => fotoOtimizadaDataUri(u, 600)),
+    imagemPngReduzidaDataUri(config.logoUrl, 400),
     // Troca os paths de evidência (bucket "evidencias") por fotos já reduzidas (data URI) -- antes
     // ia a URL da foto original e o PDF embutia a imagem inteira do celular.
     Promise.all(
@@ -94,7 +106,7 @@ export async function gerarRelatorioPdfBuffer(
       const urls = await Promise.all(
         r.evidencias.map(async (path) => {
           const { data: signed } = await supabase.storage.from("evidencias").createSignedUrl(path, 60 * 5);
-          return fotoOtimizadaDataUri(signed?.signedUrl ?? null, 700);
+          return fotoOtimizadaDataUri(signed?.signedUrl ?? null, 500);
         })
       );
       return { ...r, evidencias: urls.filter((u): u is string => u !== null) };

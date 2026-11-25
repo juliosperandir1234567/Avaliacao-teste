@@ -15,7 +15,7 @@ import { salvarMinhaAssinatura } from "@/app/(app)/minha-assinatura/actions";
  */
 async function prepararImagem(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
-  const escala = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height));
+  const escala = Math.min(1, 800 / Math.max(bitmap.width, bitmap.height));
   const w = Math.round(bitmap.width * escala);
   const h = Math.round(bitmap.height * escala);
   const canvas = document.createElement("canvas");
