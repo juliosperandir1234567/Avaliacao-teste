@@ -46,7 +46,7 @@ function fundoMenuStyle(menuFundoUrl: string | null) {
 }
 
 function classeItemMenu(active: boolean, comFundo: boolean) {
-  return `flex items-center gap-3 rounded-md px-3 py-3 text-lg font-medium transition-colors ${
+  return `flex items-center gap-3 rounded-md px-3 py-2.5 text-base font-medium transition-colors ${
     active
       ? comFundo
         ? "bg-white text-foreground shadow-sm"
@@ -82,7 +82,7 @@ function MenuLateral({
             <li key={item.href}>
               <Link href={item.href} className={classeItemMenu(item.href === ativoHref, comFundo)}>
                 <span className="relative">
-                  <Icon className="size-6" />
+                  <Icon className="size-5" />
                   {item.href === "/" && pendenciasCount > 0 ? (
                     <span className="absolute -right-1.5 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-bold text-destructive-foreground">
                       {pendenciasCount > 9 ? "9+" : pendenciasCount}
@@ -119,13 +119,13 @@ function MenuLateral({
       <form action={logout}>
         <button
           type="submit"
-          className={`flex w-full items-center gap-3 rounded-md px-3 py-3 text-lg font-medium transition-colors ${
+          className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-base font-medium transition-colors ${
             comFundo
               ? "border border-white/40 text-white drop-shadow hover:bg-white/15"
               : "text-muted-foreground hover:bg-muted hover:text-destructive"
           }`}
         >
-          <LogOut className="size-6" /> Sair
+          <LogOut className="size-5" /> Sair
         </button>
       </form>
       </div>
@@ -235,7 +235,7 @@ export function AppShell({
       <div className="flex flex-1">
         {/* Desktop sidebar */}
         <nav
-          className={`sticky top-14 hidden h-[calc(100svh-3.5rem)] w-64 shrink-0 flex-col justify-between self-start overflow-y-auto border-r p-3 md:flex ${
+          className={`sticky top-14 hidden h-[calc(100svh-3.5rem)] w-48 shrink-0 flex-col justify-between self-start overflow-y-auto border-r p-2 md:flex ${
             comFundo ? "bg-cover bg-center" : "bg-primary/10"
           }`}
           style={fundoMenuStyle(menuFundoUrl)}
@@ -259,7 +259,7 @@ export function AppShell({
           onClick={() => setMenuAberto(false)}
         />
         <nav
-          className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto p-3 shadow-xl transition-transform duration-200 ${
+          className={`absolute inset-y-0 left-0 flex w-60 max-w-[85vw] flex-col gap-3 overflow-y-auto p-3 shadow-xl transition-transform duration-200 ${
             menuAberto ? "translate-x-0" : "-translate-x-full"
           } ${comFundo ? "bg-cover bg-center" : "bg-background"}`}
           style={fundoMenuStyle(menuFundoUrl)}
