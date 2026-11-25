@@ -89,6 +89,8 @@ const PRETERITO_IRREGULAR: Record<string, string> = {
   deter: "deteve",
 };
 
+const PRETERITOS_IRREGULARES = new Set(Object.values(PRETERITO_IRREGULAR));
+
 /** Palavras que terminam em -ar/-er/-ir/-eu mas não são verbo. */
 const NAO_VERBOS = new Set(["ar", "mar", "lugar", "par", "colar", "cooler", "pneu", "filtro"]);
 
@@ -104,11 +106,18 @@ const VERBOS_PRESENTE = new Set([
  * -> "Não verificou água da bateria". Item já negativo ("Não descansou o pé...") volta sem o
  * "Não", porque falhar nele significa ter feito.
  */
-function itemNegado(enunciado: string): ItemMelhorar {
+function itemNegado(enunciado: string, corrigirPreterito = false): ItemMelhorar {
   const limpo = enunciado.trim().replace(/\s+([,.;])/g, "$1");
   const [primeira, ...resto] = limpo.split(/\s+/);
   const palavra = primeira.toLowerCase();
   const restoTexto = resto.join(" ");
+
+  // v4: item que já começa no pretérito irregular ("Fez as manobras...") -> "não fez as manobras".
+  // Antes caía em "não verificou fez as manobras..." -- corrigido só no v4 pra não mudar o texto
+  // de provas já finalizadas.
+  if (corrigirPreterito && PRETERITOS_IRREGULARES.has(palavra)) {
+    return { destaque: "Não", texto: minusculaInicial(limpo) };
+  }
 
   if (palavra === "não" || palavra === "nao") {
     return { destaque: "", texto: restoTexto.charAt(0).toUpperCase() + restoTexto.slice(1) };
@@ -153,7 +162,7 @@ export interface ContextoParecer {
   estiloParecer?: EstiloParecer;
 }
 
-export type EstiloParecer = "v1" | "v2" | "v3";
+export type EstiloParecer = "v1" | "v2" | "v3" | "v4";
 
 /** Provas finalizadas antes disso continuam com o parecer no estilo antigo (v1) -- o texto delas
  * não pode mudar. Em andamento e finalizadas depois usam o estilo atual (v2). */
@@ -161,6 +170,9 @@ const PARECER_V2_DESDE = "2026-10-08T23:35:00Z";
 /** v3 = v2 + observações do avaliador em cada pergunta + quais questões teóricas errou.
  * Provas finalizadas antes disso (já entregues/exportadas) mantêm o texto v2 sem mudança. */
 const PARECER_V3_DESDE = "2026-11-09T00:20:00Z";
+/** v4 = resumo curto "de analista" (resultado, análise, conclusão). Provas finalizadas antes
+ * disso mantêm o texto v3 sem mudança; em andamento e futuras usam o v4. */
+const PARECER_V4_DESDE = "2026-11-25T01:10:00Z";
 
 /** Observação final do avaliador/gestor, mostrada logo abaixo do parecer (estilo v2) com o
  * título "Considerações do ...". No estilo v1 ela continua no bloco "Observações" antigo. */
@@ -187,7 +199,8 @@ export function estiloParecerDaAplicacao(aplicacao: { finalizada_em: string | nu
   const f = aplicacao.finalizada_em;
   if (f && f < PARECER_V2_DESDE) return "v1";
   if (f && f < PARECER_V3_DESDE) return "v2";
-  return "v3";
+  if (f && f < PARECER_V4_DESDE) return "v3";
+  return "v4";
 }
 
 /** Enunciado de questão pronto pra citar: sem a numeração do início ("01) ", "3. ") e sem a
@@ -249,7 +262,7 @@ export function gerarAnaliseAvaliacao(
   parecer: Parecer | null,
   contexto: ContextoParecer = {}
 ): AnaliseAvaliacao {
-  const estilo: EstiloParecer = contexto.estiloParecer ?? "v3";
+  const estilo: EstiloParecer = contexto.estiloParecer ?? "v4";
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const notaGeral = calcularNotaGeral(secoes, perguntas, respostas);
   const falhasCriticas = avaliarItensCriticos(perguntas, respostas);
@@ -277,7 +290,7 @@ export function gerarAnaliseAvaliacao(
         checklistTotal += 1;
         if (status === "sim") checklistOk += 1;
         else if (status === "parcial") falhas.push({ destaque: "Parcial:", texto: p.enunciado.trim() });
-        else if (status === "nao") falhas.push(itemNegado(p.enunciado));
+        else if (status === "nao") falhas.push(itemNegado(p.enunciado, estilo === "v4"));
       } else {
         questoesTotal += 1;
         if (r.pontuacao >= 10) questoesAcertos += 1;
@@ -329,7 +342,7 @@ export function gerarAnaliseAvaliacao(
   }
   for (const s of apuradas) {
     const itens: ItemMelhorar[] = [];
-    if (estilo === "v3") {
+    if (estilo === "v3" || estilo === "v4") {
       // v3: lista cada questão errada (antes só dizia "Errou X de Y", e só com aproveitamento baixo).
       itens.push(...s.questoesErradas.map((q) => ({ destaque: "Errou:", texto: q })));
     } else if (s.questoesTotal > 0 && s.questoesAcertos < s.questoesTotal && s.nivel === "atencao") {
@@ -344,7 +357,7 @@ export function gerarAnaliseAvaliacao(
     secoes: apuradas.map(({ nome, percentual, nivel }) => ({ nome, percentual, nivel })),
     pontosFortes,
     pontosMelhorar,
-    parecer: (estilo === "v1" ? montarParecerV1 : montarParecer)(
+    parecer: (estilo === "v1" ? montarParecerV1 : estilo === "v4" ? montarParecerV4 : montarParecer)(
       notaGeral,
       apuradas,
       falhasCriticas.map((f) => f.pergunta.enunciado.trim()),
@@ -603,6 +616,204 @@ function montarParecer(
       `Recomenda-se reciclagem em ${juntarLista(areas)}` +
         (falhouSeguranca ? ", com atenção especial aos itens de segurança não atendidos." : ".")
     );
+  }
+  return paragrafos.join("\n\n");
+}
+
+// ============================================================================
+// Estilo v4 ("analista"): resumo curto -- Resultado, análise em poucas frases e Conclusão.
+// Os itens um a um continuam no bloco "Pontos a melhorar". Sem sujeito ("o candidato"), pra
+// nunca errar o gênero. Reprovado não recebe recomendação de treinamento.
+// ============================================================================
+
+const AREA_V4: Record<CategoriaSecao, string | null> = {
+  teorica: "conhecimento teórico",
+  inspecao: "inspeção pré-operacional",
+  operacao: "operação",
+  tecnologia: "tecnologia embarcada",
+  outra: null,
+};
+
+function areaV4(s: SecaoApurada): string {
+  return AREA_V4[s.categoria] ?? s.nome.toLowerCase();
+}
+
+/** "tensão das Correias" -> "tensão das correias"; siglas (AB, EPI) ficam como estão. */
+function normalizarCaixa(texto: string): string {
+  return texto
+    .split(" ")
+    .map((w, i) => (i === 0 ? minusculaInicial(w) : /^[A-ZÀ-Ú][a-zà-ú]+$/.test(w) ? w.toLowerCase() : w))
+    .join(" ");
+}
+
+/** Falhas de checklist em frases curtas, juntando as parecidas:
+ * "não utilizou corretamente o freio manet/de serviço/estacionário" ->
+ * "não utilizou corretamente o freio (manet, de serviço e estacionário)". */
+function frasesDasFalhasV4(falhas: ItemMelhorar[]): string[] {
+  const naoVerificados: string[] = [];
+  const naoRealizados: string[] = [];
+  const outras: string[] = [];
+  for (const f of falhas) {
+    if (f.destaque === "Não" && f.texto.startsWith("verificou ")) {
+      const alvo = normalizarCaixa(f.texto.slice("verificou ".length));
+      (ITEM_DE_TAREFA.test(alvo) ? naoRealizados : naoVerificados).push(alvo);
+    } else {
+      outras.push(normalizarCaixa(falhaEmFraseV2(f)));
+    }
+  }
+
+  // Agrupa frases com as mesmas 5 primeiras palavras.
+  const grupos = new Map<string, string[]>();
+  for (const frase of outras) {
+    const palavras = frase.split(" ");
+    const chave = palavras.length > 5 ? palavras.slice(0, 5).join(" ") : frase;
+    const lista = grupos.get(chave) ?? [];
+    lista.push(palavras.length > 5 ? palavras.slice(5).join(" ") : "");
+    grupos.set(chave, lista);
+  }
+  const frases: { texto: string; peso: number }[] = [];
+  for (const [chave, sufixos] of grupos) {
+    if (sufixos.length === 1) frases.push({ texto: sufixos[0] ? `${chave} ${sufixos[0]}` : chave, peso: 1 });
+    else frases.push({ texto: `${chave} (${juntarLista(sufixos)})`, peso: sufixos.length });
+  }
+  if (naoVerificados.length > 0) {
+    frases.push({ texto: `deixou de verificar ${juntarLista(naoVerificados)}`, peso: naoVerificados.length });
+  }
+  if (naoRealizados.length > 0) {
+    frases.push({ texto: `não realizou ${juntarLista(naoRealizados)}`, peso: naoRealizados.length });
+  }
+  // Os grupos maiores primeiro (mais representativos da dificuldade).
+  return frases.sort((a, b) => b.peso - a.peso).map((f) => f.texto);
+}
+
+/** "na inspeção pré-operacional" / "em <nome da seção>". */
+function naArea(s: SecaoApurada): string {
+  return AREA_V4[s.categoria] && s.categoria !== "teorica" ? `na ${areaV4(s)}` : `em ${areaV4(s)}`;
+}
+
+/** Resumo das etapas que não são a mais fraca, agrupadas por nível (sem repetir a expressão):
+ * "Nas demais etapas, foi bem na operação; ficou abaixo do esperado na inspeção (8 de 14 itens)
+ * e na tecnologia embarcada (2 de 4 itens). Na prova teórica, acertou 2 de 4 questões." */
+function resumoDemaisEtapas(outras: SecaoApurada[], todasFracas: boolean): string {
+  const praticas = outras.filter((s) => s.categoria !== "teorica");
+  const itens = (s: SecaoApurada) => `${naArea(s)} (${s.checklistOk} de ${s.checklistTotal} itens)`;
+  const partes: string[] = [];
+  const fortes = praticas.filter((s) => s.nivel === "forte");
+  const medias = praticas.filter((s) => s.nivel === "adequado");
+  const fracas = praticas.filter((s) => s.nivel === "atencao");
+  if (fortes.length > 0) partes.push(`foi bem ${juntarLista(fortes.map(naArea))}`);
+  if (medias.length > 0) partes.push(`teve resultado razoável ${juntarLista(medias.map(itens))}`);
+  if (fracas.length > 0) {
+    partes.push(`${todasFracas ? "ficou" : "também ficou"} abaixo do esperado ${juntarLista(fracas.map(itens))}`);
+  }
+  const frases: string[] = [];
+  if (partes.length > 0) {
+    frases.push(`Nas demais etapas, ${partes.length > 2 ? `${partes.slice(0, -1).join("; ")}; e ${partes[partes.length - 1]}` : partes.join("; ")}.`);
+  }
+  // Teoria em frase própria (evita "... e na tecnologia embarcada e na prova teórica ...").
+  for (const t of outras.filter((s) => s.categoria === "teorica")) {
+    frases.push(
+      t.questoesAcertos === t.questoesTotal
+        ? "Na prova teórica, acertou todas as questões."
+        : `Na prova teórica, acertou ${t.questoesAcertos} de ${t.questoesTotal} questões.`
+    );
+  }
+  return frases.join(" ");
+}
+
+function montarParecerV4(
+  notaGeral: number | null,
+  secoes: SecaoApurada[],
+  falhasCriticas: string[],
+  parecer: Parecer | null,
+  contexto: ContextoParecer
+): string {
+  if (notaGeral === null || secoes.length === 0) return "Sem respostas suficientes para gerar a análise.";
+  void contexto; // mesmo formato dos outros estilos; o v4 não usa sujeito nem função
+
+  const faixa = notaGeral >= 8 ? "bom desempenho" : notaGeral >= 6 ? "desempenho satisfatório" : "abaixo do esperado";
+  const paragrafos: string[] = [`Resultado: ${faixa} (nota ${formatarNota(notaGeral)}).`];
+
+  const analise: string[] = [];
+  const todasFracas = secoes.length > 1 && secoes.every((s) => s.nivel === "atencao");
+  if (todasFracas) analise.push("O desempenho ficou abaixo do mínimo em todas as etapas da avaliação.");
+
+  const maisFraca = secoes
+    .filter((s) => s.nivel !== "forte")
+    .reduce<SecaoApurada | null>((pior, s) => (!pior || s.percentual < pior.percentual ? s : pior), null);
+
+  if (maisFraca) {
+    if (maisFraca.categoria === "teorica") {
+      analise.push(
+        `O ponto mais fraco foi a prova teórica, com ${maisFraca.questoesAcertos} de ${maisFraca.questoesTotal} questões certas.`
+      );
+    } else {
+      const frases = frasesDasFalhasV4(maisFraca.falhas);
+      const principais = frases.slice(0, 3);
+      const nome = maisFraca.categoria === "outra" ? `a etapa "${maisFraca.nome}"` : `a ${areaV4(maisFraca)}`;
+      analise.push(
+        `O ponto mais fraco foi ${nome}` +
+          (principais.length > 0
+            ? `: ${juntarLista(principais)}${frases.length > principais.length ? ", entre outros pontos" : ""}.`
+            : ".")
+      );
+    }
+    const outras = secoes.filter((s) => s !== maisFraca);
+    if (outras.length > 0) analise.push(resumoDemaisEtapas(outras, todasFracas));
+  } else {
+    const pontuais = frasesDasFalhasV4(secoes.flatMap((s) => s.falhas));
+    analise.push(
+      pontuais.length === 0
+        ? "Teve bom desempenho em todas as etapas, sem falhas relevantes."
+        : `Teve bom desempenho em todas as etapas, com poucas falhas pontuais (${juntarLista(pontuais.slice(0, 2))}).`
+    );
+  }
+
+  // Segurança sempre aparece: falha crítica ou item de segurança (cinto, extintor, EPI).
+  if (falhasCriticas.length > 0) {
+    analise.push(
+      `Registrou falha crítica em ${juntarLista(falhasCriticas.map(normalizarCaixa))}, o que exige atenção imediata.`
+    );
+  } else {
+    const itensSeguranca = [
+      ...new Set(
+        secoes.flatMap((s) =>
+          s.falhas
+            .filter((f) => ITEM_DE_SEGURANCA.test(f.texto))
+            .map((f) => normalizarCaixa(f.texto.replace(/^verificou /, "")))
+        )
+      ),
+    ];
+    if (itensSeguranca.length > 0) {
+      analise.push(`Atenção ao item de segurança não atendido (${juntarLista(itensSeguranca)}).`);
+    }
+  }
+
+  const observacoes = secoes.flatMap((s) => s.observacoes).slice(0, 3);
+  if (observacoes.length > 0) {
+    analise.push(
+      `${observacoes.length === 1 ? "Observação do avaliador" : "Observações do avaliador"}: ${observacoes.join("; ")}.`
+    );
+  }
+  paragrafos.push(analise.join(" "));
+
+  if (parecer) {
+    const areas = [...new Set(secoes.filter((s) => s.nivel !== "forte").map(areaV4))];
+    let conclusao: string;
+    if (parecer === "reprovado" || parecer === "nao_recomendado") {
+      conclusao = "não atende aos requisitos da função neste momento.";
+    } else if (parecer === "nova_avaliacao") {
+      conclusao = "recomenda-se uma nova avaliação.";
+    } else if (parecer === "necessita_treinamento") {
+      conclusao = `necessita de treinamento${areas.length > 0 ? ` em ${juntarLista(areas)}` : ""} antes de assumir a função.`;
+    } else {
+      conclusao =
+        "apto para a função" +
+        (parecer === "apto_acompanhamento" ? ", com acompanhamento" : "") +
+        (areas.length > 0 ? `, com recomendação de treinamento em ${juntarLista(areas)}` : "") +
+        ".";
+    }
+    paragrafos.push(`Conclusão: ${conclusao}`);
   }
   return paragrafos.join("\n\n");
 }
