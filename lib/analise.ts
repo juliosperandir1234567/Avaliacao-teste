@@ -185,7 +185,7 @@ const PARECER_V3_DESDE = "2026-11-09T00:20:00Z";
 const PARECER_V4_DESDE = "2026-11-25T01:10:00Z";
 /** v5 = padrão técnico (síntese, evidências por etapa, conclusão; sem nota no texto). Provas
  * finalizadas antes disso mantêm o texto v4 sem mudança; em andamento e futuras usam o v5. */
-const PARECER_V5_DESDE = "2026-11-25T11:47:00Z";
+const PARECER_V5_DESDE = "2026-11-25T12:08:00Z";
 
 /** Observação final do avaliador/gestor, mostrada logo abaixo do parecer (estilo v2) com o
  * título "Considerações do ...". No estilo v1 ela continua no bloco "Observações" antigo. */
@@ -406,7 +406,8 @@ export function gerarAnaliseAvaliacao(
           naoAvaliadas,
           falhasCriticas.map((f) => f.pergunta.enunciado.trim()),
           parecer,
-          contexto.parecerSugerido ?? null
+          contexto.parecerSugerido ?? null,
+          contexto.tipoPessoa
         )
       : (estilo === "v1" ? montarParecerV1 : estilo === "v4" ? montarParecerV4 : montarParecer)(
       notaGeral,
@@ -700,7 +701,7 @@ function normalizarCaixa(texto: string): string {
 /** Falhas de checklist em frases curtas, juntando as parecidas:
  * "não utilizou corretamente o freio manet/de serviço/estacionário" ->
  * "não utilizou corretamente o freio (manet, de serviço e estacionário)". */
-function frasesDasFalhasV4(falhas: ItemMelhorar[]): string[] {
+function frasesDasFalhasV4(falhas: ItemMelhorar[], maxLista = Infinity): string[] {
   const naoVerificados: string[] = [];
   const naoRealizados: string[] = [];
   const outras: string[] = [];
@@ -727,11 +728,14 @@ function frasesDasFalhasV4(falhas: ItemMelhorar[]): string[] {
     if (sufixos.length === 1) frases.push({ texto: sufixos[0] ? `${chave} ${sufixos[0]}` : chave, peso: 1 });
     else frases.push({ texto: `${chave} (${juntarLista(sufixos)})`, peso: sufixos.length });
   }
+  // v5 resumido (maxLista): "deixou de verificar 5 itens, incluindo a, b e c" em vez da lista toda.
+  const lista = (itens: string[], unidade: string) =>
+    itens.length > maxLista ? `${itens.length} ${unidade}, incluindo ${juntarLista(itens.slice(0, maxLista))}` : juntarLista(itens);
   if (naoVerificados.length > 0) {
-    frases.push({ texto: `deixou de verificar ${juntarLista(naoVerificados)}`, peso: naoVerificados.length });
+    frases.push({ texto: `deixou de verificar ${lista(naoVerificados, "itens")}`, peso: naoVerificados.length });
   }
   if (naoRealizados.length > 0) {
-    frases.push({ texto: `não realizou ${juntarLista(naoRealizados)}`, peso: naoRealizados.length });
+    frases.push({ texto: `não realizou ${lista(naoRealizados, "tarefas")}`, peso: naoRealizados.length });
   }
   // Os grupos maiores primeiro (mais representativos da dificuldade).
   return frases.sort((a, b) => b.peso - a.peso).map((f) => f.texto);
@@ -896,42 +900,18 @@ function naEtapa(nome: string): string {
   return `${prep} ${minusculaInicial(nome)}`;
 }
 
-/** Assunto da questão, sem copiar a pergunta inteira: "Qual a função da bomba alimentadora? Em
- * qual ocasião..." -> "a função da bomba alimentadora". */
-function assuntoDaQuestao(enunciado: string): string {
-  const primeiraFrase = textoDaQuestao(enunciado).split("?")[0].split(" (")[0].replace(/…$/, "").trim();
-  let t = primeiraFrase
-    .replace(/^(qual|quais)\s+(é|são|seria|seriam)?\s*/i, "")
-    .replace(/^o que\s+(é|são)?\s*/i, "")
-    .trim();
-  t = normalizarCaixa(t).replace(/[\s:.,;]+$/, "");
-  return t.length <= 90 ? t : `${t.slice(0, 89).replace(/\s+\S*$/, "")}…`;
-}
-
-function evidenciaEtapaV5(s: SecaoApurada, nome: string): string {
+/** Evidência resumida de uma etapa: só as principais dificuldades (até `maxFrases`), com as
+ * listas longas encurtadas ("5 itens, incluindo ..."). O detalhe item a item fica no relatório. */
+function evidenciaEtapaV5(s: SecaoApurada, nome: string, maxFrases: number): string {
   const na = naEtapa(nome);
   let texto: string;
   if (s.questoesTotal > 0 && s.checklistTotal === 0) {
-    const partes = [`acertou ${s.questoesAcertos} de ${s.questoesTotal} questões`];
-    if (s.questoesErradas.length > 0) {
-      partes.push(
-        `${s.questoesErradas.length === 1 ? "houve erro na questão sobre" : "houve erro nas questões sobre"} ${juntarLista(s.questoesErradas.map(assuntoDaQuestao))}`
-      );
-    }
-    if (s.questoesParciais.length > 0) {
-      partes.push(
-        `${s.questoesParciais.length === 1 ? "houve acerto parcial na questão sobre" : "houve acerto parcial nas questões sobre"} ${juntarLista(s.questoesParciais.map(assuntoDaQuestao))}`
-      );
-    }
-    texto = `${na}, ${partes.join("; ")}.`;
+    const parciais = s.questoesParciais.length;
+    texto = `${na}, acertou ${s.questoesAcertos} de ${s.questoesTotal} questões${parciais > 0 ? ` (${parciais} com acerto parcial)` : ""}.`;
   } else {
-    const frases = frasesDasFalhasV4(s.falhas);
-    if (s.questoesErradas.length > 0) {
-      frases.push(`errou ${s.questoesErradas.length === 1 ? "a questão sobre" : "as questões sobre"} ${juntarLista(s.questoesErradas.map(assuntoDaQuestao))}`);
-    }
-    if (s.questoesParciais.length > 0) {
-      frases.push(`teve acerto parcial ${s.questoesParciais.length === 1 ? "na questão sobre" : "nas questões sobre"} ${juntarLista(s.questoesParciais.map(assuntoDaQuestao))}`);
-    }
+    const frases = frasesDasFalhasV4(s.falhas, 3).slice(0, maxFrases);
+    const erradas = s.questoesErradas.length;
+    if (erradas > 0) frases.push(`errou ${erradas} ${erradas === 1 ? "questão" : "questões"}`);
     texto = frases.length > 0 ? `${na}, ${juntarFrases(frases)}.` : `${na}, os itens avaliados foram atendidos.`;
   }
   if (s.observacoes.length > 0) {
@@ -957,9 +937,12 @@ function montarParecerV5(
   naoAvaliadas: string[],
   falhasCriticas: string[],
   parecer: Parecer | null,
-  parecerSugerido: Parecer | null
+  parecerSugerido: Parecer | null,
+  tipoPessoa: ContextoParecer["tipoPessoa"]
 ): string {
   if (secoes.length === 0) return "Sem respostas suficientes para gerar a análise.";
+  // Candidato externo: não se indica treinamento/capacitação (só interno).
+  const indicaCapacitacao = tipoPessoa !== "externo";
 
   const resultado = parecer ?? parecerSugerido;
   const aprovado = resultado ? APROVADOS.includes(resultado) : null;
@@ -1000,18 +983,12 @@ function montarParecerV5(
   const paragrafos: string[] = [];
   if (aprovado === true) {
     paragrafos.push(sintese.join(" "));
-    const oportunidades = comRegistro.map((s) => evidenciaEtapaV5(s, nome(s)));
+    const oportunidades = comRegistro.map((s) => evidenciaEtapaV5(s, nome(s), 2));
     if (oportunidades.length > 0) paragrafos.push(`Foram registrados pontos de melhoria. ${oportunidades.join(" ")}`);
   } else {
     const [principal, ...demais] = comRegistro;
-    paragrafos.push([...sintese, principal ? evidenciaEtapaV5(principal, nome(principal)) : ""].filter(Boolean).join(" "));
-    const segundo = demais.map((s) => evidenciaEtapaV5(s, nome(s)));
-    const semRegistro = secoes.filter((s) => !temRegistroDeMelhoria(s));
-    if (semRegistro.length > 0) {
-      segundo.push(
-        `${semRegistro.length === 1 ? `${naEtapa(nome(semRegistro[0]))}, os itens avaliados foram atendidos.` : `Nas etapas ${juntarLista(semRegistro.map((s) => minusculaInicial(nome(s))))}, os itens avaliados foram atendidos.`}`
-      );
-    }
+    paragrafos.push([...sintese, principal ? evidenciaEtapaV5(principal, nome(principal), 3) : ""].filter(Boolean).join(" "));
+    const segundo = demais.map((s) => evidenciaEtapaV5(s, nome(s), 2));
     if (segundo.length > 0) paragrafos.push(segundo.join(" "));
   }
   if (naoAvaliadas.length > 0) {
@@ -1025,9 +1002,13 @@ function montarParecerV5(
   const emPontos = pontos.length > 0 ? ` em ${juntarLista(pontos)}` : " nos pontos identificados";
   let conclusao: string | null = null;
   if (resultado === "reprovado" || resultado === "nao_recomendado") {
-    conclusao = `não atingiu os critérios de aprovação nesta avaliação. Recomenda-se capacitação${emPontos} antes de uma nova avaliação.`;
+    conclusao =
+      "não atingiu os critérios de aprovação nesta avaliação." +
+      (indicaCapacitacao ? ` Recomenda-se capacitação${emPontos} antes de uma nova avaliação.` : "");
   } else if (resultado === "nova_avaliacao") {
-    conclusao = `recomenda-se uma nova avaliação, precedida de capacitação${emPontos}.`;
+    conclusao = indicaCapacitacao
+      ? `recomenda-se uma nova avaliação, precedida de capacitação${emPontos}.`
+      : "recomenda-se uma nova avaliação.";
   } else if (resultado === "necessita_treinamento") {
     conclusao = `necessita de capacitação${emPontos} antes de assumir a função.`;
   } else if (resultado === "apto" || resultado === "apto_acompanhamento") {
@@ -1035,7 +1016,7 @@ function montarParecerV5(
       "atingiu os critérios de aprovação nesta avaliação" +
       (resultado === "apto_acompanhamento" ? ", com acompanhamento recomendado" : "") +
       "." +
-      (pontos.length > 0 ? ` Recomenda-se reforço${emPontos}.` : "");
+      (indicaCapacitacao && pontos.length > 0 ? ` Recomenda-se reforço${emPontos}.` : "");
   }
   if (conclusao) paragrafos.push(`Conclusão: ${conclusao}`);
   return paragrafos.join("\n\n");
