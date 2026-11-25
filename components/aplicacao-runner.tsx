@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, PenLine, ShieldAlert } from "lucide-react";
+import { Camera, Check, ChevronDown, ChevronUp, Lock, PenLine, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
@@ -64,6 +64,15 @@ interface RespostaLocal {
 }
 
 type Passo = { tipo: "unico"; pergunta: AvaliacaoPergunta } | { tipo: "checklist"; perguntas: AvaliacaoPergunta[] };
+
+interface Grupo {
+  secao: AvaliacaoSecao | undefined;
+  secaoId: string;
+  perguntas: AvaliacaoPergunta[];
+  passos: Passo[];
+  temChecklist: boolean;
+  temTeorica: boolean;
+}
 
 function agruparPassos(perguntas: AvaliacaoPergunta[]): Passo[] {
   const passos: Passo[] = [];
@@ -283,43 +292,82 @@ export function AplicacaoRunner({
     [perguntasOrdenadas, perguntasPorId, respostaValorPorPergunta]
   );
 
-  const passos = useMemo(() => agruparPassos(perguntasVisiveis), [perguntasVisiveis]);
+  // Etapas por seção: cada seção é um bloco que abre/fecha (sanfona). Dentro dela, itens de
+  // checklist seguidos viram uma tabela e as demais perguntas aparecem todas na mesma tela.
+  const grupos = useMemo<Grupo[]>(() => {
+    const porSecao = new Map<string, AvaliacaoPergunta[]>();
+    for (const p of perguntasVisiveis) {
+      const lista = porSecao.get(p.secao_id) ?? [];
+      lista.push(p);
+      porSecao.set(p.secao_id, lista);
+    }
+    return [...porSecao.entries()].map(([secaoId, lista]) => ({
+      secao: secaoPorId.get(secaoId),
+      secaoId,
+      perguntas: lista,
+      passos: agruparPassos(lista),
+      temChecklist: lista.some((p) => p.tipo === "checklist"),
+      temTeorica: lista.some((p) => p.tipo !== "checklist"),
+    }));
+  }, [perguntasVisiveis, secaoPorId]);
 
-  // Retomando uma prova em andamento: abre no primeiro passo com item sem resposta; se já está
-  // tudo respondido, vai direto pro resumo (fechamento) em vez de recomeçar do passo 1.
-  const [index, setIndex] = useState(() => {
-    const i = passos.findIndex((passo) =>
-      (passo.tipo === "checklist" ? passo.perguntas : [passo.pergunta]).some((p) => !respostas[p.id])
-    );
-    return i === -1 ? Math.max(0, passos.length - 1) : i;
-  });
-  // Trava do avaliado no meio da prova: quando a prova tem perguntas teóricas (respondidas pelo
+  const grupoCompleto = (g: Grupo) => g.perguntas.every((p) => respostas[p.id]);
+
+  // Trava do avaliado no meio da prova: quando a prova tem seções teóricas (respondidas pelo
   // avaliado) seguidas de checklist (preenchido pelo avaliador), o avaliado clica em "Liberar para
-  // o avaliador" antes do primeiro checklist (sem assinatura -- a assinatura do avaliado continua
-  // só no fechamento). Depois de liberado, dá pra voltar nas perguntas normalmente. Ao retomar a
-  // prova, já ter resposta de checklist marca a trava como passada.
+  // o avaliador" antes da primeira seção de checklist (sem assinatura -- a assinatura do avaliado
+  // continua só no fechamento). Depois de liberado, dá pra voltar nas seções teóricas normalmente.
+  // Ao retomar a prova, já ter resposta de checklist marca a trava como passada.
   const indiceTrava = useMemo(() => {
-    const primeiraTeorica = passos.findIndex((passo) => passo.tipo === "unico");
+    const primeiraTeorica = grupos.findIndex((g) => g.temTeorica);
     if (primeiraTeorica === -1) return -1;
-    return passos.findIndex((passo, i) => i > primeiraTeorica && passo.tipo === "checklist");
-  }, [passos]);
+    return grupos.findIndex((g, i) => i > primeiraTeorica && g.temChecklist);
+  }, [grupos]);
   const temTrava = indiceTrava > 0;
   const [liberadoTrava, setLiberadoTrava] = useState(() =>
-    passos
+    grupos
       .slice(Math.max(indiceTrava, 0))
-      .some((passo) => indiceTrava > 0 && passo.tipo === "checklist" && passo.perguntas.some((p) => respostas[p.id]))
+      .some(
+        (g) => indiceTrava > 0 && g.perguntas.some((p) => p.tipo === "checklist" && respostas[p.id])
+      )
   );
+  const travada = (i: number) => temTrava && !liberadoTrava && i >= indiceTrava;
+
+  // Retomando uma prova em andamento: abre a primeira seção com item sem resposta; se já está
+  // tudo respondido, vai direto pro resumo (fechamento).
+  const [aberta, setAberta] = useState<number | null>(() => {
+    const i = grupos.findIndex((g) => !grupoCompleto(g));
+    if (i === -1) return null;
+    return temTrava && !liberadoTrava && i >= indiceTrava ? null : i;
+  });
   const [mostrarResumo, setMostrarResumo] = useState(
     () => respostasIniciais.length > 0 && perguntasVisiveis.length > 0 && perguntasVisiveis.every((p) => respostas[p.id])
   );
+  const secaoRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  // Ao abrir uma seção, rola até o topo dela (a de cima acabou de fechar e o conteúdo "pula").
+  const primeiraRenderizacao = useRef(true);
+  useEffect(() => {
+    if (primeiraRenderizacao.current) {
+      primeiraRenderizacao.current = false;
+      return;
+    }
+    if (aberta === null) return;
+    secaoRefs.current[aberta]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [aberta]);
 
   const totalItens = perguntasVisiveis.length;
   const respondidas = perguntasVisiveis.filter((p) => respostas[p.id]).length;
-  const totalPassos = passos.length;
-  const indiceSeguro = Math.min(index, Math.max(0, totalPassos - 1));
-  const passoAtual = passos[indiceSeguro];
-  const progresso = totalPassos > 0 ? Math.round(((indiceSeguro + 1) / totalPassos) * 100) : 0;
-  const naTrava = temTrava && !liberadoTrava && (mostrarResumo || indiceSeguro >= indiceTrava);
+  const progresso = totalItens > 0 ? Math.round((respondidas / totalItens) * 100) : 0;
+  const grupoAberto = aberta !== null ? grupos[aberta] : undefined;
+
+  function concluirSecao(i: number) {
+    // Próxima seção pendente depois desta (ou, se não houver, a primeira pendente antes dela).
+    const proxima =
+      grupos.findIndex((g, j) => j > i && !grupoCompleto(g)) !== -1
+        ? grupos.findIndex((g, j) => j > i && !grupoCompleto(g))
+        : grupos.findIndex((g, j) => j !== i && !grupoCompleto(g));
+    setAberta(proxima === -1 || travada(proxima) ? null : proxima);
+  }
 
   const respostasComoResposta: Resposta[] = useMemo(
     () =>
@@ -376,7 +424,7 @@ export function AplicacaoRunner({
   async function handleEvidencia(perguntaId: string, original: File) {
     const file = await comprimirImagem(original);
     const supabase = createClient();
-    const path = `${aplicacaoId}/${perguntaId}/${Date.now()}-${file.name}`;
+    const path = `${aplicacaoId}/${perguntaId}/${carimboTempo()}-${file.name}`;
     const { error } = await supabase.storage.from("evidencias").upload(path, file);
     if (error) {
       toast.error("Falha ao enviar evidência: " + error.message);
@@ -425,11 +473,12 @@ export function AplicacaoRunner({
   // estão "Não"/N.A. Só roda quando a tabela realmente aparece (depois da trava do avaliado) e
   // cada item é pré-preenchido uma vez só (ref), pra não brigar com o que o avaliador desmarcar.
   const checklistPreenchido = useRef<Set<string>>(new Set());
-  const exibindoChecklist = passoAtual?.tipo === "checklist" && !naTrava && !mostrarResumo;
+  const exibindoChecklist =
+    Boolean(grupoAberto?.temChecklist) && aberta !== null && !travada(aberta) && !mostrarResumo;
   useEffect(() => {
-    if (!exibindoChecklist || passoAtual?.tipo !== "checklist") return;
-    const pendentes = passoAtual.perguntas.filter(
-      (p) => !respostas[p.id] && !checklistPreenchido.current.has(p.id)
+    if (!exibindoChecklist || !grupoAberto) return;
+    const pendentes = grupoAberto.perguntas.filter(
+      (p) => p.tipo === "checklist" && !respostas[p.id] && !checklistPreenchido.current.has(p.id)
     );
     if (pendentes.length === 0) return;
     pendentes.forEach((p) => checklistPreenchido.current.add(p.id));
@@ -466,57 +515,10 @@ export function AplicacaoRunner({
       setSaveStatus("saved");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exibindoChecklist, indiceSeguro]);
+  }, [exibindoChecklist, aberta]);
 
-  if (!passoAtual) {
+  if (grupos.length === 0) {
     return <p className="text-center text-muted-foreground">Esta avaliação não possui perguntas.</p>;
-  }
-
-  if (naTrava) {
-    const pendentesTeoricas = passos
-      .slice(0, indiceTrava)
-      .flatMap((passo) => (passo.tipo === "checklist" ? passo.perguntas : [passo.pergunta]))
-      .filter((p) => !respostas[p.id]).length;
-    return (
-      <div className="flex w-full flex-col gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>{pessoaNome}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {pendentesTeoricas > 0 ? (
-              <p className="text-xs text-destructive">
-                Ainda há {pendentesTeoricas} pergunta(s) sem resposta. Revise antes de liberar.
-              </p>
-            ) : (
-              <p className="text-muted-foreground">
-                Perguntas respondidas. Clique em liberar para o avaliador continuar.
-              </p>
-            )}
-            <div className="flex justify-between gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setMostrarResumo(false);
-                  setIndex(indiceTrava - 1);
-                }}
-              >
-                Revisar
-              </Button>
-              <Button
-                disabled={pendentesTeoricas > 0}
-                onClick={() => {
-                  setLiberadoTrava(true);
-                  setIndex(indiceTrava);
-                }}
-              >
-                Liberar para o avaliador
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   if (mostrarResumo) {
@@ -713,12 +715,11 @@ export function AplicacaoRunner({
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            Passo {indiceSeguro + 1} de {totalPassos}
-            {passoAtual.tipo === "checklist" ? ` — checklist (${passoAtual.perguntas.length} itens)` : ""} —{" "}
-            {progresso}% concluído
-            {/* Nota parcial só nos passos do avaliador (checklist) -- nas questões quem está com o
-                aparelho é o avaliado, então ela não aparece. */}
-            {passoAtual.tipo === "checklist" && notaParcial !== null ? (
+            {grupos.filter(grupoCompleto).length} de {grupos.length} seções — {respondidas}/{totalItens} itens (
+            {progresso}%)
+            {/* Nota parcial só com uma seção do avaliador (checklist) aberta -- nas teóricas quem
+                está com o aparelho é o avaliado, então ela não aparece. */}
+            {exibindoChecklist && notaParcial !== null ? (
               <span className="font-medium text-foreground"> — nota parcial: {notaParcial.toFixed(1)}</span>
             ) : null}
           </span>
@@ -816,75 +817,18 @@ export function AplicacaoRunner({
     </>
   );
 
-  const itensPendentesNoPasso =
-    passoAtual.tipo === "checklist" ? passoAtual.perguntas.filter((p) => !respostas[p.id]).length : 0;
-  const passoIncompleto = itensPendentesNoPasso > 0;
-
-  const navegacao = (
-    <div className="flex flex-col gap-1.5 pb-4">
-      {passoIncompleto ? (
-        <p className="text-right text-xs text-destructive">
-          Responda todos os itens do checklist ({itensPendentesNoPasso} pendente
-          {itensPendentesNoPasso > 1 ? "s" : ""}) para continuar.
-        </p>
-      ) : null}
-      <div className="flex justify-between gap-2">
-        <Button variant="outline" disabled={indiceSeguro === 0} onClick={() => setIndex(Math.max(0, indiceSeguro - 1))}>
-          Anterior
-        </Button>
-        {indiceSeguro === totalPassos - 1 ? (
-          <Button disabled={passoIncompleto} onClick={() => setMostrarResumo(true)}>
-            Revisar e Finalizar
-          </Button>
-        ) : (
-          <Button disabled={passoIncompleto} onClick={() => setIndex(Math.min(totalPassos - 1, indiceSeguro + 1))}>
-            Próxima
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
-  if (passoAtual.tipo === "checklist") {
-    const respostaPorPergunta = new Map(
-      passoAtual.perguntas.map((p) => [
-        p.id,
-        respostas[p.id]
-          ? { valor: respostas[p.id].valor, observacao: respostas[p.id].observacao, evidencias: respostas[p.id].evidencias }
-          : undefined,
-      ])
-    );
-
+  function renderPergunta(pergunta: AvaliacaoPergunta, numero: number) {
+    const respostaAtual = respostas[pergunta.id];
+    const precisaManual = precisaCorrecaoManual(pergunta);
     return (
-      <div className="flex w-full flex-col gap-3">
-        {cabecalho}
-        <ChecklistTable
-          perguntas={passoAtual.perguntas}
-          escala={secaoPorId.get(passoAtual.perguntas[0].secao_id)?.escala_checklist ?? "sim_nao"}
-          respostaPorPergunta={respostaPorPergunta}
-          onSetStatus={setChecklistStatus}
-          onSetObservacao={setChecklistObservacao}
-          onUploadEvidencia={handleEvidencia}
-        />
-        {navegacao}
-      </div>
-    );
-  }
-
-  const pergunta = passoAtual.pergunta;
-  const respostaAtual = respostas[pergunta.id];
-  const precisaManual = precisaCorrecaoManual(pergunta);
-
-  return (
-    <div className="flex w-full flex-col gap-3">
-      {cabecalho}
-
-      <Card>
+      <Card key={pergunta.id} size="sm">
         <CardHeader className="pb-2">
           <Badge variant="outline" className="w-fit text-xs">
             {PERGUNTA_TIPO_LABELS[pergunta.tipo]}
           </Badge>
-          <CardTitle className="text-base font-medium">{pergunta.enunciado}</CardTitle>
+          <CardTitle className="text-base font-medium">
+            {numero}) {pergunta.enunciado}
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {pergunta.config.imagem_path ? <PerguntaImagem path={pergunta.config.imagem_path} /> : null}
@@ -923,8 +867,158 @@ export function AplicacaoRunner({
           ) : null}
         </CardContent>
       </Card>
+    );
+  }
 
-      {navegacao}
+  function renderConteudoSecao(g: Grupo) {
+    let numero = 0;
+    return g.passos.map((passo) => {
+      if (passo.tipo === "checklist") {
+        const respostaPorPergunta = new Map(
+          passo.perguntas.map((p) => [
+            p.id,
+            respostas[p.id]
+              ? { valor: respostas[p.id].valor, observacao: respostas[p.id].observacao, evidencias: respostas[p.id].evidencias }
+              : undefined,
+          ])
+        );
+        return (
+          <ChecklistTable
+            key={`cl-${passo.perguntas[0].id}`}
+            perguntas={passo.perguntas}
+            escala={g.secao?.escala_checklist ?? "sim_nao"}
+            respostaPorPergunta={respostaPorPergunta}
+            onSetStatus={setChecklistStatus}
+            onSetObservacao={setChecklistObservacao}
+            onUploadEvidencia={handleEvidencia}
+          />
+        );
+      }
+      numero += 1;
+      return renderPergunta(passo.pergunta, numero);
+    });
+  }
+
+  const tudoRespondido = totalItens > 0 && respondidas === totalItens;
+  const pendentesAntesDaTrava = temTrava
+    ? grupos.slice(0, indiceTrava).reduce((n, g) => n + g.perguntas.filter((p) => !respostas[p.id]).length, 0)
+    : 0;
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      {cabecalho}
+
+      <div className="flex flex-col gap-2">
+        {grupos.map((g, i) => {
+          const completo = grupoCompleto(g);
+          const bloqueada = travada(i);
+          const isAberta = aberta === i;
+          const feitos = g.perguntas.filter((p) => respostas[p.id]).length;
+          const pendentes = g.perguntas.length - feitos;
+
+          return (
+            <div
+              key={g.secaoId}
+              ref={(el) => {
+                secaoRefs.current[i] = el;
+              }}
+              className="scroll-mt-16"
+            >
+              {/* Trava: aparece antes da primeira seção do avaliador enquanto não for liberada. */}
+              {i === indiceTrava && temTrava && !liberadoTrava ? (
+                <Card className="mb-2 border-primary">
+                  <CardContent className="flex flex-col gap-2 pt-4 text-sm">
+                    {pendentesAntesDaTrava > 0 ? (
+                      <p className="text-xs text-destructive">
+                        Ainda há {pendentesAntesDaTrava} pergunta(s) sem resposta nas seções acima. Responda antes de
+                        liberar.
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Perguntas respondidas. Entregue o aparelho ao avaliador e clique em liberar.
+                      </p>
+                    )}
+                    <Button
+                      className="w-fit"
+                      disabled={pendentesAntesDaTrava > 0}
+                      onClick={() => {
+                        setLiberadoTrava(true);
+                        const proxima = grupos.findIndex((x, j) => j >= indiceTrava && !grupoCompleto(x));
+                        setAberta(proxima === -1 ? null : proxima);
+                      }}
+                    >
+                      Liberar para o avaliador
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <div className={`rounded-lg border ${isAberta ? "border-primary/60 shadow-sm" : ""}`}>
+                <button
+                  type="button"
+                  disabled={bloqueada}
+                  onClick={() => setAberta(isAberta ? null : i)}
+                  className={`flex w-full items-center gap-3 px-3 py-3 text-left ${
+                    bloqueada ? "cursor-not-allowed opacity-60" : "hover:bg-muted/50"
+                  } ${isAberta ? "bg-primary/5" : ""}`}
+                >
+                  <span
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                      completo ? "bg-green-600 text-white" : isAberta ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}
+                  >
+                    {completo ? <Check className="size-4" /> : i + 1}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium">{g.secao?.nome ?? `Seção ${i + 1}`}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {g.temChecklist && !g.temTeorica ? "Checklist do avaliador" : g.temTeorica && !g.temChecklist ? "Perguntas" : "Perguntas e checklist"}{" "}
+                      · {feitos}/{g.perguntas.length}
+                    </span>
+                  </span>
+                  {bloqueada ? (
+                    <Lock className="size-4 shrink-0 text-muted-foreground" />
+                  ) : completo && !isAberta ? (
+                    <span className="shrink-0 text-xs text-primary">revisar</span>
+                  ) : isAberta ? (
+                    <ChevronUp className="size-4 shrink-0" />
+                  ) : (
+                    <ChevronDown className="size-4 shrink-0" />
+                  )}
+                </button>
+
+                {isAberta ? (
+                  <div className="flex flex-col gap-3 border-t p-3">
+                    {renderConteudoSecao(g)}
+                    <div className="flex flex-col items-end gap-1.5">
+                      {pendentes > 0 ? (
+                        <p className="text-xs text-destructive">
+                          Responda todos os itens desta seção ({pendentes} pendente{pendentes > 1 ? "s" : ""}) para
+                          concluir.
+                        </p>
+                      ) : null}
+                      <Button disabled={pendentes > 0} onClick={() => concluirSecao(i)}>
+                        Concluir seção →
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col items-end gap-1.5 pb-4 pt-2">
+        {!tudoRespondido ? (
+          <p className="text-xs text-muted-foreground">
+            Conclua todas as seções para revisar e finalizar ({totalItens - respondidas} item(ns) pendente(s)).
+          </p>
+        ) : null}
+        <Button size="lg" disabled={!tudoRespondido} onClick={() => setMostrarResumo(true)}>
+          Revisar e Finalizar
+        </Button>
+      </div>
     </div>
   );
 }
@@ -936,4 +1030,10 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
       <span className={`font-semibold ${highlight ? "text-destructive" : ""}`}>{value}</span>
     </div>
   );
+}
+
+/** Timestamp pro nome do arquivo de evidência (fora do componente: o lint do React Compiler
+ * reclama de Date.now() em função alcançável a partir do render, mesmo só rodando em evento). */
+function carimboTempo() {
+  return Date.now();
 }
