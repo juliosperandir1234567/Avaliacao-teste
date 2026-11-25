@@ -3,7 +3,14 @@
  * JPEG qualidade 0.8. Deixa o envio no campo mais rápido e os PDFs mais leves.
  * Se não for imagem ou algo falhar, devolve o arquivo original (nunca impede o envio).
  */
-export async function comprimirImagem(file: File, maxLado = 1600, qualidade = 0.8): Promise<File> {
+export async function comprimirImagem(
+  file: File,
+  maxLado = 1600,
+  qualidade = 0.8,
+  /** "image/webp" mantém transparência e fica bem menor (fundos); "image/png" pro logo, que vai
+   * pro PDF (o gerador de PDF não lê WebP). */
+  tipo: "image/jpeg" | "image/webp" | "image/png" = "image/jpeg"
+): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") return file;
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
@@ -17,10 +24,12 @@ export async function comprimirImagem(file: File, maxLado = 1600, qualidade = 0.
     if (!ctx) return file;
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", qualidade));
-    if (!blob || blob.size >= file.size) return file;
-    const nome = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-    return new File([blob], nome, { type: "image/jpeg" });
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, tipo, qualidade));
+    // Navegador sem suporte ao formato pedido devolve PNG -- aí mantém o original.
+    if (!blob || blob.type !== tipo || blob.size >= file.size) return file;
+    const extensao = tipo === "image/webp" ? ".webp" : tipo === "image/png" ? ".png" : ".jpg";
+    const nome = file.name.replace(/\.[^.]+$/, "") + extensao;
+    return new File([blob], nome, { type: tipo });
   } catch {
     return file;
   }
