@@ -728,11 +728,11 @@ function frasesDasFalhasV4(falhas: ItemMelhorar[], maxLista = Infinity): string[
     if (sufixos.length === 1) frases.push({ texto: sufixos[0] ? `${chave} ${sufixos[0]}` : chave, peso: 1 });
     else frases.push({ texto: `${chave} (${juntarLista(sufixos)})`, peso: sufixos.length });
   }
-  // v5 resumido (maxLista): "deixou de verificar 5 itens, incluindo a, b e c" em vez da lista toda.
+  // v5 resumido (maxLista): "deixou de verificar 6 itens" em vez da lista toda.
   const lista = (itens: string[], unidade: string) =>
-    itens.length > maxLista ? `${itens.length} ${unidade}, incluindo ${juntarLista(itens.slice(0, maxLista))}` : juntarLista(itens);
+    itens.length > maxLista ? `${itens.length} ${unidade}` : juntarLista(itens);
   if (maxLista !== Infinity && naoVerificados.length > 0 && naoRealizados.length > 0) {
-    // v5 breve: "deixou de verificar 6 itens, incluindo a e b" (conferências + tarefas juntas).
+    // v5 breve: "deixou de verificar 6 itens" (conferências + tarefas juntas).
     const todos = [...naoVerificados, ...naoRealizados];
     frases.push({ texto: `deixou de verificar ${lista(todos, "itens")}`, peso: todos.length });
     return frases.sort((a, b) => b.peso - a.peso).map((f) => f.texto);
@@ -943,7 +943,7 @@ function evidenciaEtapaV5(s: SecaoApurada, nome: string, maxFrases: number): str
 const NOMINALIZACAO: Record<string, [string, boolean]> = {
   utilizou: ["uso", true],
   usou: ["uso", true],
-  manteve: ["manutenção", false],
+  manteve: ["controle", true],
   identificou: ["identificação", false],
   selecionou: ["seleção", false],
   fez: ["execução", false],
