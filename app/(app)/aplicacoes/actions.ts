@@ -189,6 +189,45 @@ export async function salvarResposta(input: SalvarRespostaInput) {
   return { success: true, pontuacao };
 }
 
+/** Pré-marca como "Sim" (em lote) os itens de checklist ainda sem resposta, quando o avaliador
+ * abre a tabela -- ele só precisa mexer nos que estão "Não"/N.A. `ignoreDuplicates` garante que
+ * uma resposta já gravada (ex: marcada em outro aparelho) nunca é sobrescrita. */
+export async function preencherChecklistSim(aplicacaoId: string, perguntaIds: string[]) {
+  if (perguntaIds.length === 0) return { success: true, pontuacoes: {} as Record<string, number | null> };
+  const supabase = await createClient();
+
+  const { data: perguntas, error: erroPerguntas } = await supabase
+    .from("avaliacao_perguntas")
+    .select("*")
+    .in("id", perguntaIds)
+    .eq("tipo", "checklist");
+  if (erroPerguntas) return { error: erroPerguntas.message };
+
+  const valor: RespostaValor = { status: "sim" };
+  const pontuacoes: Record<string, number | null> = {};
+  const linhas = (perguntas ?? []).map((p) => {
+    const pontuacao = calcularPontuacaoResposta(p as AvaliacaoPergunta, valor, undefined, null);
+    pontuacoes[p.id] = pontuacao;
+    return {
+      aplicacao_id: aplicacaoId,
+      pergunta_id: p.id,
+      tipo: p.tipo,
+      resposta: valor,
+      pontuacao,
+      observacao: null,
+      evidencias: [],
+      item_critico_falhou: Boolean(p.item_critico) && pontuacao === 0,
+    };
+  });
+  if (linhas.length === 0) return { success: true, pontuacoes };
+
+  const { error } = await supabase
+    .from("respostas")
+    .upsert(linhas, { onConflict: "aplicacao_id,pergunta_id", ignoreDuplicates: true });
+  if (error) return { error: error.message };
+  return { success: true, pontuacoes };
+}
+
 export interface AssinaturasInput {
   avaliadoPath?: string;
   avaliadorPath?: string;

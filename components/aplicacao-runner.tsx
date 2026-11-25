@@ -28,6 +28,7 @@ import { createClient } from "@/utils/supabase/client";
 import {
   finalizarAplicacao,
   interromperPorSeguranca,
+  preencherChecklistSim,
   salvarAssinatura,
   salvarFotoCnh,
   salvarObservacaoFinal,
@@ -419,6 +420,53 @@ export function AplicacaoRunner({
     };
     persistir(perguntaId, { ...base, observacao: texto });
   }
+
+  // Checklist já abre com "Sim" marcado nos itens sem resposta -- o avaliador só troca os que
+  // estão "Não"/N.A. Só roda quando a tabela realmente aparece (depois da trava do avaliado) e
+  // cada item é pré-preenchido uma vez só (ref), pra não brigar com o que o avaliador desmarcar.
+  const checklistPreenchido = useRef<Set<string>>(new Set());
+  const exibindoChecklist = passoAtual?.tipo === "checklist" && !naTrava && !mostrarResumo;
+  useEffect(() => {
+    if (!exibindoChecklist || passoAtual?.tipo !== "checklist") return;
+    const pendentes = passoAtual.perguntas.filter(
+      (p) => !respostas[p.id] && !checklistPreenchido.current.has(p.id)
+    );
+    if (pendentes.length === 0) return;
+    pendentes.forEach((p) => checklistPreenchido.current.add(p.id));
+    setRespostas((prev) => {
+      const novo = { ...prev };
+      for (const p of pendentes) {
+        if (novo[p.id]) continue;
+        novo[p.id] = { valor: { status: "sim" }, observacao: "", pontuacaoManual: null, evidencias: [], pontuacao: null };
+      }
+      return novo;
+    });
+    setSaveStatus("saving");
+    preencherChecklistSim(
+      aplicacaoId,
+      pendentes.map((p) => p.id)
+    ).then((result) => {
+      if ("error" in result && result.error) {
+        toast.error(result.error);
+        setSaveStatus("idle");
+        return;
+      }
+      const pontuacoes = result.pontuacoes ?? {};
+      setRespostas((prev) => {
+        const novo = { ...prev };
+        for (const [id, pontuacao] of Object.entries(pontuacoes)) {
+          const atual = novo[id];
+          // Se o avaliador já trocou o item enquanto salvava, não mexe.
+          if (atual && "status" in atual.valor && atual.valor.status === "sim" && atual.pontuacao === null) {
+            novo[id] = { ...atual, pontuacao };
+          }
+        }
+        return novo;
+      });
+      setSaveStatus("saved");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exibindoChecklist, indiceSeguro]);
 
   if (!passoAtual) {
     return <p className="text-center text-muted-foreground">Esta avaliação não possui perguntas.</p>;
