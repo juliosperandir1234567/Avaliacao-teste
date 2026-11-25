@@ -126,6 +126,14 @@ export const CHECKLIST_ESCALA_LABELS: Record<ChecklistEscala, string> = {
   zero_cinco_dez_na: "0 / 5 / 10 / N.A.",
 };
 
+/** Escalas oferecidas ao criar/editar uma seção. "0/5/10" saiu de uso, mas continua no tipo e nos
+ * labels acima pra que provas antigas que usam essa escala abram/pontuem/imprimam normalmente. */
+export const CHECKLIST_ESCALAS_DISPONIVEIS: ChecklistEscala[] = ["sim_nao", "sim_nao_na"];
+
+/** Papéis oferecidos ao criar/editar usuário. "gestor"/"recrutamento" saíram de uso, mas continuam
+ * no tipo pra que usuários antigos com esse papel continuem funcionando. */
+export const PAPEIS_DISPONIVEIS: UserRole[] = ["admin", "avaliador"];
+
 export interface AvaliacaoCompetencia {
   id: string;
   avaliacao_id: string;

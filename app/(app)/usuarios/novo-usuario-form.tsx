@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { criarUsuario } from "./actions";
-import type { UserRole } from "@/lib/types";
+import { PAPEIS_DISPONIVEIS, type UserRole } from "@/lib/types";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrador",
@@ -94,9 +94,9 @@ export function NovoUsuarioForm() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                {PAPEIS_DISPONIVEIS.map((value) => (
                   <SelectItem key={value} value={value}>
-                    {label}
+                    {ROLE_LABELS[value]}
                   </SelectItem>
                 ))}
               </SelectContent>

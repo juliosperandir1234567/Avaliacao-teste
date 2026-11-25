@@ -7,6 +7,7 @@ import {
   CalendarRange,
   CheckCircle2,
   ClipboardList,
+  FileDown,
   Gauge,
   LineChart,
   ListOrdered,
@@ -149,7 +150,15 @@ export default async function DashboardPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Dashboard Executivo</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">Resultados</h1>
+        <Link
+          href="/dashboard/exportar"
+          className="inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted"
+        >
+          <FileDown className="size-4" /> Exportar
+        </Link>
+      </div>
 
       <Card size="sm">
         <CardContent>

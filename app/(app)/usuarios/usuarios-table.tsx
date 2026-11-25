@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { atualizarUsuario, excluirUsuario, gerarNovaSenha } from "./actions";
-import type { Profile, UserRole } from "@/lib/types";
+import { PAPEIS_DISPONIVEIS, type Profile, type UserRole } from "@/lib/types";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrador",
@@ -124,9 +124,10 @@ function UsuarioRow({ usuario, isSelf }: { usuario: Profile; isSelf: boolean }) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(ROLE_LABELS).map(([value, label]) => (
+            {/* Papel antigo (gestor/recrutamento) só aparece pra quem ainda tem ele. */}
+            {PAPEIS_DISPONIVEIS.concat(PAPEIS_DISPONIVEIS.includes(usuario.role) ? [] : [usuario.role]).map((value) => (
               <SelectItem key={value} value={value}>
-                {label}
+                {ROLE_LABELS[value]}
               </SelectItem>
             ))}
           </SelectContent>

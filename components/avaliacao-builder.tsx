@@ -21,7 +21,7 @@ import { PerguntaCard } from "@/components/pergunta-card";
 import { PerguntaFormDialog } from "@/components/pergunta-form-dialog";
 import { ChecklistBulkAdd } from "@/components/checklist-bulk-add";
 import { ConfirmarSenhaDialog } from "@/components/confirmar-senha-dialog";
-import { CHECKLIST_ESCALA_LABELS } from "@/lib/types";
+import { CHECKLIST_ESCALA_LABELS, CHECKLIST_ESCALAS_DISPONIVEIS } from "@/lib/types";
 import type { AvaliacaoStatus, ChecklistEscala, EquipamentoTipo } from "@/lib/types";
 import {
   saveAvaliacaoBuilder,
@@ -363,9 +363,12 @@ export function AvaliacaoBuilder({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(CHECKLIST_ESCALA_LABELS).map(([value, label]) => (
+                  {/* Escala antiga (0/5/10) só aparece se a seção já usa ela. */}
+                  {CHECKLIST_ESCALAS_DISPONIVEIS.concat(
+                    CHECKLIST_ESCALAS_DISPONIVEIS.includes(secao.escala_checklist) ? [] : [secao.escala_checklist]
+                  ).map((value) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      {CHECKLIST_ESCALA_LABELS[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>

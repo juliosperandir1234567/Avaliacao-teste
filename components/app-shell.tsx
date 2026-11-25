@@ -71,10 +71,12 @@ function MenuLateral({
   pendenciasCount: number;
   extras?: React.ReactNode;
 }) {
+  const principais = items.filter((i) => !i.secundario);
+  const secundarios = items.filter((i) => i.secundario);
   return (
     <>
       <ul className="flex flex-col gap-1">
-        {items.map((item) => {
+        {principais.map((item) => {
           const Icon = item.icon;
           return (
             <li key={item.href}>
@@ -94,6 +96,26 @@ function MenuLateral({
         })}
         {extras}
       </ul>
+      <div className="mt-auto flex flex-col gap-1">
+        {secundarios.length > 0 ? (
+          <ul className={`flex flex-col gap-0.5 border-t pt-2 ${comFundo ? "border-white/30" : ""}`}>
+            {secundarios.map((item) => {
+              const Icon = item.icon;
+              const active = item.href === ativoHref;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`${classeItemMenu(active, comFundo)} !py-2 !text-sm`}
+                  >
+                    <Icon className="size-4" />
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
       <form action={logout}>
         <button
           type="submit"
@@ -106,6 +128,7 @@ function MenuLateral({
           <LogOut className="size-6" /> Sair
         </button>
       </form>
+      </div>
     </>
   );
 }

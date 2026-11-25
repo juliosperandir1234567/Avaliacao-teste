@@ -67,9 +67,23 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Olá, {profile.nome.split(" ")[0]}</h1>
-        <p className="text-sm text-muted-foreground">Fila de pendências de teste.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Olá, {profile.nome.split(" ")[0]}</h1>
+          <p className="text-sm text-muted-foreground">
+            {pendencias.length === 0
+              ? "Nenhuma avaliação pendente."
+              : `${pendencias.length} avaliação${pendencias.length > 1 ? "ões" : ""} pendente${pendencias.length > 1 ? "s" : ""}. Toque para aplicar.`}
+          </p>
+        </div>
+        {profile.role === "admin" || profile.role === "avaliador" ? (
+          <Link
+            href="/candidatos/rapido"
+            className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            + Nova avaliação
+          </Link>
+        ) : null}
       </div>
 
       <Card>
