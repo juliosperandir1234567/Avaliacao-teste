@@ -36,6 +36,8 @@ export interface AnaliseSecao {
 
 export interface AnaliseAvaliacao {
   status: { label: string; cor: string } | null;
+  /** Nota geral (0 a 10), mostrada em destaque ao lado do status no card da análise. */
+  nota: number | null;
   secoes: AnaliseSecao[];
   pontosFortes: string[];
   pontosMelhorar: GrupoMelhorar[];
@@ -354,6 +356,7 @@ export function gerarAnaliseAvaliacao(
 
   return {
     status: statusDaAnalise(parecer, notaGeral),
+    nota: notaGeral,
     secoes: apuradas.map(({ nome, percentual, nivel }) => ({ nome, percentual, nivel })),
     // v4: só o parecer (análise) -- as listas de pontos fortes/a melhorar saem da tela e do PDF.
     pontosFortes: estilo === "v4" ? [] : pontosFortes,

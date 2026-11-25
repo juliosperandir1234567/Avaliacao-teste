@@ -31,7 +31,6 @@ import {
   preencherChecklistSim,
   salvarAssinatura,
   salvarFotoCnh,
-  salvarObservacaoFinal,
   salvarResposta,
 } from "@/app/(app)/aplicacoes/actions";
 import {
@@ -190,7 +189,7 @@ export function AplicacaoRunner({
   const [assinaturaAvaliadorPath, setAssinaturaAvaliadorPath] = useState<string | null>(
     assinaturaAvaliadorPathInicial
   );
-  const [observacaoFinal, setObservacaoFinal] = useState(observacaoFinalInicial ?? "");
+  const [observacaoFinal] = useState(observacaoFinalInicial ?? "");
   const [parecerEscolhido, setParecerEscolhido] = useState<Parecer | null>(null);
   const [enviandoAssinatura, setEnviandoAssinatura] = useState(false);
   // Resultado (nota/parecer/análise) só aparece depois que o avaliador libera (etapa 2).
@@ -200,7 +199,6 @@ export function AplicacaoRunner({
   // URL assinada da foto da CNH já anexada -- mostra a miniatura em vez de só "Foto anexada".
   const [fotoCnhUrl, setFotoCnhUrl] = useState<string | null>(null);
   const saveTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const observacaoFinalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!fotoCnhPath) return;
@@ -231,15 +229,6 @@ export function AplicacaoRunner({
     const salvo = await salvarFotoCnh(aplicacaoId, path);
     if (salvo.error) toast.error("Falha ao gravar foto da CNH: " + salvo.error);
     else toast.success("Foto da CNH anexada");
-  }
-
-  function handleObservacaoFinalChange(texto: string) {
-    setObservacaoFinal(texto);
-    if (observacaoFinalTimer.current) clearTimeout(observacaoFinalTimer.current);
-    observacaoFinalTimer.current = setTimeout(async () => {
-      const result = await salvarObservacaoFinal(aplicacaoId, texto);
-      if (result?.error) toast.error(result.error);
-    }, 500);
   }
 
   async function capturarAssinatura(quem: "avaliado" | "avaliador", blob: Blob) {
@@ -580,18 +569,15 @@ export function AplicacaoRunner({
             <CardTitle>Resumo</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
-            <Row label="Itens" value={String(totalItens)} />
-            <Row label="Respondidos" value={String(respondidas)} />
-            <Row label="Não avaliados" value={String(naoAvaliados)} highlight={naoAvaliados > 0} />
-            <Row label="Falhas críticas" value={String(falhasCriticas.length)} highlight={falhasCriticas.length > 0} />
-            <Row label="Nota preliminar" value={notaPreliminar !== null ? notaPreliminar.toFixed(1) : "-"} />
+            {/* Contagens e nota saíram daqui: a nota fica em destaque no card da análise, ao lado
+                do Aprovado/Reprovado. */}
             {naoAvaliados > 0 ? (
-              <p className="-mt-1.5 text-xs text-destructive">
-                Volte e responda todos os itens antes de finalizar.
+              <p className="text-xs text-destructive">
+                Ainda há {naoAvaliados} item(ns) sem resposta. Volte e responda todos antes de finalizar.
               </p>
             ) : null}
 
-            <div className="flex flex-col gap-1.5 border-t pt-3">
+            <div className="flex flex-col gap-1.5">
               <Label>Parecer final</Label>
               <Select
                 items={{ apto: PARECER_LABELS.apto, reprovado: PARECER_LABELS.reprovado }}
@@ -608,15 +594,8 @@ export function AplicacaoRunner({
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="observacaoFinal">Considerações do avaliador</Label>
-              <Textarea
-                id="observacaoFinal"
-                value={observacaoFinal}
-                onChange={(e) => handleObservacaoFinalChange(e.target.value)}
-                placeholder="Pontos positivos ou negativos observados (sai no relatório logo abaixo do parecer)"
-              />
-            </div>
+            {/* "Considerações do avaliador" saiu: quando precisar, o avaliador edita o texto do
+                parecer na análise. O que já tinha sido digitado continua sendo enviado ao finalizar. */}
 
             <p className="border-t pt-3 text-xs text-green-700">✔ Assinatura do avaliado coletada</p>
           </CardContent>
@@ -1023,14 +1002,6 @@ export function AplicacaoRunner({
   );
 }
 
-function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="flex items-center justify-between border-b pb-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={`font-semibold ${highlight ? "text-destructive" : ""}`}>{value}</span>
-    </div>
-  );
-}
 
 /** Timestamp pro nome do arquivo de evidência (fora do componente: o lint do React Compiler
  * reclama de Date.now() em função alcançável a partir do render, mesmo só rodando em evento). */

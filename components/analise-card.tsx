@@ -22,11 +22,25 @@ export function AnaliseCard({
     <Card>
       <CardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base">Análise da avaliação</CardTitle>
-        {analise.status ? (
-          <span className="text-sm font-bold" style={{ color: analise.status.cor }}>
-            {analise.status.label}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2.5">
+          {analise.nota !== null ? (
+            <span
+              className="flex items-baseline gap-1 text-2xl font-bold leading-none"
+              style={{ color: analise.status?.cor }}
+            >
+              <span className="text-xs font-medium text-muted-foreground">Nota</span>
+              {analise.nota.toFixed(1).replace(".", ",")}
+            </span>
+          ) : null}
+          {analise.status ? (
+            <span
+              className="rounded-full px-3 py-1 text-sm font-bold"
+              style={{ color: analise.status.cor, backgroundColor: `color-mix(in srgb, ${analise.status.cor} 12%, transparent)` }}
+            >
+              {analise.status.label}
+            </span>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">
         <div className="flex flex-col gap-2">
