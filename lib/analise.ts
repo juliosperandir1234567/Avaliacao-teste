@@ -355,8 +355,9 @@ export function gerarAnaliseAvaliacao(
   return {
     status: statusDaAnalise(parecer, notaGeral),
     secoes: apuradas.map(({ nome, percentual, nivel }) => ({ nome, percentual, nivel })),
-    pontosFortes,
-    pontosMelhorar,
+    // v4: só o parecer (análise) -- as listas de pontos fortes/a melhorar saem da tela e do PDF.
+    pontosFortes: estilo === "v4" ? [] : pontosFortes,
+    pontosMelhorar: estilo === "v4" ? [] : pontosMelhorar,
     parecer: (estilo === "v1" ? montarParecerV1 : estilo === "v4" ? montarParecerV4 : montarParecer)(
       notaGeral,
       apuradas,
