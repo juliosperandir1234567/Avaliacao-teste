@@ -731,6 +731,12 @@ function frasesDasFalhasV4(falhas: ItemMelhorar[], maxLista = Infinity): string[
   // v5 resumido (maxLista): "deixou de verificar 5 itens, incluindo a, b e c" em vez da lista toda.
   const lista = (itens: string[], unidade: string) =>
     itens.length > maxLista ? `${itens.length} ${unidade}, incluindo ${juntarLista(itens.slice(0, maxLista))}` : juntarLista(itens);
+  if (maxLista !== Infinity && naoVerificados.length > 0 && naoRealizados.length > 0) {
+    // v5 breve: "deixou de verificar 6 itens, incluindo a e b" (conferências + tarefas juntas).
+    const todos = [...naoVerificados, ...naoRealizados];
+    frases.push({ texto: `deixou de verificar ${lista(todos, "itens")}`, peso: todos.length });
+    return frases.sort((a, b) => b.peso - a.peso).map((f) => f.texto);
+  }
   if (naoVerificados.length > 0) {
     frases.push({ texto: `deixou de verificar ${lista(naoVerificados, "itens")}`, peso: naoVerificados.length });
   }
@@ -909,10 +915,22 @@ function evidenciaEtapaV5(s: SecaoApurada, nome: string, maxFrases: number): str
     const parciais = s.questoesParciais.length;
     texto = `${na}, acertou ${s.questoesAcertos} de ${s.questoesTotal} questões${parciais > 0 ? ` (${parciais} com acerto parcial)` : ""}.`;
   } else {
-    const frases = frasesDasFalhasV4(s.falhas, 3).slice(0, maxFrases);
+    // Forma breve: "houve dificuldade no uso do freio e na identificação das peças do motor".
+    const frases = frasesDasFalhasV4(s.falhas, 2).slice(0, maxFrases);
+    const nominais: string[] = [];
+    const verbais: string[] = [];
+    for (const f of frases) {
+      const n = nominalizarFalha(f);
+      if (n) nominais.push(n);
+      else verbais.push(f);
+    }
     const erradas = s.questoesErradas.length;
-    if (erradas > 0) frases.push(`errou ${erradas} ${erradas === 1 ? "questão" : "questões"}`);
-    texto = frases.length > 0 ? `${na}, ${juntarFrases(frases)}.` : `${na}, os itens avaliados foram atendidos.`;
+    if (erradas > 0) verbais.push(`errou ${erradas} ${erradas === 1 ? "questão" : "questões"}`);
+    const partes = [
+      ...(nominais.length > 0 ? [`houve dificuldade ${juntarLista(agruparNominais(nominais))}`] : []),
+      ...(verbais.length > 0 ? [juntarLista(verbais)] : []),
+    ];
+    texto = partes.length > 0 ? `${na}, ${partes.join("; ")}.` : `${na}, os itens avaliados foram atendidos.`;
   }
   if (s.observacoes.length > 0) {
     texto += ` ${s.observacoes.length === 1 ? "Registro do avaliador" : "Registros do avaliador"}: ${s.observacoes.join("; ")}.`;
@@ -920,12 +938,83 @@ function evidenciaEtapaV5(s: SecaoApurada, nome: string, maxFrases: number): str
   return texto;
 }
 
-/** Junta frases da evidência; se alguma já tem lista interna ("a, b e c"), separa com ";" pra
- * não virar "... e c e não realizou ...". */
-function juntarFrases(frases: string[]): string {
-  if (frases.length <= 1) return frases.join("");
-  if (!frases.some((f) => /,| e /.test(f))) return juntarLista(frases);
-  return `${frases.slice(0, -1).join("; ")}; e ${frases[frases.length - 1]}`;
+/** Verbo do item (pretérito) -> substantivo, pra forma breve: "não utilizou corretamente o freio"
+ * -> "no uso do freio". [substantivo, masculino?] */
+const NOMINALIZACAO: Record<string, [string, boolean]> = {
+  utilizou: ["uso", true],
+  usou: ["uso", true],
+  manteve: ["manutenção", false],
+  identificou: ["identificação", false],
+  selecionou: ["seleção", false],
+  fez: ["execução", false],
+  operou: ["operação", false],
+  aplicou: ["aplicação", false],
+  respeitou: ["respeito", true],
+  controlou: ["controle", true],
+  ativou: ["ativação", false],
+  criou: ["criação", false],
+  ajustou: ["ajuste", true],
+  regulou: ["regulagem", false],
+  conferiu: ["conferência", false],
+  acionou: ["acionamento", true],
+  engatou: ["engate", true],
+  posicionou: ["posicionamento", true],
+};
+const NOMINALIZACAO_INFINITIVO: Record<string, [string, boolean]> = {
+  ativar: ["ativação", false],
+  criar: ["criação", false],
+  usar: ["uso", true],
+  utilizar: ["uso", true],
+  operar: ["operação", false],
+  identificar: ["identificação", false],
+  configurar: ["configuração", false],
+  calibrar: ["calibragem", false],
+};
+
+/** "no uso do freio" + "no uso do cinto" -> "no uso do freio e do cinto". */
+function agruparNominais(nominais: string[]): string[] {
+  const grupos = new Map<string, string[]>();
+  for (const n of nominais) {
+    const [prep, subst, ...resto] = n.split(" ");
+    const chave = `${prep} ${subst}`;
+    const lista = grupos.get(chave) ?? [];
+    lista.push(resto.join(" "));
+    grupos.set(chave, lista);
+  }
+  return [...grupos].map(([chave, restos]) => `${chave} ${juntarLista(restos)}`);
+}
+
+/** "não utilizou corretamente o freio (estacionário, de serviço e manet)" -> "no uso do freio";
+ * "não soube ativar o piloto automático" -> "na ativação do piloto automático". Sem regra, null. */
+function nominalizarFalha(frase: string): string | null {
+  const m = /^não (\S+)\s+(.*)$/.exec(frase.replace(/\s*\([^)]*\)/g, "").trim());
+  if (!m) return null;
+  const verbo = m[1];
+  let resto = m[2];
+  let alvo = NOMINALIZACAO[verbo];
+  if (!alvo && (verbo === "soube" || verbo === "conseguiu")) {
+    const [inf, ...depois] = resto.split(" ");
+    alvo = NOMINALIZACAO_INFINITIVO[inf];
+    resto = depois.join(" ");
+  }
+  if (!alvo && verbo === "trabalhou" && resto.startsWith("com ")) {
+    alvo = ["uso", true];
+    resto = resto.slice(4);
+  }
+  if (!alvo) return null;
+  resto = resto
+    .replace(/\b(corretamente|adequadamente|corret[ao]s?|adequad[ao]s?)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!resto) return null;
+  const contraido = resto
+    .replace(/^o /, "do ")
+    .replace(/^a /, "da ")
+    .replace(/^os /, "dos ")
+    .replace(/^as /, "das ")
+    .replace(/^(um|uma) /, "de $1 ");
+  const comDe = /^(do|da|dos|das|de) /.test(contraido) ? contraido : `de ${contraido}`;
+  return `${alvo[1] ? "no" : "na"} ${alvo[0]} ${comDe}`;
 }
 
 function temRegistroDeMelhoria(s: SecaoApurada): boolean {
