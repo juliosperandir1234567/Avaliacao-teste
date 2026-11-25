@@ -43,6 +43,12 @@ export function AnaliseCard({
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">
+        {/* Divergências pra revisão do avaliador (só na tela, não vão pro PDF). */}
+        {analise.alertas.map((a) => (
+          <p key={a} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            ⚠ {a}
+          </p>
+        ))}
         <div className="flex flex-col gap-2">
           {analise.secoes.map((s) => (
             <div key={s.nome} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3">
@@ -50,11 +56,11 @@ export function AnaliseCard({
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${s.percentual}%`, backgroundColor: NIVEL_CORES[s.nivel] }}
+                  style={{ width: `${s.percentual}%`, backgroundColor: s.cor ?? NIVEL_CORES[s.nivel] }}
                 />
               </div>
-              <span className="text-right text-xs font-semibold" style={{ color: NIVEL_CORES[s.nivel] }}>
-                {s.percentual}% · {NIVEL_LABELS[s.nivel]}
+              <span className="text-right text-xs font-semibold" style={{ color: s.cor ?? NIVEL_CORES[s.nivel] }}>
+                {s.rotulo === "Não avaliada" ? s.rotulo : `${s.percentual}% · ${s.rotulo ?? NIVEL_LABELS[s.nivel]}`}
               </span>
             </div>
           ))}

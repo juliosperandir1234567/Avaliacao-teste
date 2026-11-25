@@ -9,7 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AprovarParecerForm } from "@/components/aprovar-parecer-form";
-import { calcularNotaGeral, calcularNotasPorCompetencia } from "@/lib/scoring";
+import {
+  avaliarItensCriticos,
+  calcularNotaGeral,
+  calcularNotasPorCompetencia,
+  gerarParecerSugerido,
+} from "@/lib/scoring";
 import { consideracoesDaAplicacao, estiloParecerDaAplicacao, gerarAnaliseAvaliacao } from "@/lib/analise";
 import { AnaliseCard } from "@/components/analise-card";
 import {
@@ -48,6 +53,13 @@ export default async function RaioXPage({
       tipoPessoa: aplicacao.tipo_pessoa,
       funcao: aplicacao.funcao_avaliada,
       estiloParecer: estiloParecerDaAplicacao(aplicacao),
+      parecerSugerido: gerarParecerSugerido({
+        notaGeral,
+        notaMinima: aplicacao.avaliacoes.nota_minima,
+        competencias,
+        notasPorCompetencia,
+        falhasCriticas: avaliarItensCriticos(perguntas, respostas),
+      }),
     }
   );
   // Estilo novo: a observação final vira "Considerações do avaliador", logo abaixo do parecer.

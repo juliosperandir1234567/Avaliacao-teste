@@ -13,7 +13,13 @@ import {
   PARECER_LABELS,
   PERGUNTA_TIPO_LABELS,
 } from "@/lib/types";
-import { avaliarItensCriticos, calcularNotaGeral, calcularNotaSecao, calcularNotasPorCompetencia } from "@/lib/scoring";
+import {
+  avaliarItensCriticos,
+  calcularNotaGeral,
+  calcularNotaSecao,
+  calcularNotasPorCompetencia,
+  gerarParecerSugerido,
+} from "@/lib/scoring";
 import {
   consideracoesDaAplicacao,
   estiloParecerDaAplicacao,
@@ -270,12 +276,12 @@ function AnaliseSecao({
             <View
               style={[
                 styles.analiseBarraValor,
-                { width: `${s.percentual}%`, backgroundColor: NIVEL_CORES[s.nivel] },
+                { width: `${s.percentual}%`, backgroundColor: s.cor ?? NIVEL_CORES[s.nivel] },
               ]}
             />
           </View>
-          <Text style={[styles.analiseBarraLabel, { color: NIVEL_CORES[s.nivel] }]}>
-            {s.percentual}% · {NIVEL_LABELS[s.nivel]}
+          <Text style={[styles.analiseBarraLabel, { color: s.cor ?? NIVEL_CORES[s.nivel] }]}>
+            {s.rotulo === "Não avaliada" ? s.rotulo : `${s.percentual}% · ${s.rotulo ?? NIVEL_LABELS[s.nivel]}`}
           </Text>
         </View>
       ))}
@@ -400,6 +406,7 @@ export function RelatorioDocument({
   fotoCnhUrl,
   logoUrl,
   nomeEmpresa,
+  notaMinima = null,
 }: {
   aplicacao: AvaliacaoAplicada;
   avaliacaoNome: string;
@@ -428,6 +435,8 @@ export function RelatorioDocument({
   fotoCnhUrl: string | null;
   logoUrl: string | null;
   nomeEmpresa: string | null;
+  /** Nota mínima da avaliação -- pro resultado calculado (parecer sugerido) da análise v5. */
+  notaMinima?: number | null;
 }) {
   const respostaPorPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
   const secoesOrdenadas = [...secoes].sort((a, b) => a.ordem - b.ordem);
@@ -453,6 +462,10 @@ export function RelatorioDocument({
       tipoPessoa: aplicacao.tipo_pessoa,
       funcao: aplicacao.funcao_avaliada,
       estiloParecer: estiloParecerDaAplicacao(aplicacao),
+      parecerSugerido:
+        notaMinima !== null
+          ? gerarParecerSugerido({ notaGeral, notaMinima, competencias, notasPorCompetencia, falhasCriticas })
+          : null,
     }
   );
   // Parecer editado à mão pelo avaliador substitui o automático.

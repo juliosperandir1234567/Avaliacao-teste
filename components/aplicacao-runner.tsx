@@ -607,6 +607,7 @@ export function AplicacaoRunner({
           analise={gerarAnaliseAvaliacao(secoes, perguntasVisiveis, respostasComoResposta, parecerFinal, {
             tipoPessoa,
             funcao: funcaoAvaliada,
+            parecerSugerido,
           })}
           edicao={{ aplicacaoId, textoSalvo: parecerTextoInicial }}
         />

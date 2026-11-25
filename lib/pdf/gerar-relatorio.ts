@@ -138,6 +138,7 @@ export async function gerarRelatorioPdfBuffer(
       fotoCnhUrl,
       logoUrl: logoDataUri,
       nomeEmpresa: config.nomeEmpresa,
+      notaMinima: data.aplicacao.avaliacoes.nota_minima,
     })
   );
 
