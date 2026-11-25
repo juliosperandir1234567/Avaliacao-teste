@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { calcularNotaGeral } from "@/lib/scoring";
+import { condicaoAtendida } from "@/lib/conditional";
 import {
   APLICACAO_STATUS_LABELS,
   type AvaliacaoAplicada,
@@ -20,20 +20,18 @@ type AplicacaoResumo = Pick<
   | "status"
   | "data"
   | "tipo_pessoa"
-  | "nota_geral"
   | "colaborador_snapshot"
   | "parecer_final"
 > & {
   candidatos_externos: { nome: string } | { nome: string }[] | null;
-  avaliacoes: { nota_minima: number } | { nota_minima: number }[] | null;
 };
 
-/** Progresso e nota parcial de uma prova em aberto, pra saber de longe como está indo. */
+/** Progresso de uma prova em aberto, por seção. Sem nota: o checklist já vem marcado como Sim,
+ * então a nota de uma prova pela metade aparecia 10 antes de o avaliador conferir os itens.
+ * A nota só aparece depois de finalizada (Resultados). */
 interface Andamento {
-  respondidas: number;
-  total: number;
-  notaParcial: number | null;
-  notaMinima: number | null;
+  secoesConcluidas: number;
+  totalSecoes: number;
 }
 
 function primeiro<T>(v: T | T[] | null): T | null {
@@ -53,7 +51,7 @@ export default async function HomePage() {
     supabase
       .from("avaliacoes_aplicadas")
       .select(
-        "id, avaliacao_id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, nota_geral, parecer_final, candidatos_externos(nome), avaliacoes(nota_minima)"
+        "id, avaliacao_id, funcao_avaliada, status, data, tipo_pessoa, colaborador_snapshot, parecer_final, candidatos_externos(nome)"
       )
       .not("status", "in", "(finalizada,cancelada)")
       .order("created_at", { ascending: false }),
@@ -103,7 +101,7 @@ export default async function HomePage() {
 }
 
 /** Busca seções, perguntas e respostas de todas as pendências de uma vez (3 consultas no total,
- * não 3 por linha) e calcula quantos itens já foram respondidos e a nota parcial de cada uma. */
+ * não 3 por linha) e calcula quantas seções de cada uma já estão completas. */
 async function calcularAndamentos(
   supabase: Awaited<ReturnType<typeof createClient>>,
   pendencias: AplicacaoResumo[]
@@ -130,33 +128,38 @@ async function calcularAndamentos(
   });
   const respostas = (respostasData ?? []) as Resposta[];
 
+  const perguntasPorId = new Map(perguntas.map((p) => [p.id, p]));
   for (const a of pendencias) {
     const secoesDela = secoes.filter((s) => s.avaliacao_id === a.avaliacao_id);
-    const secaoIds = new Set(secoesDela.map((s) => s.id));
     const respostasDela = respostas.filter((r) => r.aplicacao_id === a.id && r.resposta !== null);
-    const respondidasIds = new Set(respostasDela.map((r) => r.pergunta_id));
-    // Mesma regra do runner: pergunta arquivada só conta se já tiver resposta nesta prova.
-    const perguntasDela = perguntas.filter(
-      (p) => secaoIds.has(p.secao_id) && (!p.arquivada || respondidasIds.has(p.id))
-    );
-    resultado.set(a.id, {
-      respondidas: perguntasDela.filter((p) => respondidasIds.has(p.id)).length,
-      total: perguntasDela.length,
-      notaParcial: calcularNotaGeral(secoesDela, perguntasDela, respostasDela),
-      notaMinima: primeiro(a.avaliacoes)?.nota_minima ?? null,
-    });
+    const respostaPorPergunta = new Map(respostasDela.map((r) => [r.pergunta_id, r.resposta]));
+    // Mesmas regras do runner: pergunta arquivada só conta se já tiver resposta nesta prova, e
+    // pergunta condicional só conta quando a condição foi atendida. Seção sem pergunta visível
+    // não entra na conta.
+    let totalSecoes = 0;
+    let secoesConcluidas = 0;
+    for (const secao of secoesDela) {
+      const visiveis = perguntas.filter(
+        (p) =>
+          p.secao_id === secao.id &&
+          (!p.arquivada || respostaPorPergunta.has(p.id)) &&
+          condicaoAtendida(p, perguntasPorId, respostaPorPergunta)
+      );
+      if (visiveis.length === 0) continue;
+      totalSecoes++;
+      if (visiveis.every((p) => respostaPorPergunta.has(p.id))) secoesConcluidas++;
+    }
+    resultado.set(a.id, { secoesConcluidas, totalSecoes });
   }
   return resultado;
 }
 
 function AplicacaoRow({ a, andamento }: { a: AplicacaoResumo; andamento: Andamento | undefined }) {
   const nome = nomePessoa(a);
-  const nota = andamento?.notaParcial ?? a.nota_geral;
-  const notaMinima = andamento?.notaMinima ?? null;
-  const corNota =
-    nota === null || notaMinima === null ? "" : nota >= notaMinima ? "text-green-600" : "text-destructive";
   const percentual =
-    andamento && andamento.total > 0 ? Math.min(100, Math.round((andamento.respondidas / andamento.total) * 100)) : 0;
+    andamento && andamento.totalSecoes > 0
+      ? Math.min(100, Math.round((andamento.secoesConcluidas / andamento.totalSecoes) * 100))
+      : 0;
 
   return (
     <Link
@@ -171,24 +174,18 @@ function AplicacaoRow({ a, andamento }: { a: AplicacaoResumo; andamento: Andamen
         <span className="text-xs text-muted-foreground">
           {new Date(a.data).toLocaleDateString("pt-BR")} · {a.tipo_pessoa === "interno" ? "Interno" : "Externo"}
         </span>
-        {andamento && andamento.total > 0 ? (
+        {andamento && andamento.totalSecoes > 0 ? (
           <div className="flex max-w-xs items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-primary" style={{ width: `${percentual}%` }} />
             </div>
             <span className="shrink-0 text-xs text-muted-foreground">
-              {andamento.respondidas}/{andamento.total} itens · {percentual}%
+              {andamento.secoesConcluidas} de {andamento.totalSecoes} seç{andamento.totalSecoes > 1 ? "ões" : "ão"}
             </span>
           </div>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        {nota !== null ? (
-          <div className="flex flex-col items-end leading-tight">
-            <span className="text-[10px] uppercase text-muted-foreground">Nota parcial</span>
-            <span className={`text-base font-bold ${corNota}`}>{nota.toFixed(1)}</span>
-          </div>
-        ) : null}
         <Badge variant="secondary">{APLICACAO_STATUS_LABELS[a.status]}</Badge>
       </div>
     </Link>
